@@ -1,0 +1,8 @@
+# Gradle/Java/Kotlin build output
+build/
+.gradle/
+
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

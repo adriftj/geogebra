@@ -273,6 +273,72 @@ public abstract class GgbAPI implements JavaScriptAPI {
 	}
 
 	/**
+	 * Evaluates the given Gpad string and creates GeoElements.
+	 * 
+	 * @param gpadText Gpad text to parse
+	 * @return comma separated labels of created objects, or null if parsing fails
+	 */
+	public synchronized String evalGpad(String gpadText) {
+		try {
+			org.geogebra.common.gpad.GpadParser parser = new org.geogebra.common.gpad.GpadParser(kernel);
+			java.util.List<org.geogebra.common.kernel.geos.GeoElement> geos = parser.parse(gpadText);
+			
+			if (geos.isEmpty())
+				return null;
+			
+			StringBuilder ret = new StringBuilder();
+			for (org.geogebra.common.kernel.geos.GeoElement geo : geos) {
+				ret.append(geo.getLabelSimple());
+				ret.append(",");
+			}
+			
+			// Remove last comma
+			if (ret.length() > 0)
+				ret.setLength(ret.length() - 1);
+			
+			return ret.toString();
+		} catch (org.geogebra.common.gpad.GpadParseException e) {
+			Log.error("Gpad parse error: " + e.getMessage());
+			return null;
+		}
+	}
+
+	/**
+	 * Converts a GeoElement to Gpad format.
+	 * 
+	 * @param objName
+	 *            object name
+	 * @return Gpad string representation, or empty string if object not found
+	 */
+	public synchronized String toGpad(String objName) {
+		GeoElement geo = kernel.lookupLabel(objName);
+		if (geo == null)
+			return "";
+		
+		org.geogebra.common.gpad.GeoElementToGpadConverter converter = 
+				new org.geogebra.common.gpad.GeoElementToGpadConverter();
+		return converter.toGpad(geo);
+	}
+
+	/**
+	 * Converts XML string to Gpad format.
+	 * 
+	 * @param xmlString
+	 *            XML string to convert
+	 * @return Gpad string representation, or null if conversion fails
+	 */
+	public synchronized String xmlToGpad(String xmlString) {
+		try {
+			org.geogebra.common.gpad.XMLToGpadConverter converter = 
+					new org.geogebra.common.gpad.XMLToGpadConverter(kernel);
+			return converter.convert(xmlString);
+		} catch (org.geogebra.common.gpad.GpadParseException e) {
+			Log.error("XML to Gpad conversion error: " + e.getMessage());
+			return null;
+		}
+	}
+
+	/**
 	 * Returns the GeoGebra XML string for the given GeoElement object, i.e.
 	 * only the &lt;element&gt; tag is returned.
 	 */
