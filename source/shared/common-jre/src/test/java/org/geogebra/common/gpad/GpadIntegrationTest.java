@@ -8,7 +8,6 @@ import java.util.List;
 
 import org.geogebra.common.BaseUnitTest;
 import org.geogebra.common.kernel.geos.GeoElement;
-import org.geogebra.common.kernel.geos.GeoLine;
 import org.geogebra.common.kernel.geos.GeoPoint;
 import org.junit.Test;
 
@@ -156,8 +155,3 @@ public class GpadIntegrationTest extends BaseUnitTest {
 		}
 	}
 }
-
-
-
-
-

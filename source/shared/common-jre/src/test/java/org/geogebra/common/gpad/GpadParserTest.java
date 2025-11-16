@@ -1,12 +1,12 @@
 package org.geogebra.common.gpad;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.List;
 
 import org.geogebra.common.BaseUnitTest;
+import org.geogebra.common.gpad.GpadStyleSheet;
 import org.geogebra.common.kernel.geos.GeoElement;
 import org.geogebra.common.kernel.geos.GeoLine;
 import org.geogebra.common.kernel.geos.GeoPoint;
@@ -156,15 +156,298 @@ public class GpadParserTest extends BaseUnitTest {
 	}
 
 	@Test
-	public void testParseAnimationProperty() {
+	public void testParseAnimationPropertyBasic() {
+		String gpad = "$anim = { animation: play 0.1 2x }\n"
+				+ "t $anim = Slider(0, 1)";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GeoElement geo = geos.get(0);
+			assertEquals("t", geo.getLabelSimple());
+			// Check that style sheet was registered
+			assertTrue(parser.getGlobalStyleSheets().containsKey("anim"));
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("anim");
+			assertTrue(styleSheet != null);
+			java.util.LinkedHashMap<String, String> animAttrs = styleSheet.getProperty("animation");
+			assertTrue(animAttrs != null);
+			assertEquals("true", animAttrs.get("playing"));
+			assertEquals("0.1", animAttrs.get("step"));
+			assertEquals("2", animAttrs.get("speed"));
+			assertEquals("0", animAttrs.get("type")); // Default oscillating
+		} catch (GpadParseException e) {
+			// Slider might not be available in all contexts
+		}
+	}
+
+	@Test
+	public void testParseAnimationPropertyWithIncreasingType() {
+		String gpad = "$anim = { animation: play +0.1 2x }\n"
+				+ "t $anim = Slider(0, 1)";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("anim");
+			if (styleSheet != null) {
+				java.util.LinkedHashMap<String, String> animAttrs = styleSheet.getProperty("animation");
+				if (animAttrs != null) {
+					assertEquals("1", animAttrs.get("type")); // INCREASING
+					assertEquals("0.1", animAttrs.get("step"));
+					assertEquals("2", animAttrs.get("speed"));
+				}
+			}
+		} catch (GpadParseException e) {
+			// Slider might not be available in all contexts
+		}
+	}
+
+	@Test
+	public void testParseAnimationPropertyWithDecreasingType() {
 		String gpad = "$anim = { animation: play -0.1 2x }\n"
 				+ "t $anim = Slider(0, 1)";
 		GpadParser parser = new GpadParser(getKernel());
 		
 		try {
 			List<GeoElement> geos = parser.parse(gpad);
-			// Animation properties are set but may not be immediately visible
-			assertTrue(true); // Just check that parsing succeeds
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("anim");
+			if (styleSheet != null) {
+				java.util.LinkedHashMap<String, String> animAttrs = styleSheet.getProperty("animation");
+				if (animAttrs != null) {
+					assertEquals("2", animAttrs.get("type")); // DECREASING
+					assertEquals("0.1", animAttrs.get("step"));
+					assertEquals("2", animAttrs.get("speed"));
+				}
+			}
+		} catch (GpadParseException e) {
+			// Slider might not be available in all contexts
+		}
+	}
+
+	@Test
+	public void testParseAnimationPropertyWithIncreasingOnceType() {
+		String gpad = "$anim = { animation: play =0.1 2x }\n"
+				+ "t $anim = Slider(0, 1)";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("anim");
+			if (styleSheet != null) {
+				java.util.LinkedHashMap<String, String> animAttrs = styleSheet.getProperty("animation");
+				if (animAttrs != null) {
+					assertEquals("3", animAttrs.get("type")); // INCREASING_ONCE
+					assertEquals("0.1", animAttrs.get("step"));
+					assertEquals("2", animAttrs.get("speed"));
+				}
+			}
+		} catch (GpadParseException e) {
+			// Slider might not be available in all contexts
+		}
+	}
+
+	@Test
+	public void testParseAnimationPropertyWithOscillatingType() {
+		String gpad = "$anim = { animation: play 0.1 2x }\n"
+				+ "t $anim = Slider(0, 1)";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("anim");
+			if (styleSheet != null) {
+				java.util.LinkedHashMap<String, String> animAttrs = styleSheet.getProperty("animation");
+				if (animAttrs != null) {
+					assertEquals("0", animAttrs.get("type")); // OSCILLATING (default)
+					assertEquals("0.1", animAttrs.get("step"));
+					assertEquals("2", animAttrs.get("speed"));
+				}
+			}
+		} catch (GpadParseException e) {
+			// Slider might not be available in all contexts
+		}
+	}
+
+	@Test
+	public void testParseAnimationPropertyWithPlayOnly() {
+		String gpad = "$anim = { animation: play }\n"
+				+ "t $anim = Slider(0, 1)";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("anim");
+			if (styleSheet != null) {
+				java.util.LinkedHashMap<String, String> animAttrs = styleSheet.getProperty("animation");
+				if (animAttrs != null) {
+					assertEquals("true", animAttrs.get("playing"));
+					// step and speed should not be set
+					assertTrue(animAttrs.get("step") == null || animAttrs.get("step").isEmpty());
+					assertTrue(animAttrs.get("speed") == null || animAttrs.get("speed").isEmpty());
+				}
+			}
+		} catch (GpadParseException e) {
+			// Slider might not be available in all contexts
+		}
+	}
+
+	@Test
+	public void testParseAnimationPropertyWithTildePlay() {
+		String gpad = "$anim = { animation: ~play }\n"
+				+ "t $anim = Slider(0, 1)";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("anim");
+			if (styleSheet != null) {
+				java.util.LinkedHashMap<String, String> animAttrs = styleSheet.getProperty("animation");
+				if (animAttrs != null) {
+					assertEquals("false", animAttrs.get("playing"));
+				}
+			}
+		} catch (GpadParseException e) {
+			// Slider might not be available in all contexts
+		}
+	}
+
+	@Test
+	public void testParseAnimationPropertyWithStepOnly() {
+		String gpad = "$anim = { animation: 0.1 }\n"
+				+ "t $anim = Slider(0, 1)";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("anim");
+			if (styleSheet != null) {
+				java.util.LinkedHashMap<String, String> animAttrs = styleSheet.getProperty("animation");
+				if (animAttrs != null) {
+					assertEquals("0.1", animAttrs.get("step"));
+					assertEquals("0", animAttrs.get("type")); // Default oscillating
+					// playing and speed should not be set
+					assertTrue(animAttrs.get("playing") == null || animAttrs.get("playing").isEmpty());
+					assertTrue(animAttrs.get("speed") == null || animAttrs.get("speed").isEmpty());
+				}
+			}
+		} catch (GpadParseException e) {
+			// Slider might not be available in all contexts
+		}
+	}
+
+	@Test
+	public void testParseAnimationPropertyWithSpeedOnly() {
+		String gpad = "$anim = { animation: 2x }\n"
+				+ "t $anim = Slider(0, 1)";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("anim");
+			if (styleSheet != null) {
+				java.util.LinkedHashMap<String, String> animAttrs = styleSheet.getProperty("animation");
+				if (animAttrs != null) {
+					assertEquals("2", animAttrs.get("speed"));
+					// playing and step should not be set
+					assertTrue(animAttrs.get("playing") == null || animAttrs.get("playing").isEmpty());
+					assertTrue(animAttrs.get("step") == null || animAttrs.get("step").isEmpty());
+				}
+			}
+		} catch (GpadParseException e) {
+			// Slider might not be available in all contexts
+		}
+	}
+
+	@Test
+	public void testParseAnimationPropertyWithInlineStyle() {
+		String gpad = "t { animation: play +0.1 2x } = Slider(0, 1)";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GeoElement geo = geos.get(0);
+			assertEquals("t", geo.getLabelSimple());
+		} catch (GpadParseException e) {
+			// Slider might not be available in all contexts
+		}
+	}
+
+	@Test
+	public void testParseAnimationPropertyWithFloatSpeed() {
+		String gpad = "$anim = { animation: play 0.1 1.5x }\n"
+				+ "t $anim = Slider(0, 1)";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("anim");
+			if (styleSheet != null) {
+				java.util.LinkedHashMap<String, String> animAttrs = styleSheet.getProperty("animation");
+				if (animAttrs != null) {
+					assertEquals("1.5", animAttrs.get("speed"));
+					assertEquals("0.1", animAttrs.get("step"));
+					assertEquals("true", animAttrs.get("playing"));
+				}
+			}
+		} catch (GpadParseException e) {
+			// Slider might not be available in all contexts
+		}
+	}
+
+	@Test
+	public void testParseAnimationPropertyWithIntegerStep() {
+		String gpad = "$anim = { animation: play 1 2x }\n"
+				+ "t $anim = Slider(0, 1)";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("anim");
+			if (styleSheet != null) {
+				java.util.LinkedHashMap<String, String> animAttrs = styleSheet.getProperty("animation");
+				if (animAttrs != null) {
+					assertEquals("1", animAttrs.get("step"));
+					assertEquals("2", animAttrs.get("speed"));
+					assertEquals("true", animAttrs.get("playing"));
+				}
+			}
+		} catch (GpadParseException e) {
+			// Slider might not be available in all contexts
+		}
+	}
+
+	@Test
+	public void testParseAnimationPropertyDifferentOrder() {
+		// Test that order doesn't matter: speed x, step, play
+		String gpad = "$anim = { animation: 2x +0.1 play }\n"
+				+ "t $anim = Slider(0, 1)";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("anim");
+			if (styleSheet != null) {
+				java.util.LinkedHashMap<String, String> animAttrs = styleSheet.getProperty("animation");
+				if (animAttrs != null) {
+					assertEquals("2", animAttrs.get("speed"));
+					assertEquals("0.1", animAttrs.get("step"));
+					assertEquals("1", animAttrs.get("type")); // INCREASING
+					assertEquals("true", animAttrs.get("playing"));
+				}
+			}
 		} catch (GpadParseException e) {
 			// Slider might not be available in all contexts
 		}

@@ -345,7 +345,8 @@ public class Parser implements ParserInterface {
      * GpadStyleSheet中必须更换元素名称的那些属性，在此登记
      */
     private static final Map<String, String> gkNameMaps
-        = Map.of("hideLabelInAlgebra", "algebra",
+        = Map.of("@screen", "absoluteScreenLocation",
+                "hideLabelInAlgebra", "algebra",
                 "showIf", "condition",
                 "showGeneralAngle", "emphasizeRightAngle",
                 "filename", "file");
@@ -354,18 +355,18 @@ public class Parser implements ParserInterface {
      * 线段始端和终端样式取值表
      */
     private static final Map<String, String> gkStartEndStyleValues
-        = Map.ofEntries(entry("default", null),
-                    entry("line", null),
-                    entry("arrow", null),
-                    entry("crows_foot", null),
-                    entry("arrow_outline", null),
-                    entry("arrow_filled", null),
-                    entry("circle_outline", null),
-                    entry("circle", null),
-                    entry("square_outline", null),
-                    entry("square", null),
-                    entry("diamond_outline", null),
-                    entry("diamond", null));
+        = Map.ofEntries(entry("default", "default"),
+                    entry("line", "line"),
+                    entry("arrow", "arrow"),
+                    entry("crows_foot", "crows_foot"),
+                    entry("arrow_outline", "arrow_outline"),
+                    entry("arrow_filled", "arrow_filled"),
+                    entry("circle_outline", "circle_outline"),
+                    entry("circle", "circle"),
+                    entry("square_outline", "square_outline"),
+                    entry("square", "square"),
+                    entry("diamond_outline", "diamond_outline"),
+                    entry("diamond", "diamond"));
 
     /**
      * 布尔值反转取值表
@@ -377,14 +378,14 @@ public class Parser implements ParserInterface {
      * 直线和二次曲线的方程显示形式
      */
     private static final Map<String, String> gkEqnStyleValues
-        = Map.of("implicit", null,
-                "explicit", null,
-                "parametric", null,
-                "specific", null,
-                "general", null,
-                "vertex", null,
-                "conic", null,
-                "user", null);
+        = Map.of("implicit", "implicit",
+                "explicit", "explicit",
+                "parametric", "parametric",
+                "specific", "specific",
+                "general", "general",
+                "vertex", "vertex",
+                "conic", "conic",
+                "user", "user");
 
     /**
      * lineStyle的type取值表
@@ -410,31 +411,32 @@ public class Parser implements ParserInterface {
      * 如果值映射到null表示不做改变
      */
     private static final Map<String, Map<String, String>> gkValueMaps
-        = Map.of("angleStyle", Map.of("0-360", "0",
+        = Map.ofEntries(
+            entry("angleStyle", Map.of("0-360", "0",
                                     "0-180", "1",
                                     "180-360", "2",
-                                    "any", "3"),
-            "coordStyle", Map.of("cartesian", null,
-                                "polar", null,
-                                "complex", null,
-                                "cartesian3d", null,
-                                "spherical", null),
-            "decoration", Map.of("none","0",
+                                    "any", "3")),
+            entry("coordStyle", Map.of("cartesian", "cartesian",
+                                "polar", "polar",
+                                "complex", "complex",
+                                "cartesian3d", "cartesian3d",
+                                "spherical", "spherical")),
+            entry("decoration", Map.of("none","0",
                                 "single_tick", "1",
                                 "double_tick", "2",
                                 "triple_tick", "3",
                                 "simple_arrow", "4",
                                 "double_arrow", "5",
-                                "triple_arrow", "6"),
-            "showGeneralAngle", gkRevertBooleanValues,
-            "endStyle", gkStartEndStyleValues,
-            "startStyle", gkStartEndStyleValues,
-            "headStyle", Map.of("default", "0", "arrow", "1"),
-            "labelMode", Map.of("name", "0",
+                                "triple_arrow", "6")),
+            entry("showGeneralAngle", gkRevertBooleanValues),
+            entry("endStyle", gkStartEndStyleValues),
+            entry("startStyle", gkStartEndStyleValues),
+            entry("headStyle", Map.of("default", "0", "arrow", "1")),
+            entry("labelMode", Map.of("name", "0",
                                 "name_value", "1",
                                 "value", "2",
-                                "caption", "3"),
-            "pointStyle", Map.ofEntries(entry("default", "-1"),
+                                "caption", "3")),
+            entry("pointStyle", Map.ofEntries(entry("default", "-1"),
                                         entry("dot", "0"),
                                         entry("cross", "1"),
                                         entry("circle", "2"),
@@ -445,13 +447,55 @@ public class Parser implements ParserInterface {
                                         entry("triangle_south", "7"),
                                         entry("triangle_east", "8"),
                                         entry("triangle_west", "9"),
-                                        entry("no_outline", "10")),
-            "textAlign", Map.of("left", null,
-                                "center", null,
-                                "right", null),
-            "verticalAlign", Map.of("top", null,
-                                "middle", null,
-                                "bottom", null));
+                                        entry("no_outline", "10"))),
+            entry("textAlign", Map.of("left", "left",
+                                "center", "center",
+                                "right", "right")),
+            entry("verticalAlign", Map.of("top", "top",
+                                "middle", "middle",
+                                "bottom", "bottom")));
+
+    /**
+     * Helper method to convert property key name and determine attribute name.
+     * 
+     * @param keyName the original key name from token
+     * @return String array with [propertyName, attrName]
+     */
+    private String[] convertPropertyKey(String keyName) {
+        // First, determine the attribute name (check gkUniqueAttrs)
+        String attrName = gkUniqueAttrs.getOrDefault(keyName, "val");
+        // Then convert the property name (check gkNameMaps)
+        String propertyName = gkNameMaps.getOrDefault(keyName, keyName);
+        return new String[]{propertyName, attrName};
+    }
+
+    /**
+     * Helper method to convert property value and set it to style sheet.
+     * Handles value conversion through gkValueMaps with error tolerance.
+     * 
+     * @param styleSheet the style sheet to set property
+     * @param key original property name
+     * @param originalValue the original value to convert
+     */
+    private void setPropertyWithValueConversion(GpadStyleSheet styleSheet, 
+            String key, String originalValue) {
+        String converted[] = convertPropertyKey(key);
+        // Check gkValueMaps for value conversion
+        String finalValue;
+        Map<String, String> valueMap = gkValueMaps.get(converted[0]);
+        if (valueMap == null) // No value map found, use original
+            finalValue = originalValue;
+        else {
+            // Check if original value is in the map
+            finalValue = valueMap.get(originalValue);
+            if (finalValue == null) // Value not found, skip
+                return;
+        }
+        // Write to style sheet
+        java.util.LinkedHashMap<String, String> attrs = new java.util.LinkedHashMap<>();
+        attrs.put(converted[1], finalValue);
+        styleSheet.setProperty(converted[0], attrs);
+    }
 
     /**
      * Parses a Gpad program and returns a list of GeoElements.
@@ -484,7 +528,7 @@ public class Parser implements ParserInterface {
 PARSER_END(Parser)
 
 // Note: includes all Unicode whitespaces (incl. non-breaking), separators and ZWSP
-SKIP : { <(["\u0009" - "\u000E", // ASCII spaces, \u000E added to work around JavaCC bug
+<DEFAULT, GSS_BLOCK, GSS_animation_BLOCK> SKIP : { <(["\u0009" - "\u000E", // ASCII spaces, \u000E added to work around JavaCC bug
   "\u001C" - "\u0020", // separators
   "\u1680",
   "\u2000" - "\u200B", "\u2028" , "\u2029", "\u205F", // various width spaces, including ZWSP
@@ -560,7 +604,6 @@ TOKEN :  {
   | < TRUE:     ( "true" | "True" ) >
   | < FALSE:    ( "false" | "False" ) >
   | < #OVERLINE: "\u0305" >
-  | < DECIMAL_POINT:    ( "." | "\u066b" ) > // Arabic decimal point
   | < COMMA:    ( "," | "\u060c" | "\u23B8" ) > // Arabic comma, vertical bar for Austrian points
 }
 
@@ -569,49 +612,16 @@ TOKEN : {
   |    < VARY: "y" >
   |    < VARZ: "z" >
   //|     < PARAMETRICVAR: (("\u0058") /*| ( ("(") (< VARX >) (< COMMA >) (< VARY >) (")"))*/) > // X
-  |     < FLOAT:  (<INTEGER> | <DECIMAL_POINT>)+ > //deliberately trap eg 1.2.3.4 , 1..2 here, error then thrown in MyDouble.parseDouble()
   |     < EFLOAT: <FLOAT> ("E") (<PLUS> | <MINUS>)? <INTEGER> >
   |     < RECURRING_DIGITS: <OVERLINE> (<DIGIT> <OVERLINE>)* >
-  |     < INTEGER: ( <DIGIT> )+ >
-  |     < #DIGIT:                                     // unicode digits
-         [
-          "\u0030"-"\u0039", // Arabic (=Latin)
-          "\u0660"-"\u0669", // Arabic-Indic
-          "\u06f0"-"\u06f9", // Extended Arabic-Indic
-          "\u0966"-"\u096f", // Devanagari (Hindi)
-          "\u09e6"-"\u09ef", // Bengali
-          "\u0a66"-"\u0a6f", // Gurmukhi (Punjabi)
-          "\u0ae6"-"\u0aef", // Gujurati
-          "\u0b66"-"\u0b6f", // Oryia
-          "\u0be6"-"\u0bef", // Tamil
-          "\u0c66"-"\u0c6f", // Telugu
-          "\u0ce6"-"\u0cef", // Kannada
-          "\u0d66"-"\u0d6f", // Malayalam
-          "\u0e50"-"\u0e59", // Thai
-          "\u0ed0"-"\u0ed9", // Lao
-          "\u1040"-"\u1049", // Myanmar (Burmese)
-          "\u0f20"-"\u0f29", // Tibetan
-          "\u1b50"-"\u1b59", // Balinese
-          "\u1bb0"-"\u1bb9", // Sudanese
-          "\u1c40"-"\u1c49", // Lepcha
-          "\u1c50"-"\u1c59", // Ol Chiki
-          "\u17e0"-"\u17e9", // Khmer
-          "\u1810"-"\u1819", // Mongolian
-          "\ua8d0"-"\ua8d9"  // Saurashtra
-         ]
-    >
 }
 
-TOKEN : {
-   // labels for cells in the spreadsheet
-   <SPREADSHEET_LABEL: ("$")?(["A"-"Z"]|["a"-"z"])+("$")?(["0"-"9"])+ > // e.g. B12
- |
+<DEFAULT, GSS_animation_BLOCK> TOKEN : {
    // standard case: labels for GeoElements and command names
    < #GLABEL:
     <LETTER> ( <INDEX> | <LETTER> | <DIGIT> | "'" | "‘" | "’" )* ("." <INTEGER>)?>
  | < LABEL: <GLABEL> >
- | < GSSLABEL: "$"<GLABEL> >
- |  < #INDEX:  "_" (  <CHAR>  | ("{" (~["}"])+ "}" ) )  >
+ | < #INDEX:  "_" (  <CHAR>  | ("{" (~["}"])+ "}" ) )  >
  | < #LETTER:  // unicode letters
        [
         "$",                    // for absolute references in the spreadsheet
@@ -638,7 +648,11 @@ TOKEN : {
 
 }
 
-
+TOKEN : {
+   // labels for cells in the spreadsheet
+   <SPREADSHEET_LABEL: ("$")?(["A"-"Z"]|["a"-"z"])+("$")?(["0"-"9"])+ > // e.g. B12
+ | < GSSLABEL: "$"<GLABEL> >
+}
 
 // labels for function names
 TOKEN : {
@@ -652,9 +666,39 @@ TOKEN : {
 |   < FUNCTION_POWER_LABEL: (<SPREADSHEET_LABEL> | <LABEL> ) (< POWERN > )("("|"[") >
 }
 
-TOKEN : {
+<DEFAULT, GSS_animation_BLOCK> TOKEN : {
  < TEXT: "\""  (<CHAR>)* "\"" > |
  < #CHAR: ["\u0000"-"\u0021", "\u0023"-"\uffff"]  >
+ | < DECIMAL_POINT:    ( "." | "\u066b" ) > // Arabic decimal point
+ | < INTEGER: ( <DIGIT> )+ >
+ | < FLOAT:  (<INTEGER> | <DECIMAL_POINT>)+ > //deliberately trap eg 1.2.3.4 , 1..2 here, error then thrown in MyDouble.parseDouble()
+ | < #DIGIT:                                     // unicode digits
+     [
+      "\u0030"-"\u0039", // Arabic (=Latin)
+      "\u0660"-"\u0669", // Arabic-Indic
+      "\u06f0"-"\u06f9", // Extended Arabic-Indic
+      "\u0966"-"\u096f", // Devanagari (Hindi)
+      "\u09e6"-"\u09ef", // Bengali
+      "\u0a66"-"\u0a6f", // Gurmukhi (Punjabi)
+      "\u0ae6"-"\u0aef", // Gujurati
+      "\u0b66"-"\u0b6f", // Oryia
+      "\u0be6"-"\u0bef", // Tamil
+      "\u0c66"-"\u0c6f", // Telugu
+      "\u0ce6"-"\u0cef", // Kannada
+      "\u0d66"-"\u0d6f", // Malayalam
+      "\u0e50"-"\u0e59", // Thai
+      "\u0ed0"-"\u0ed9", // Lao
+      "\u1040"-"\u1049", // Myanmar (Burmese)
+      "\u0f20"-"\u0f29", // Tibetan
+      "\u1b50"-"\u1b59", // Balinese
+      "\u1bb0"-"\u1bb9", // Sudanese
+      "\u1c40"-"\u1c49", // Lepcha
+      "\u1c50"-"\u1c59", // Ol Chiki
+      "\u17e0"-"\u17e9", // Khmer
+      "\u1810"-"\u1819", // Mongolian
+      "\ua8d0"-"\ua8d9"  // Saurashtra
+     ]
+ >
 }
 
 <GSS_BLOCK> TOKEN : {
@@ -744,6 +788,15 @@ TOKEN : {
  < GK_XYCOORDS: "@screen" | "labelOffset" > |
  < GK_RGBA: "bgColor" | "borderColor" > |
  < GK_DELETE: "~"((["A"-"Z"]|["a"-"z"]|"@")+) >
+}
+
+<GSS_animation_BLOCK> TOKEN : {
+ < GK_play: "play" > |
+ < GK_tilde_play: "~play" > |
+ < GK_plus: "+" > |
+ < GK_minus: "-" > |
+ < GK_equal: "=" > |
+ < GK_x: "x" >
 }
 
 /**
@@ -2230,9 +2283,16 @@ GpadStyleSheet gpadStyleSheetBody(String name) :
 void gpadStyleSheetPropertyDelete(GpadStyleSheet styleSheet) :
 {
     Token keyToken;
+    String propertyName;
 }
 {
-    keyToken = <GK_DELETE> { styleSheet.removeProperty(keyToken.image.substring(1)); }
+    keyToken = <GK_DELETE>
+    {
+        // Convert the property name (check gkNameMaps), but no attribute conversion needed
+        String originalKey = keyToken.image.substring(1);
+        propertyName = gkNameMaps.getOrDefault(originalKey, originalKey);
+        styleSheet.removeProperty(propertyName);
+    }
 }
 
 /**
@@ -2247,33 +2307,7 @@ void gpadStyleSheetPropertyBoolean(GpadStyleSheet styleSheet) :
 {
     keyToken = <GK_BOOL>
     {
-        // Set boolean key to true
-        // Create LinkedHashMap with "val" attribute
-        java.util.LinkedHashMap<String, String> attrs = new java.util.LinkedHashMap<>();
-        attrs.put("val", "true");
-        styleSheet.setProperty(keyToken.image, attrs);
-    }
-}
-
-/**
- * Parses xycoords property
- * Syntax: key: <double> <double>;
- * Value: two double values separated by space (x and y coordinates)
- */
-void gpadStyleSheetPropertyXYCoords(GpadStyleSheet styleSheet) :
-{
-    Token keyToken;
-    Token xToken, yToken;
-}
-{
-    keyToken = <GK_XYCOORDS> ":" { token_source.SwitchTo(DEFAULT); }
-    (xToken = <FLOAT> | xToken = <INTEGER>)
-    (yToken = <FLOAT> | yToken = <INTEGER>)
-    {
-        java.util.LinkedHashMap<String, String> attrs = new java.util.LinkedHashMap<>();
-        attrs.put("x", xToken.image);
-        attrs.put("y", yToken.image);
-        styleSheet.setProperty(keyToken.image, attrs);
+        setPropertyWithValueConversion(styleSheet, keyToken.image, "true");
     }
 }
 
@@ -2285,14 +2319,16 @@ void gpadStyleSheetPropertyInt(GpadStyleSheet styleSheet) :
 {
     Token keyToken;
     Token valueToken;
+    String[] converted;
 }
 {
     keyToken = <GK_INT> ":" { token_source.SwitchTo(DEFAULT); }
     (valueToken = <INTEGER> | valueToken = <FLOAT>)
     {
+        converted = convertPropertyKey(keyToken.image);
         java.util.LinkedHashMap<String, String> attrs = new java.util.LinkedHashMap<>();
-        attrs.put("val", valueToken.image);
-        styleSheet.setProperty(keyToken.image, attrs);
+        attrs.put(converted[1], valueToken.image);
+        styleSheet.setProperty(converted[0], attrs);
     }
 }
 
@@ -2304,14 +2340,16 @@ void gpadStyleSheetPropertyFloat(GpadStyleSheet styleSheet) :
 {
     Token keyToken;
     Token valueToken;
+    String[] converted;
 }
 {
     keyToken = <GK_FLOAT> ":" { token_source.SwitchTo(DEFAULT); }
     (valueToken = <FLOAT> | valueToken = <INTEGER>)
     {
+        converted = convertPropertyKey(keyToken.image);
         java.util.LinkedHashMap<String, String> attrs = new java.util.LinkedHashMap<>();
-        attrs.put("val", valueToken.image);
-        styleSheet.setProperty(keyToken.image, attrs);
+        attrs.put(converted[1], valueToken.image);
+        styleSheet.setProperty(converted[0], attrs);
     }
 }
 
@@ -2323,19 +2361,41 @@ void gpadStyleSheetPropertyStr(GpadStyleSheet styleSheet) :
 {
     Token keyToken;
     Token valueToken;
+    String val;
 }
 {
     keyToken = <GK_STR> ":" { token_source.SwitchTo(DEFAULT); }
-    (valueToken = <TEXT> | valueToken = <LABEL>)
-    {
-        java.util.LinkedHashMap<String, String> attrs = new java.util.LinkedHashMap<>();
-        String val = valueToken.image;
-        if (valueToken.kind == TEXT) {
-            // Remove quotes from text
+    (
+        (valueToken = <TEXT> {
+            val = valueToken.image;
             val = val.substring(1, val.length() - 1);
-        }
-        attrs.put("val", val);
-        styleSheet.setProperty(keyToken.image, attrs);
+        }) |
+        (valueToken = <LABEL> { val = valueToken.image; })
+    )
+    { setPropertyWithValueConversion(styleSheet, keyToken.image, val); }
+}
+
+/**
+ * Parses xycoords property
+ * Syntax: key: <double> <double>;
+ * Value: two double values separated by space (x and y coordinates)
+ */
+void gpadStyleSheetPropertyXYCoords(GpadStyleSheet styleSheet) :
+{
+    Token keyToken;
+    Token xToken, yToken;
+    String[] converted;
+}
+{
+    keyToken = <GK_XYCOORDS> ":" { token_source.SwitchTo(DEFAULT); }
+    (xToken = <FLOAT> | xToken = <INTEGER>)
+    (yToken = <FLOAT> | yToken = <INTEGER>)
+    {
+        converted = convertPropertyKey(keyToken.image);
+        java.util.LinkedHashMap<String, String> attrs = new java.util.LinkedHashMap<>();
+        attrs.put("x", xToken.image);
+        attrs.put("y", yToken.image);
+        styleSheet.setProperty(converted[0], attrs);
     }
 }
 
@@ -2371,19 +2431,53 @@ void gpadStyleSheetPropertyRGBA(GpadStyleSheet styleSheet) :
 
 /**
  * Parses animation property
- * Syntax: animation: [play] [step] [speed];
+ * Syntax: animation: [play|~play] [type step] [speed x];
+ * Three parts separated by whitespace, any order, any can be omitted
  */
 void gpadStyleSheetPropertyAnimation(GpadStyleSheet styleSheet) :
 {
     Token keyToken;
-    Token valueToken;
+    String playing = null;
+    String type = "0";
+    String step = null;
+    String speed = null;
+    Token stepToken = null;
+    Token speedToken = null;
 }
 {
-    keyToken = <GK_animation> ":" { token_source.SwitchTo(DEFAULT); }
-    valueToken = <LABEL>
+    keyToken = <GK_animation> ":" { token_source.SwitchTo(GSS_animation_BLOCK); }
+    ( (
+        <GK_play> { playing = "true"; } |
+        <GK_tilde_play> { playing = "false"; }
+    ) | ( 
+        (
+        speedToken = <FLOAT> { speed = speedToken.image; } |
+        speedToken = <INTEGER> { speed = speedToken.image; } |
+        speedToken = <TEXT> { speed = speedToken.image.substring(1, speedToken.image.length() - 1); }
+        )
+        <GK_x>
+    ) | ( (
+        <GK_plus> { type = "1"; } |
+        <GK_minus> { type = "2"; } |
+        <GK_equal> { type = "3"; }
+        )?
+        (
+        stepToken = <TEXT> { step = stepToken.image.substring(1, stepToken.image.length() - 1); } |
+        stepToken = <LABEL> { step = stepToken.image; } |
+        stepToken = <FLOAT> { step = stepToken.image; } |
+        stepToken = <INTEGER> { step = stepToken.image; }
+        )
+    ) )*
     {
         java.util.LinkedHashMap<String, String> attrs = new java.util.LinkedHashMap<>();
-        attrs.put("val", valueToken.image);
+        if (playing != null)
+            attrs.put("playing", playing);
+        if (step != null) {
+            attrs.put("type", type);
+            attrs.put("step", step);
+        }
+        if (speed != null)
+            attrs.put("speed", speed);
         styleSheet.setProperty(keyToken.image, attrs);
     }
 }
@@ -2452,15 +2546,10 @@ void gpadLabelStyleSheets(java.util.List<String> labels, java.util.List<GpadStyl
     Token label;
     Token visibilityFlag = null;
     Token styleName;
-    GpadStyleSheet styleSheet, styleSheet2;
+    GpadStyleSheet styleSheet = null, styleSheet2;
 }
 {
-    label = label()
-    (
-        visibilityFlag = "*"
-    |
-        visibilityFlag = "~"
-    )?
+    label = label() ( visibilityFlag = "*" | visibilityFlag = "~" )?
     (
         (
         (styleName = <LABEL> { styleSheet2 = gpadStyleSheets.get(styleName.image); })
