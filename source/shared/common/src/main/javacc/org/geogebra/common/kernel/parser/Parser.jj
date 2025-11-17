@@ -411,18 +411,18 @@ public class Parser implements ParserInterface {
     private static final Map<String, String> gkLineStyleTypeValues
         = Map.of("pointwise", "-1",
                 "full", "0",
-                "dashed_short", "10",
-                "dashed_long", "15",
+                "dashedshort", "10",
+                "dashedlong", "15",
                 "dotted", "20",
-                "dashed_dotted", "30");
+                "dasheddotted", "30");
 
     /**
      * lineStyle的typeHidden取值表(用于3d)
      */
     private static final Map<String, String> gkLineStyleTypeHiddenValues
-        = Map.of("hidden", "0",
-                "hidden_dashed", "1",
-                "hidden_show", "2");
+        = Map.of("", "0",
+                "dashed", "1",
+                "show", "2");
 
     /**
      * GpadStyleSheet中属性值到xml元素属性值的映射表
@@ -521,6 +521,126 @@ public class Parser implements ParserInterface {
     }
 
     /**
+     * Parses lineStyle tokens and converts them to XML attributes.
+     * 
+     * @param tokens list of tokens to parse
+     * @return map of XML attributes
+     */
+    private java.util.LinkedHashMap<String, String> parseLineStyleTokens(
+            java.util.ArrayList<Token> tokens) {
+        java.util.LinkedHashMap<String, String> attrs = new java.util.LinkedHashMap<>();
+        String type = null;
+        String thickness = null;
+        String typeHidden = null;
+        String opacity = null;
+        String drawArrow = null;
+        
+        int i = 0;
+        while (i < tokens.size()) {
+            Token t = tokens.get(i);
+            String tokenStr = t.image;
+            
+            // Check for thickness=value
+            if ("thickness".equals(tokenStr) && i + 2 < tokens.size() 
+                    && tokens.get(i + 1).kind == EQUAL) {
+                Token valueToken = tokens.get(i + 2);
+                if (valueToken.kind == FLOAT) {
+                    String thicknessStr = valueToken.image;
+                    int dotIndex = thicknessStr.indexOf('.');
+                    thickness = dotIndex >= 0 ? thicknessStr.substring(0, dotIndex) : thicknessStr;
+                    i += 3;
+                    continue;
+                }
+            }
+            
+            // Check for hidden[=dashed|show]
+            if ("hidden".equals(tokenStr)) {
+                if (i + 2 < tokens.size() && tokens.get(i + 1).kind == EQUAL) {
+                    Token valueToken = tokens.get(i + 2);
+                    if (valueToken.kind == LABEL) {
+                        String hiddenValue = valueToken.image;
+                        if ("dashed".equals(hiddenValue)) {
+                            typeHidden = "dashed";
+                        } else if ("show".equals(hiddenValue)) {
+                            typeHidden = "show";
+                        }
+                        i += 3;
+                    } else {
+                        typeHidden = "";
+                        i += 1;
+                    }
+                } else {
+                    typeHidden = "";
+                    i += 1;
+                }
+                continue;
+            }
+            
+            // Check for opacity=value
+            if ("opacity".equals(tokenStr) && i + 2 < tokens.size() 
+                    && tokens.get(i + 1).kind == EQUAL) {
+                Token valueToken = tokens.get(i + 2);
+                if (valueToken.kind == FLOAT) {
+                    String opacityStr = valueToken.image;
+                    int dotIndex = opacityStr.indexOf('.');
+                    opacity = dotIndex >= 0 ? opacityStr.substring(0, dotIndex) : opacityStr;
+                    i += 3;
+                    continue;
+                }
+            }
+            
+            // Check for ~arrow
+            if (t.kind == GK_DELETE && tokenStr.startsWith("~") && "arrow".equals(tokenStr.substring(1))) {
+                drawArrow = "false";
+                i += 1;
+                continue;
+            }
+            
+            // Check for arrow
+            if ("arrow".equals(tokenStr)) {
+                drawArrow = "true";
+                i += 1;
+                continue;
+            }
+            
+            // Check for type (no prefix, must be one of gkLineStyleTypeValues keys)
+            if (t.kind == LABEL && gkLineStyleTypeValues.containsKey(tokenStr)) {
+                type = tokenStr;
+                i += 1;
+                continue;
+            }
+            
+            // Unknown token, skip it
+            i += 1;
+        }
+        
+        // Convert to XML attributes
+        if (type != null) {
+            String typeValue = gkLineStyleTypeValues.get(type);
+            if (typeValue != null) {
+                attrs.put("type", typeValue);
+            }
+        }
+        if (thickness != null) {
+            attrs.put("thickness", thickness);
+        }
+        if (typeHidden != null) {
+            String typeHiddenValue = gkLineStyleTypeHiddenValues.get(typeHidden);
+            if (typeHiddenValue != null) {
+                attrs.put("typeHidden", typeHiddenValue);
+            }
+        }
+        if (opacity != null) {
+            attrs.put("opacity", opacity);
+        }
+        if (drawArrow != null) {
+            attrs.put("drawArrow", drawArrow);
+        }
+        
+        return attrs;
+    }
+
+    /**
      * Parses a Gpad program and returns a list of GeoElements.
      * 
      * @param gpadText Gpad text to parse
@@ -551,7 +671,7 @@ PARSER_END(Parser)
 
 
 // Note: includes all Unicode whitespaces (incl. non-breaking), separators and ZWSP
-<DEFAULT, GK_BLOCK, GK_animation_BLOCK, GK_RGBA_BLOCK> SKIP : { <(["\u0009" - "\u000E", // ASCII spaces, \u000E added to work around JavaCC bug
+<DEFAULT, GK_BLOCK, GK_animation_BLOCK, GK_RGBA_BLOCK, GK_lineStyle_BLOCK> SKIP : { <(["\u0009" - "\u000E", // ASCII spaces, \u000E added to work around JavaCC bug
   "\u001C" - "\u0020", // separators
   "\u1680",
   "\u2000" - "\u200B", "\u2028" , "\u2029", "\u205F", // various width spaces, including ZWSP
@@ -721,7 +841,7 @@ TOKEN : {
 |   < LBRACE: "{" >
 }
 
-<DEFAULT, GK_BLOCK, GK_animation_BLOCK, GK_RGBA_BLOCK> TOKEN : {
+<DEFAULT, GK_BLOCK, GK_animation_BLOCK, GK_RGBA_BLOCK, GK_lineStyle_BLOCK> TOKEN : {
    < RBRACE: "}" >
 |   < POLAR_SEPARATOR: ( "\u2221" | ";" ) > // separator used by Giac instead of ;
 }
@@ -835,7 +955,25 @@ TOKEN : {
  < GK_RGBA_HEX_COLOR: "#" (["0"-"9","A"-"F","a"-"f"])+ >
 }
 
-<GK_BLOCK, GK_animation_BLOCK, GK_RGBA_BLOCK> TOKEN : {
+<GK_lineStyle_BLOCK> TOKEN : {
+ < GK_lineStyle_thickness: "thickness" > |
+ < GK_lineStyle_hidden: "hidden" > |
+ < GK_lineStyle_opacity: "opacity" > |
+ < GK_lineStyle_arrow: "arrow" > |
+ < GK_lineStyle_tilde_arrow: "~arrow" > |
+ < GK_lineStyle_type_pointwise: "pointwise" > |
+ < GK_lineStyle_type_full: "full" > |
+ < GK_lineStyle_type_dashedshort: "dashedshort" > |
+ < GK_lineStyle_type_dashedlong: "dashedlong" > |
+ < GK_lineStyle_type_dotted: "dotted" > |
+ < GK_lineStyle_type_dasheddotted: "dasheddotted" > |
+ < GK_lineStyle_dashed: "dashed" > |
+ < GK_lineStyle_show: "show" > |
+ < GK_lineStyle_equal: "=" > |
+ < GK_lineStyle_float: (["0"-"9"])+("." (["0"-"9"])+)? >
+}
+
+<GK_BLOCK, GK_animation_BLOCK, GK_RGBA_BLOCK, GK_lineStyle_BLOCK> TOKEN : {
  < GK_INVALID: (~[";", "}"]) >
 }
 
@@ -2322,7 +2460,8 @@ void gpadStyleSheetKeyValue(GpadStyleSheet styleSheet) :
         gpadStyleSheetPropertyXYCoords(styleSheet) | // XYCoords key
         gpadStyleSheetPropertyRGBA(styleSheet) | // rgba key #rrggbbaa
         gpadStyleSheetPropertyAnimation(styleSheet) | // animation key
-        gpadStyleSheetPropertyEqnStyle(styleSheet) // eqnStyle key
+        gpadStyleSheetPropertyEqnStyle(styleSheet) | // eqnStyle key
+        gpadStyleSheetPropertyLineStyle(styleSheet) // lineStyle key
         )
         { token_source.SwitchTo(DEFAULT); }
     }
@@ -2609,6 +2748,119 @@ void gpadStyleSheetPropertyEqnStyle(GpadStyleSheet styleSheet) :
         attrs.put("style", styleValue);
         if (paramValue != null)
             attrs.put("parameter", paramValue);
+        styleSheet.setProperty(keyToken.image, attrs);
+    }
+}
+
+/**
+ * Parses lineStyle property
+ * Syntax: lineStyle: [type] [thickness=value] [hidden[=dashed|show]] [opacity=value] [arrow|~arrow];
+ * Five parts separated by whitespace, any order, any can be omitted
+ * type: one of gkLineStyleTypeValues keys (pointwise, full, dashedshort, dashedlong, dotted, dasheddotted)
+ * thickness: FLOAT value (decimal part ignored)
+ * typeHidden: hidden (default), hidden=dashed, or hidden=show
+ * opacity: FLOAT value (decimal part ignored)
+ * drawArrow: arrow or ~arrow
+ */
+void gpadStyleSheetPropertyLineStyle(GpadStyleSheet styleSheet) :
+{
+    Token keyToken;
+    String type = null;
+    String thickness = null;
+    String typeHidden = null;
+    String opacity = null;
+    String drawArrow = null;
+    Token floatToken = null;
+    int dotIndex;
+}
+{
+    keyToken = <GK_lineStyle> <GK_COLON> { token_source.SwitchTo(GK_lineStyle_BLOCK); }
+    ( (
+        // Parse type (no prefix)
+        <GK_lineStyle_type_pointwise> { type = "pointwise"; } |
+        <GK_lineStyle_type_full> { type = "full"; } |
+        <GK_lineStyle_type_dashedshort> { type = "dashedshort"; } |
+        <GK_lineStyle_type_dashedlong> { type = "dashedlong"; } |
+        <GK_lineStyle_type_dotted> { type = "dotted"; } |
+        <GK_lineStyle_type_dasheddotted> { type = "dasheddotted"; }
+    ) | (
+        // Parse thickness=value
+        <GK_lineStyle_thickness> <GK_lineStyle_equal> floatToken = <GK_lineStyle_float>
+        {
+            // Extract integer part (ignore decimal)
+            String thicknessStr = floatToken.image;
+            dotIndex = thicknessStr.indexOf('.');
+            thickness = dotIndex >= 0 ? thicknessStr.substring(0, dotIndex) : thicknessStr;
+        }
+    ) | (
+        // Parse hidden[=dashed|show]
+        <GK_lineStyle_hidden>
+        (
+            <GK_lineStyle_equal> (
+                <GK_lineStyle_dashed> { typeHidden = "dashed"; } |
+                <GK_lineStyle_show> { typeHidden = "show"; }
+            )
+        )?
+        {
+            // If no value specified, default to empty string (which maps to "0")
+            if (typeHidden == null) {
+                typeHidden = "";
+            }
+        }
+    ) | (
+        // Parse opacity=value
+        <GK_lineStyle_opacity> <GK_lineStyle_equal> floatToken = <GK_lineStyle_float>
+        {
+            // Extract integer part (ignore decimal)
+            String opacityStr = floatToken.image;
+            dotIndex = opacityStr.indexOf('.');
+            opacity = dotIndex >= 0 ? opacityStr.substring(0, dotIndex) : opacityStr;
+        }
+    ) | (
+        // Parse arrow or ~arrow
+        <GK_lineStyle_arrow> { drawArrow = "true"; } |
+        <GK_lineStyle_tilde_arrow> { drawArrow = "false"; }
+    )     )*
+    {
+        java.util.LinkedHashMap<String, String> attrs = new java.util.LinkedHashMap<>();
+        
+        // Set default values if not provided
+        // Default type: 0 (full), default thickness: 5
+        if (type != null) {
+            // Convert type key to XML value using gkLineStyleTypeValues
+            String typeValue = gkLineStyleTypeValues.get(type);
+            if (typeValue != null) {
+                attrs.put("type", typeValue);
+            } else {
+                // If type not found in map, use default
+                attrs.put("type", "0");
+            }
+        } else {
+            // Default line type: full (0)
+            attrs.put("type", "0");
+        }
+        
+        if (thickness != null) {
+            attrs.put("thickness", thickness);
+        } else {
+            // Default line thickness: 5
+            attrs.put("thickness", "5");
+        }
+        
+        if (typeHidden != null) {
+            // Convert typeHidden to XML value using gkLineStyleTypeHiddenValues
+            String typeHiddenValue = gkLineStyleTypeHiddenValues.get(typeHidden);
+            if (typeHiddenValue != null) {
+                attrs.put("typeHidden", typeHiddenValue);
+            }
+        }
+        if (opacity != null) {
+            attrs.put("opacity", opacity);
+        }
+        if (drawArrow != null) {
+            attrs.put("drawArrow", drawArrow);
+        }
+        // Always set property since we now always have type and thickness
         styleSheet.setProperty(keyToken.image, attrs);
     }
 }

@@ -2,6 +2,7 @@ package org.geogebra.common.gpad;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.HashMap;
 
 /**
  * Converts style map (Map<String, LinkedHashMap<String, String>>) to Gpad format.
@@ -69,8 +70,8 @@ public class StyleMapToGpadConverter {
 		// Handle different property types
 		switch (tagName) {
 		case "lineStyle":
-			// lineStyle: thickness=4 opacity=178 type=0
-			sb.append(convertKeyValuePairs(attrs));
+			// lineStyle: dashedlong thickness=5 hidden opacity=128 ~arrow
+			sb.append(convertLineStyle(attrs));
 			break;
 		case "objColor":
 		case "bgColor":
@@ -198,6 +199,106 @@ public class StyleMapToGpadConverter {
 				sb.append(" ");
 			}
 			sb.append(speed).append("x");
+		}
+
+		return sb.toString();
+	}
+
+	/**
+	 * Converts lineStyle XML attributes to Gpad format.
+	 * Syntax: [type] [thickness=value] [hidden[=dashed|show]] [opacity=value] [arrow|~arrow]
+	 * 
+	 * @param attrs
+	 *            lineStyle attributes map
+	 * @return Gpad lineStyle string
+	 */
+	private String convertLineStyle(LinkedHashMap<String, String> attrs) {
+		if (attrs == null || attrs.isEmpty()) {
+			return "";
+		}
+
+		StringBuilder sb = new StringBuilder();
+		boolean first = true;
+
+		// Reverse maps for converting XML values to Gpad keys
+		Map<String, String> typeReverseMap = new HashMap<>();
+		typeReverseMap.put("-1", "pointwise");
+		typeReverseMap.put("0", "full");
+		typeReverseMap.put("10", "dashedshort");
+		typeReverseMap.put("15", "dashedlong");
+		typeReverseMap.put("20", "dotted");
+		typeReverseMap.put("30", "dasheddotted");
+
+		Map<String, String> typeHiddenReverseMap = new HashMap<>();
+		typeHiddenReverseMap.put("0", "");
+		typeHiddenReverseMap.put("1", "dashed");
+		typeHiddenReverseMap.put("2", "show");
+
+		// Convert type (no prefix)
+		String typeValue = attrs.get("type");
+		if (typeValue != null) {
+			String typeKey = typeReverseMap.get(typeValue);
+			if (typeKey != null) {
+				if (!first) {
+					sb.append(" ");
+				}
+				sb.append(typeKey);
+				first = false;
+			}
+		}
+
+		// Convert thickness=value
+		String thickness = attrs.get("thickness");
+		if (thickness != null) {
+			if (!first) {
+				sb.append(" ");
+			}
+			sb.append("thickness=").append(thickness);
+			first = false;
+		}
+
+		// Convert typeHidden (hidden, hidden=dashed, or hidden=show)
+		String typeHiddenValue = attrs.get("typeHidden");
+		if (typeHiddenValue != null) {
+			if (!first) {
+				sb.append(" ");
+			}
+			String typeHiddenKey = typeHiddenReverseMap.get(typeHiddenValue);
+			if (typeHiddenKey != null) {
+				if (typeHiddenKey.isEmpty()) {
+					sb.append("hidden");
+				} else {
+					sb.append("hidden=").append(typeHiddenKey);
+				}
+			} else {
+				// Default to hidden if value not recognized
+				sb.append("hidden");
+			}
+			first = false;
+		}
+
+		// Convert opacity=value
+		String opacity = attrs.get("opacity");
+		if (opacity != null) {
+			if (!first) {
+				sb.append(" ");
+			}
+			sb.append("opacity=").append(opacity);
+			first = false;
+		}
+
+		// Convert drawArrow (arrow or ~arrow)
+		String drawArrow = attrs.get("drawArrow");
+		if (drawArrow != null) {
+			if (!first) {
+				sb.append(" ");
+			}
+			if ("true".equals(drawArrow)) {
+				sb.append("arrow");
+			} else if ("false".equals(drawArrow)) {
+				sb.append("~arrow");
+			}
+			first = false;
 		}
 
 		return sb.toString();
