@@ -795,4 +795,237 @@ public class GpadParserTest extends BaseUnitTest {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
+
+	@Test
+	public void testParseEqnStyleImplicit() {
+		String gpad = "@style = { eqnStyle: implicit }\ng @style = Line((0,0), (1,1))";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> eqnStyleAttrs = styleSheet.getProperty("eqnStyle");
+			assertNotNull(eqnStyleAttrs);
+			assertEquals("implicit", eqnStyleAttrs.get("style"));
+			assertTrue(eqnStyleAttrs.get("parameter") == null);
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testParseEqnStyleExplicit() {
+		String gpad = "@style = { eqnStyle: explicit }\ng @style = Line((0,0), (1,1))";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> eqnStyleAttrs = styleSheet.getProperty("eqnStyle");
+			assertNotNull(eqnStyleAttrs);
+			assertEquals("explicit", eqnStyleAttrs.get("style"));
+			assertTrue(eqnStyleAttrs.get("parameter") == null);
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testParseEqnStyleParametricWithParameter() {
+		String gpad = "@style = { eqnStyle: parametric=t }\ng @style = Line((0,0), (1,1))";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> eqnStyleAttrs = styleSheet.getProperty("eqnStyle");
+			assertNotNull(eqnStyleAttrs);
+			assertEquals("parametric", eqnStyleAttrs.get("style"));
+			assertEquals("t", eqnStyleAttrs.get("parameter"));
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testParseEqnStyleParametricWithUppercaseParameter() {
+		String gpad = "@style = { eqnStyle: parametric=T }\ng @style = Line((0,0), (1,1))";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> eqnStyleAttrs = styleSheet.getProperty("eqnStyle");
+			assertNotNull(eqnStyleAttrs);
+			assertEquals("parametric", eqnStyleAttrs.get("style"));
+			assertEquals("T", eqnStyleAttrs.get("parameter"));
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testParseEqnStyleParametricWithDifferentParameter() {
+		String gpad = "@style = { eqnStyle: parametric=s }\ng @style = Line((0,0), (1,1))";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> eqnStyleAttrs = styleSheet.getProperty("eqnStyle");
+			assertNotNull(eqnStyleAttrs);
+			assertEquals("parametric", eqnStyleAttrs.get("style"));
+			assertEquals("s", eqnStyleAttrs.get("parameter"));
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testParseEqnStyleParametricWithoutParameter() {
+		String gpad = "@style = { eqnStyle: parametric }\ng @style = Line((0,0), (1,1))";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> eqnStyleAttrs = styleSheet.getProperty("eqnStyle");
+			assertNotNull(eqnStyleAttrs);
+			assertEquals("parametric", eqnStyleAttrs.get("style"));
+			assertTrue(eqnStyleAttrs.get("parameter") == null);
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testParseEqnStyleAllValidStyles() {
+		String[] validStyles = {"implicit", "explicit", "specific", "parametric", "general", "vertex", "conic", "user"};
+		
+		for (String style : validStyles) {
+			String gpad = "@style = { eqnStyle: " + style + " }\ng @style = Line((0,0), (1,1))";
+			GpadParser parser = new GpadParser(getKernel());
+			
+			try {
+				List<GeoElement> geos = parser.parse(gpad);
+				assertEquals(1, geos.size());
+				GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
+				assertNotNull(styleSheet);
+				java.util.LinkedHashMap<String, String> eqnStyleAttrs = styleSheet.getProperty("eqnStyle");
+				assertNotNull("Style " + style + " should be parsed", eqnStyleAttrs);
+				assertEquals("Style value should match", style, eqnStyleAttrs.get("style"));
+			} catch (GpadParseException | CircularDefinitionException e) {
+				throw new AssertionError("Parse failed for style " + style + ": " + e.getMessage(), e);
+			}
+		}
+	}
+
+	@Test
+	public void testParseEqnStyleInvalidStyle() {
+		// Invalid style value should be silently ignored
+		String gpad = "@style = { eqnStyle: invalid }\ng @style = Line((0,0), (1,1))";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
+			assertNotNull(styleSheet);
+			// Invalid style value should be ignored, so eqnStyle property should not exist
+			java.util.LinkedHashMap<String, String> eqnStyleAttrs = styleSheet.getProperty("eqnStyle");
+			assertTrue("Invalid style should be ignored", eqnStyleAttrs == null);
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testParseEqnStyleParametricWithInvalidParameter() {
+		// Parameter that is not a single letter should be ignored
+		String gpad = "@style = { eqnStyle: parametric=tt }\ng @style = Line((0,0), (1,1))";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> eqnStyleAttrs = styleSheet.getProperty("eqnStyle");
+			assertNotNull(eqnStyleAttrs);
+			assertEquals("parametric", eqnStyleAttrs.get("style"));
+			// Invalid parameter (not single letter) should be ignored
+			assertTrue(eqnStyleAttrs.get("parameter") == null);
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testParseEqnStyleParametricWithNonLetterParameter() {
+		// Parameter that is not a letter should be ignored
+		String gpad = "@style = { eqnStyle: parametric=1 }\ng @style = Line((0,0), (1,1))";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> eqnStyleAttrs = styleSheet.getProperty("eqnStyle");
+			assertNotNull(eqnStyleAttrs);
+			assertEquals("parametric", eqnStyleAttrs.get("style"));
+			// Non-letter parameter should be ignored
+			assertTrue(eqnStyleAttrs.get("parameter") == null);
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testParseEqnStyleNonParametricWithParameter() {
+		// Parameter should be ignored for non-parametric styles
+		String gpad = "@style = { eqnStyle: implicit=t }\ng @style = Line((0,0), (1,1))";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> eqnStyleAttrs = styleSheet.getProperty("eqnStyle");
+			assertNotNull(eqnStyleAttrs);
+			assertEquals("implicit", eqnStyleAttrs.get("style"));
+			// Parameter should not be set for non-parametric styles
+			assertTrue(eqnStyleAttrs.get("parameter") == null);
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testParseEqnStyleWithInlineStyle() {
+		String gpad = "g { eqnStyle: parametric=t } = Line((0,0), (1,1))";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GeoElement geo = geos.get(0);
+			assertEquals("g", geo.getLabelSimple());
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
 }

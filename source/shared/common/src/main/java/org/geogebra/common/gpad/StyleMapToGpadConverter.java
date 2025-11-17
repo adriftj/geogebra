@@ -102,6 +102,17 @@ public class StyleMapToGpadConverter {
 				sb.append("\"").append(attrs.get("val")).append("\"");
 			}
 			break;
+		case "eqnStyle":
+			// eqnStyle: implicit; or eqnStyle: parametric=t;
+			if (attrs.containsKey("style")) {
+				String style = attrs.get("style");
+				sb.append(style);
+				// If style is parametric and has parameter attribute, add =parameter
+				if ("parametric".equals(style) && attrs.containsKey("parameter")) {
+					sb.append("=").append(attrs.get("parameter"));
+				}
+			}
+			break;
 		default:
 			// Generic property: use "val" if present, otherwise convert all attributes
 			if (attrs.containsKey("val") && attrs.size() == 1) {

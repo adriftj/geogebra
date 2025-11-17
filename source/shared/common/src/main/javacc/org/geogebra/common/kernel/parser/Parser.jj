@@ -448,10 +448,9 @@ public class Parser implements ParserInterface {
                                 "triple_arrow", "6")),
             entry("showGeneralAngle", gkRevertBooleanValues),
             entry("endStyle", gkStartEndStyleValues),
-            entry("startStyle", gkStartEndStyleValues),
             entry("headStyle", Map.of("default", "0", "arrow", "1")),
             entry("labelMode", Map.of("name", "0",
-                                "name_value", "1",
+                                "namevalue", "1",
                                 "value", "2",
                                 "caption", "3")),
             entry("pointStyle", Map.ofEntries(entry("default", "-1"),
@@ -466,9 +465,15 @@ public class Parser implements ParserInterface {
                                         entry("triangle_east", "8"),
                                         entry("triangle_west", "9"),
                                         entry("no_outline", "10"))),
+            entry("startStyle", gkStartEndStyleValues),
             entry("textAlign", Map.of("left", "left",
                                 "center", "center",
                                 "right", "right")),
+            entry("tooltipMode", Map.of("algebraview", "0",
+                                "on", "1",
+                                "off", "2",
+                                "caption", "3",
+                                "nextcell", "4")),
             entry("verticalAlign", Map.of("top", "top",
                                 "middle", "middle",
                                 "bottom", "bottom")));
@@ -756,7 +761,6 @@ TOKEN : {
  < GK_tableview: "tableview" > |
  < GK_tag: "tag" > |
  < GK_tempUserInput: "tempUserInput" > |
- < GK_tooltipMode: "tooltipMode" > |
  < GK_userinput: "userinput" > |
  < GK_value: "value" > |
  < GK_variables: "variables" > |
@@ -809,6 +813,7 @@ TOKEN : {
     "showIf" |
     "startStyle" |
     "textAlign" |
+    "tooltipMode" |
     "verticalAlign" > |
  < GK_XYCOORDS: "@screen" | "labelOffset" > |
  < GK_RGBA: "bgColor" | "borderColor" > |
@@ -2316,7 +2321,8 @@ void gpadStyleSheetKeyValue(GpadStyleSheet styleSheet) :
         gpadStyleSheetPropertyStr(styleSheet) | // String key
         gpadStyleSheetPropertyXYCoords(styleSheet) | // XYCoords key
         gpadStyleSheetPropertyRGBA(styleSheet) | // rgba key #rrggbbaa
-        gpadStyleSheetPropertyAnimation(styleSheet)
+        gpadStyleSheetPropertyAnimation(styleSheet) | // animation key
+        gpadStyleSheetPropertyEqnStyle(styleSheet) // eqnStyle key
         )
         { token_source.SwitchTo(DEFAULT); }
     }
@@ -2551,6 +2557,58 @@ void gpadStyleSheetPropertyAnimation(GpadStyleSheet styleSheet) :
         }
         if (speed != null)
             attrs.put("speed", speed);
+        styleSheet.setProperty(keyToken.image, attrs);
+    }
+}
+
+/**
+ * Parses eqnStyle property
+ * Syntax: eqnStyle: <style>; or eqnStyle: parametric=<letter>;
+ * Style values: implicit, explicit, specific, parametric, general, vertex, conic, user
+ * When style is "parametric", can optionally specify parameter with =<letter>
+ */
+void gpadStyleSheetPropertyEqnStyle(GpadStyleSheet styleSheet) :
+{
+    Token keyToken;
+    Token styleToken;
+    Token paramToken = null;
+    String styleValue;
+    String paramValue = null;
+}
+{
+    keyToken = <GK_eqnStyle> <GK_COLON> { token_source.SwitchTo(DEFAULT); }
+    styleToken = <LABEL>
+    {
+        styleValue = styleToken.image;
+        // Validate style value
+        if (!gkEqnStyleValues.containsKey(styleValue)) {
+            // Invalid style value, skip this property
+            return;
+        }
+    }
+    (
+        <EQUAL> (paramToken = <LABEL> | paramToken = <FLOAT>)
+        {
+            // Only allow parameter for parametric style
+            if ("parametric".equals(styleValue)) {
+                String paramStr = paramToken.image;
+                // Validate parameter is a single letter (case-insensitive)
+                if (paramStr.length() == 1) {
+                    char paramChar = paramStr.charAt(0);
+                    if ((paramChar >= 'a' && paramChar <= 'z') ||
+                        (paramChar >= 'A' && paramChar <= 'Z')) {
+                        paramValue = String.valueOf(paramChar);
+                    }
+                    // If not a letter, paramValue remains null (parameter is ignored)
+                }
+            }
+        }
+    )?
+    {
+        java.util.LinkedHashMap<String, String> attrs = new java.util.LinkedHashMap<>();
+        attrs.put("style", styleValue);
+        if (paramValue != null)
+            attrs.put("parameter", paramValue);
         styleSheet.setProperty(keyToken.image, attrs);
     }
 }
