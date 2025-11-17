@@ -45,6 +45,9 @@ the Free Software Foundation; either version 2 of the License, or
 options {
    STATIC = false;
    JAVA_TEMPLATE_TYPE = "modern";
+   DEBUG_PARSER = true;
+   DEBUG_LOOKAHEAD = true;
+   DEBUG_TOKEN_MANAGER = true;
 }
 
 PARSER_BEGIN(Parser)
@@ -330,6 +333,21 @@ public class Parser implements ParserInterface {
     }
 
     /**
+    * Error recovery: skip invalid tokens until ";" or "}" or EOF
+    */
+    void gpadSkipToSync() {
+        token_source.SwitchTo(DEFAULT);
+        Token t = getToken(1);
+        System.out.println("Enter error recovery token=" + getToken(0).image);
+        while (t.kind != POLAR_SEPARATOR && t.kind != RBRACE && t.kind != EOF) {
+            System.out.println("t.kind=" + t.kind + ":" + t.image);
+            getNextToken();
+            t = getToken(1);
+        }
+        System.out.println("Exit error recovery");
+    }
+
+    /**
      * GpadStyleSheet中可转换成唯一属性的xml元素的那些简单属性，
      * 若其唯一属性名不是"val"，则在此登记
      * 登记表的key就是GpadStyleSheet的属性名，value是转换后的xml元素的唯一属性名
@@ -510,9 +528,7 @@ public class Parser implements ParserInterface {
         gpadStyleSheets = new java.util.HashMap<>();
         gpadResults = new java.util.ArrayList<>();
         
-        // For Gpad, we need to preserve newlines, so we don't use myReInit which skips whitespace
-        // Instead, we'll handle newlines explicitly in the grammar
-        ReInit(new StringProvider(gpadText));
+        myReInit(gpadText);
         buildGpadProgram();
         return gpadResults;
     }
@@ -527,8 +543,9 @@ public class Parser implements ParserInterface {
 }
 PARSER_END(Parser)
 
+
 // Note: includes all Unicode whitespaces (incl. non-breaking), separators and ZWSP
-<DEFAULT, GSS_BLOCK, GSS_animation_BLOCK> SKIP : { <(["\u0009" - "\u000E", // ASCII spaces, \u000E added to work around JavaCC bug
+<DEFAULT, GK_BLOCK, GK_animation_BLOCK, GK_RGBA_BLOCK> SKIP : { <(["\u0009" - "\u000E", // ASCII spaces, \u000E added to work around JavaCC bug
   "\u001C" - "\u0020", // separators
   "\u1680",
   "\u2000" - "\u200B", "\u2028" , "\u2029", "\u205F", // various width spaces, including ZWSP
@@ -604,6 +621,7 @@ TOKEN :  {
   | < TRUE:     ( "true" | "True" ) >
   | < FALSE:    ( "false" | "False" ) >
   | < #OVERLINE: "\u0305" >
+  | < DECIMAL_POINT:    ( "." | "\u066b" ) > // Arabic decimal point
   | < COMMA:    ( "," | "\u060c" | "\u23B8" ) > // Arabic comma, vertical bar for Austrian points
 }
 
@@ -612,16 +630,49 @@ TOKEN : {
   |    < VARY: "y" >
   |    < VARZ: "z" >
   //|     < PARAMETRICVAR: (("\u0058") /*| ( ("(") (< VARX >) (< COMMA >) (< VARY >) (")"))*/) > // X
+  |     < FLOAT:  (<INTEGER> | <DECIMAL_POINT>)+ > //deliberately trap eg 1.2.3.4 , 1..2 here, error then thrown in MyDouble.parseDouble()
   |     < EFLOAT: <FLOAT> ("E") (<PLUS> | <MINUS>)? <INTEGER> >
   |     < RECURRING_DIGITS: <OVERLINE> (<DIGIT> <OVERLINE>)* >
+  |     < INTEGER: ( <DIGIT> )+ >
+  |     < #DIGIT:                                     // unicode digits
+         [
+          "\u0030"-"\u0039", // Arabic (=Latin)
+          "\u0660"-"\u0669", // Arabic-Indic
+          "\u06f0"-"\u06f9", // Extended Arabic-Indic
+          "\u0966"-"\u096f", // Devanagari (Hindi)
+          "\u09e6"-"\u09ef", // Bengali
+          "\u0a66"-"\u0a6f", // Gurmukhi (Punjabi)
+          "\u0ae6"-"\u0aef", // Gujurati
+          "\u0b66"-"\u0b6f", // Oryia
+          "\u0be6"-"\u0bef", // Tamil
+          "\u0c66"-"\u0c6f", // Telugu
+          "\u0ce6"-"\u0cef", // Kannada
+          "\u0d66"-"\u0d6f", // Malayalam
+          "\u0e50"-"\u0e59", // Thai
+          "\u0ed0"-"\u0ed9", // Lao
+          "\u1040"-"\u1049", // Myanmar (Burmese)
+          "\u0f20"-"\u0f29", // Tibetan
+          "\u1b50"-"\u1b59", // Balinese
+          "\u1bb0"-"\u1bb9", // Sudanese
+          "\u1c40"-"\u1c49", // Lepcha
+          "\u1c50"-"\u1c59", // Ol Chiki
+          "\u17e0"-"\u17e9", // Khmer
+          "\u1810"-"\u1819", // Mongolian
+          "\ua8d0"-"\ua8d9"  // Saurashtra
+         ]
+    >
 }
 
-<DEFAULT, GSS_animation_BLOCK> TOKEN : {
+TOKEN : {
+   // labels for cells in the spreadsheet
+   <SPREADSHEET_LABEL: ("$")?(["A"-"Z"]|["a"-"z"])+("$")?(["0"-"9"])+ > // e.g. B12
+ |
    // standard case: labels for GeoElements and command names
-   < #GLABEL:
+   < LABEL: <GLABEL> >
+ | < GSSLABEL: "@"<GLABEL> >
+ | < #GLABEL:
     <LETTER> ( <INDEX> | <LETTER> | <DIGIT> | "'" | "‘" | "’" )* ("." <INTEGER>)?>
- | < LABEL: <GLABEL> >
- | < #INDEX:  "_" (  <CHAR>  | ("{" (~["}"])+ "}" ) )  >
+ |  < #INDEX:  "_" (  <CHAR>  | ("{" (~["}"])+ "}" ) )  >
  | < #LETTER:  // unicode letters
        [
         "$",                    // for absolute references in the spreadsheet
@@ -648,11 +699,7 @@ TOKEN : {
 
 }
 
-TOKEN : {
-   // labels for cells in the spreadsheet
-   <SPREADSHEET_LABEL: ("$")?(["A"-"Z"]|["a"-"z"])+("$")?(["0"-"9"])+ > // e.g. B12
- | < GSSLABEL: "$"<GLABEL> >
-}
+
 
 // labels for function names
 TOKEN : {
@@ -660,48 +707,23 @@ TOKEN : {
 |  < Y_FUNC:  ("y" | "ycoord")   ("("|"[")>
 |  < Z_FUNC:  ("z" | "zcoord")   ("("|"[")>
 |  < RANDOM_FUNC:  "random()"  >
-|   < POLAR_SEPARATOR: ( "\u2221" | ";" ) > // separator used by Giac instead of ;
 |    < SQRT_SHORT: "\u221a" >
 |   < FUNCTION_LABEL: (<SPREADSHEET_LABEL> | <LABEL> ) ("("|"[") >
 |   < FUNCTION_POWER_LABEL: (<SPREADSHEET_LABEL> | <LABEL> ) (< POWERN > )("("|"[") >
+|   < LBRACE: "{" >
 }
 
-<DEFAULT, GSS_animation_BLOCK> TOKEN : {
+<DEFAULT, GK_BLOCK, GK_animation_BLOCK, GK_RGBA_BLOCK> TOKEN : {
+   < RBRACE: "}" >
+|   < POLAR_SEPARATOR: ( "\u2221" | ";" ) > // separator used by Giac instead of ;
+}
+
+<DEFAULT, GK_animation_BLOCK> TOKEN : {
  < TEXT: "\""  (<CHAR>)* "\"" > |
  < #CHAR: ["\u0000"-"\u0021", "\u0023"-"\uffff"]  >
- | < DECIMAL_POINT:    ( "." | "\u066b" ) > // Arabic decimal point
- | < INTEGER: ( <DIGIT> )+ >
- | < FLOAT:  (<INTEGER> | <DECIMAL_POINT>)+ > //deliberately trap eg 1.2.3.4 , 1..2 here, error then thrown in MyDouble.parseDouble()
- | < #DIGIT:                                     // unicode digits
-     [
-      "\u0030"-"\u0039", // Arabic (=Latin)
-      "\u0660"-"\u0669", // Arabic-Indic
-      "\u06f0"-"\u06f9", // Extended Arabic-Indic
-      "\u0966"-"\u096f", // Devanagari (Hindi)
-      "\u09e6"-"\u09ef", // Bengali
-      "\u0a66"-"\u0a6f", // Gurmukhi (Punjabi)
-      "\u0ae6"-"\u0aef", // Gujurati
-      "\u0b66"-"\u0b6f", // Oryia
-      "\u0be6"-"\u0bef", // Tamil
-      "\u0c66"-"\u0c6f", // Telugu
-      "\u0ce6"-"\u0cef", // Kannada
-      "\u0d66"-"\u0d6f", // Malayalam
-      "\u0e50"-"\u0e59", // Thai
-      "\u0ed0"-"\u0ed9", // Lao
-      "\u1040"-"\u1049", // Myanmar (Burmese)
-      "\u0f20"-"\u0f29", // Tibetan
-      "\u1b50"-"\u1b59", // Balinese
-      "\u1bb0"-"\u1bb9", // Sudanese
-      "\u1c40"-"\u1c49", // Lepcha
-      "\u1c50"-"\u1c59", // Ol Chiki
-      "\u17e0"-"\u17e9", // Khmer
-      "\u1810"-"\u1819", // Mongolian
-      "\ua8d0"-"\ua8d9"  // Saurashtra
-     ]
- >
 }
 
-<GSS_BLOCK> TOKEN : {
+<GK_BLOCK> TOKEN : {
  < GK_animation: "animation" > |
  < GK_boundingBox: "boundingBox" > |
  < GK_casMap: "casMap" > |
@@ -787,16 +809,26 @@ TOKEN : {
     "verticalAlign" > |
  < GK_XYCOORDS: "@screen" | "labelOffset" > |
  < GK_RGBA: "bgColor" | "borderColor" > |
- < GK_DELETE: "~"((["A"-"Z"]|["a"-"z"]|"@")+) >
+ < GK_DELETE: "~"((["A"-"Z"]|["a"-"z"]|"@")+) > |
+ < GK_COLON: ":" >
 }
 
-<GSS_animation_BLOCK> TOKEN : {
- < GK_play: "play" > |
- < GK_tilde_play: "~play" > |
- < GK_plus: "+" > |
- < GK_minus: "-" > |
- < GK_equal: "=" > |
- < GK_x: "x" >
+<GK_animation_BLOCK> TOKEN : {
+ < GK_animation_play: "play" > |
+ < GK_animation_tilde_play: "~play" > |
+ < GK_animation_plus: "+" > |
+ < GK_animation_minus: "-" > |
+ < GK_animation_equal: "=" > |
+ < GK_animation_speed: "speed" > |
+ < GK_number: (["0"-"9"])+("." (["0"-"9"])+)? >
+}
+
+<GK_RGBA_BLOCK> TOKEN : {
+ < GK_RGBA_HEX_COLOR: "#" (["0"-"9","A"-"F","a"-"f"])+ >
+}
+
+<GK_BLOCK, GK_animation_BLOCK, GK_RGBA_BLOCK> TOKEN : {
+ < GK_INVALID: (~[";", "}"]) >
 }
 
 /**
@@ -2236,7 +2268,7 @@ void gpadStatement() :
 )}
 
 /**
- * Style sheet definition: $name = { property: value; ... }
+ * Style sheet definition: @name = { property: value; ... }
  */
 void gpadStyleSheetDefinition() :
 {
@@ -2244,19 +2276,35 @@ void gpadStyleSheetDefinition() :
     GpadStyleSheet styleSheet;
 }
 {
-    ( name = <LABEL> ) "="
-    (styleSheet = gpadStyleSheetBody(name.image))
-    { gpadStyleSheets.put(name.image, styleSheet); }
+    name = <GSSLABEL> <EQUAL>
+    styleSheet = gpadStyleSheetBody(name.image.substring(1))
+    { gpadStyleSheets.put(name.image.substring(1), styleSheet); }
 }
 
 /**
  * Style sheet body: { property1: value1; ...; }
  */
 GpadStyleSheet gpadStyleSheetBody(String name) :
-{ GpadStyleSheet styleSheet = new GpadStyleSheet(name); }
 {
-    "{" { token_source.SwitchTo(GSS_BLOCK); }
-    (
+    GpadStyleSheet styleSheet = new GpadStyleSheet(name);
+}
+{
+    <LBRACE> { token_source.SwitchTo(GK_BLOCK); }
+    [(
+        gpadStyleSheetKeyValue(styleSheet)
+        (
+            <POLAR_SEPARATOR> { token_source.SwitchTo(GK_BLOCK); }
+            gpadStyleSheetKeyValue(styleSheet)
+        )*
+    )]
+    <RBRACE> { return styleSheet; }
+}
+
+void gpadStyleSheetKeyValue(GpadStyleSheet styleSheet) :
+{
+}
+{
+    try {
         (
         gpadStyleSheetPropertyDelete(styleSheet) | // ~key (delete)
         gpadStyleSheetPropertyBoolean(styleSheet) | // Boolean key
@@ -2265,12 +2313,13 @@ GpadStyleSheet gpadStyleSheetBody(String name) :
         gpadStyleSheetPropertyStr(styleSheet) | // String key
         gpadStyleSheetPropertyXYCoords(styleSheet) | // XYCoords key
         gpadStyleSheetPropertyRGBA(styleSheet) | // rgba key #rrggbbaa
-        gpadStyleSheetPropertyAnimation(styleSheet) |
-        gpadSkipToSeparator() // Error recovery: skip invalid tokens until semicolon
+        gpadStyleSheetPropertyAnimation(styleSheet)
         )
-        ";" { token_source.SwitchTo(GSS_BLOCK); }
-    )*
-    "}" { token_source.SwitchTo(DEFAULT); return styleSheet; }
+        { token_source.SwitchTo(DEFAULT); }
+    }
+    catch(ParseException e) {
+        gpadSkipToSync();
+    }
 }
 
 /**
@@ -2322,8 +2371,8 @@ void gpadStyleSheetPropertyInt(GpadStyleSheet styleSheet) :
     String[] converted;
 }
 {
-    keyToken = <GK_INT> ":" { token_source.SwitchTo(DEFAULT); }
-    (valueToken = <INTEGER> | valueToken = <FLOAT>)
+    keyToken = <GK_INT> <GK_COLON> { token_source.SwitchTo(DEFAULT); }
+    valueToken = <INTEGER>
     {
         converted = convertPropertyKey(keyToken.image);
         java.util.LinkedHashMap<String, String> attrs = new java.util.LinkedHashMap<>();
@@ -2343,8 +2392,8 @@ void gpadStyleSheetPropertyFloat(GpadStyleSheet styleSheet) :
     String[] converted;
 }
 {
-    keyToken = <GK_FLOAT> ":" { token_source.SwitchTo(DEFAULT); }
-    (valueToken = <FLOAT> | valueToken = <INTEGER>)
+    keyToken = <GK_FLOAT> <GK_COLON> { token_source.SwitchTo(DEFAULT); }
+    valueToken = <FLOAT>
     {
         converted = convertPropertyKey(keyToken.image);
         java.util.LinkedHashMap<String, String> attrs = new java.util.LinkedHashMap<>();
@@ -2364,13 +2413,13 @@ void gpadStyleSheetPropertyStr(GpadStyleSheet styleSheet) :
     String val;
 }
 {
-    keyToken = <GK_STR> ":" { token_source.SwitchTo(DEFAULT); }
+    keyToken = <GK_STR> <GK_COLON> { token_source.SwitchTo(DEFAULT); }
     (
-        (valueToken = <TEXT> {
+        valueToken = <TEXT> {
             val = valueToken.image;
             val = val.substring(1, val.length() - 1);
-        }) |
-        (valueToken = <LABEL> { val = valueToken.image; })
+        }
+        | valueToken = <LABEL> { val = valueToken.image; }
     )
     { setPropertyWithValueConversion(styleSheet, keyToken.image, val); }
 }
@@ -2387,9 +2436,8 @@ void gpadStyleSheetPropertyXYCoords(GpadStyleSheet styleSheet) :
     String[] converted;
 }
 {
-    keyToken = <GK_XYCOORDS> ":" { token_source.SwitchTo(DEFAULT); }
-    (xToken = <FLOAT> | xToken = <INTEGER>)
-    (yToken = <FLOAT> | yToken = <INTEGER>)
+    keyToken = <GK_XYCOORDS> <GK_COLON> { token_source.SwitchTo(DEFAULT); }
+    xToken = <FLOAT> yToken = <FLOAT>
     {
         converted = convertPropertyKey(keyToken.image);
         java.util.LinkedHashMap<String, String> attrs = new java.util.LinkedHashMap<>();
@@ -2401,7 +2449,8 @@ void gpadStyleSheetPropertyXYCoords(GpadStyleSheet styleSheet) :
 
 /**
  * Parses RGBA color property
- * Syntax: key: #rrggbbaa;
+ * Syntax: key: #rrggbb; or key: #rrggbbaa;
+ * Hex values are case-insensitive.
  */
 void gpadStyleSheetPropertyRGBA(GpadStyleSheet styleSheet) :
 {
@@ -2409,23 +2458,48 @@ void gpadStyleSheetPropertyRGBA(GpadStyleSheet styleSheet) :
     Token colorToken;
 }
 {
-    keyToken = <GK_RGBA> ":" { token_source.SwitchTo(DEFAULT); }
-    colorToken = <LABEL>
+    keyToken = <GK_RGBA> <GK_COLON> { token_source.SwitchTo(GK_RGBA_BLOCK); }
+    colorToken = <GK_RGBA_HEX_COLOR>
     {
         java.util.LinkedHashMap<String, String> attrs = new java.util.LinkedHashMap<>();
         String color = colorToken.image;
+        boolean valid = false;
         if (color.startsWith("#")) {
-            // Parse hex color #rrggbbaa
-            if (color.length() == 9) {
-                attrs.put("r", String.valueOf(Integer.parseInt(color.substring(1, 3), 16)));
-                attrs.put("g", String.valueOf(Integer.parseInt(color.substring(3, 5), 16)));
-                attrs.put("b", String.valueOf(Integer.parseInt(color.substring(5, 7), 16)));
-                attrs.put("alpha", String.valueOf(Integer.parseInt(color.substring(7, 9), 16) / 255.0));
+            // Convert to uppercase for consistent parsing (case-insensitive)
+            String colorUpper = color.toUpperCase();
+            int len = colorUpper.length();
+            
+            // Only accept #rrggbb (7 chars) or #rrggbbaa (9 chars) format
+            if (len == 7) {
+                // Parse hex color #rrggbb (alpha defaults to ff)
+                try {
+                    attrs.put("r", String.valueOf(Integer.parseInt(colorUpper.substring(1, 3), 16)));
+                    attrs.put("g", String.valueOf(Integer.parseInt(colorUpper.substring(3, 5), 16)));
+                    attrs.put("b", String.valueOf(Integer.parseInt(colorUpper.substring(5, 7), 16)));
+                    attrs.put("alpha", "1.0"); // Default alpha is ff (255/255 = 1.0)
+                    valid = true;
+                } catch (NumberFormatException e) {
+                    // Invalid format, silently ignore this property
+                    valid = false;
+                }
+            } else if (len == 9) {
+                // Parse hex color #rrggbbaa
+                try {
+                    attrs.put("r", String.valueOf(Integer.parseInt(colorUpper.substring(1, 3), 16)));
+                    attrs.put("g", String.valueOf(Integer.parseInt(colorUpper.substring(3, 5), 16)));
+                    attrs.put("b", String.valueOf(Integer.parseInt(colorUpper.substring(5, 7), 16)));
+                    attrs.put("alpha", String.valueOf(Integer.parseInt(colorUpper.substring(7, 9), 16) / 255.0));
+                    valid = true;
+                } catch (NumberFormatException e) {
+                    // Invalid format, silently ignore this property
+                    valid = false;
+                }
             }
-        } else {
-            attrs.put("val", color);
+            // If len is not 7 or 9, valid remains false
         }
-        styleSheet.setProperty(keyToken.image, attrs);
+        // Only set property if color format is valid, otherwise silently ignore
+        if (valid)
+            styleSheet.setProperty(keyToken.image, attrs);
     }
 }
 
@@ -2445,27 +2519,23 @@ void gpadStyleSheetPropertyAnimation(GpadStyleSheet styleSheet) :
     Token speedToken = null;
 }
 {
-    keyToken = <GK_animation> ":" { token_source.SwitchTo(GSS_animation_BLOCK); }
+    keyToken = <GK_animation> <GK_COLON>{ token_source.SwitchTo(GK_animation_BLOCK); }
     ( (
-        <GK_play> { playing = "true"; } |
-        <GK_tilde_play> { playing = "false"; }
-    ) | ( 
-        (
-        speedToken = <FLOAT> { speed = speedToken.image; } |
-        speedToken = <INTEGER> { speed = speedToken.image; } |
-        speedToken = <TEXT> { speed = speedToken.image.substring(1, speedToken.image.length() - 1); }
+        <GK_animation_play> { playing = "true"; } |
+        <GK_animation_tilde_play> { playing = "false"; }
+    ) | (
+        <GK_animation_speed> <GK_animation_equal> (
+        speedToken = <TEXT> { speed = speedToken.image.substring(1, speedToken.image.length() - 1); } |
+        speedToken = <GK_number> { speed = speedToken.image; }
         )
-        <GK_x>
     ) | ( (
-        <GK_plus> { type = "1"; } |
-        <GK_minus> { type = "2"; } |
-        <GK_equal> { type = "3"; }
+        <GK_animation_plus> { type = "1"; } |
+        <GK_animation_minus> { type = "2"; } |
+        <GK_animation_equal> { type = "3"; }
         )?
         (
         stepToken = <TEXT> { step = stepToken.image.substring(1, stepToken.image.length() - 1); } |
-        stepToken = <LABEL> { step = stepToken.image; } |
-        stepToken = <FLOAT> { step = stepToken.image; } |
-        stepToken = <INTEGER> { step = stepToken.image; }
+        stepToken = <GK_number> { step = stepToken.image; }
         )
     ) )*
     {
@@ -2483,26 +2553,7 @@ void gpadStyleSheetPropertyAnimation(GpadStyleSheet styleSheet) :
 }
 
 /**
- * Error recovery: skip invalid tokens until semicolon
- * This will consume tokens until we find a semicolon or EOF
- * Note: In JavaCC, we can't easily skip arbitrary tokens, so this
- * function will simply match a semicolon or do nothing
- */
-void gpadSkipToSeparator() :
-{
-}
-{
-    (
-        ";"
-    |
-        // Try to match common tokens that might appear before semicolon
-        ( <LABEL> | <INTEGER> | <FLOAT> | <TEXT> | <COMMA> | ":" | "=" | "{" | "}" )*
-        ";"
-    )?
-}
-
-/**
- * Command/Expression statement: label1* $style { inline_styles } ..., label2~ ... = ValidExpression
+ * Command/Expression statement: label1* @style { inline_styles } ..., label2~ ... = ValidExpression
  * * = hide both object and label
  * ~ = show object, hide label
  */
@@ -2515,8 +2566,8 @@ void gpadCommandExpression() :
 }
 {
     gpadLabelStyleSheets(labels, styleSheets)
-    ( "," gpadLabelStyleSheets(labels, styleSheets) )*
-    "=" ve = expressionOrEquation()
+    ( <COMMA> gpadLabelStyleSheets(labels, styleSheets) )*
+    <EQUAL> ve = expressionOrEquation()
     {
         try {
             if (labels != null)
@@ -2552,7 +2603,7 @@ void gpadLabelStyleSheets(java.util.List<String> labels, java.util.List<GpadStyl
     label = label() ( visibilityFlag = "*" | visibilityFlag = "~" )?
     (
         (
-        (styleName = <LABEL> { styleSheet2 = gpadStyleSheets.get(styleName.image); })
+        (styleName = <GSSLABEL> { styleSheet2 = gpadStyleSheets.get(styleName.image.substring(1)); })
         | (styleSheet2 = gpadStyleSheetBody(""))
         )
         {

@@ -15,8 +15,8 @@ import org.geogebra.common.kernel.parser.Parser;
  * Uses JavaCC Parser for parsing, supporting multi-line style sheets, commands, and nested command calls.
  * 
  * Supports:
- * - Style sheet definitions: $name = { ... } (multi-line supported)
- * - Command execution: output* $style { inline:style } = Command(...) (nested calls supported)
+ * - Style sheet definitions: @name = { ... } (multi-line supported)
+ * - Command execution: output* @style { inline:style } = Command(...) (nested calls supported)
  * - Macro definitions: @tool name(...) { ... return ... }
  */
 public class GpadParser {

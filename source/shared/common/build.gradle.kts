@@ -35,6 +35,15 @@ tasks.compileJavacc {
 
 tasks.compileJava {
     options.encoding = "UTF-8"
+    exclude("**/tmp/**")
+}
+
+sourceSets {
+    main {
+        java {
+            exclude("**/tmp/**")
+        }
+    }
 }
 
 open class Bump : DefaultTask() {

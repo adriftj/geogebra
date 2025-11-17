@@ -74,8 +74,9 @@ public class StyleMapToGpadConverter {
 			break;
 		case "objColor":
 		case "bgColor":
-			// objColor: r=0 g=0 b=255 alpha=0.5
-			sb.append(convertKeyValuePairs(attrs));
+		case "borderColor":
+			// objColor/bgColor/borderColor: #rrggbb or #rrggbbaa (if alpha is not default)
+			sb.append(convertColorToHex(attrs));
 			break;
 		case "labelOffset":
 			// labelOffset: 28, 75
@@ -190,8 +191,64 @@ public class StyleMapToGpadConverter {
 
 		return sb.toString();
 	}
+
+	/**
+	 * Converts color attributes (r, g, b, alpha) to hex format.
+	 * Outputs #rrggbb if alpha is default (1.0 or "ff"), otherwise #rrggbbaa.
+	 * 
+	 * @param attrs
+	 *            color attributes map
+	 * @return hex color string (e.g., "#FF0000" or "#FF0000FF")
+	 */
+	private String convertColorToHex(LinkedHashMap<String, String> attrs) {
+		if (attrs == null || attrs.isEmpty()) {
+			return "";
+		}
+
+		// Check if we have r, g, b values
+		String rStr = attrs.get("r");
+		String gStr = attrs.get("g");
+		String bStr = attrs.get("b");
+		String alphaStr = attrs.get("alpha");
+
+		try {
+			// Convert r, g, b to hex
+			int r = rStr==null? 0: Integer.parseInt(rStr);
+			int g = gStr==null? 0: Integer.parseInt(gStr);
+			int b = bStr==null? 0: Integer.parseInt(bStr);
+
+			// Clamp values to 0-255
+			r = Math.max(0, Math.min(255, r));
+			g = Math.max(0, Math.min(255, g));
+			b = Math.max(0, Math.min(255, b));
+
+			StringBuilder sb = new StringBuilder("#");
+			sb.append(String.format("%02X", r));
+			sb.append(String.format("%02X", g));
+			sb.append(String.format("%02X", b));
+
+			if (alphaStr != null) {
+				double alpha;
+				try {
+					alpha = Double.parseDouble(alphaStr);
+				} catch (NumberFormatException e) {
+					// If alpha is not a valid number, default to 1.0
+					alpha = 1.0;
+				}
+
+				// Only append alpha if it's not the default value (1.0 = ff)
+				// Use a small epsilon to handle floating point precision issues
+				if (Math.abs(alpha - 1.0) > 1e-6) {
+					// Convert alpha from 0.0-1.0 to 0-255
+					int alphaInt = (int) Math.round(alpha * 255);
+					alphaInt = Math.max(0, Math.min(255, alphaInt));
+					sb.append(String.format("%02X", alphaInt));
+				}
+			}
+
+			return sb.toString();
+		} catch (NumberFormatException e) {
+			return "#000000";
+		}
+	}
 }
-
-
-
-

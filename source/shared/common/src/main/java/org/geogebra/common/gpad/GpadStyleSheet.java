@@ -30,7 +30,7 @@ public class GpadStyleSheet {
 	 * Creates an anonymous style sheet (for inline styles).
 	 */
 	public GpadStyleSheet() {
-		this.name = null;
+		this.name = "";
 		this.properties = new LinkedHashMap<>();
 	}
 
@@ -99,7 +99,7 @@ public class GpadStyleSheet {
 	 * @return true if this is an anonymous style sheet
 	 */
 	public boolean isAnonymous() {
-		return name == null;
+		return name == "";
 	}
 
 	/**

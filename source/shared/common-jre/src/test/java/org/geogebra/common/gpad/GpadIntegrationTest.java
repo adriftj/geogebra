@@ -44,8 +44,8 @@ public class GpadIntegrationTest extends BaseUnitTest {
 	@Test
 	public void testGpadWithStyleSheetRoundTrip() {
 		// Create with style sheet
-		String gpad = "$style1 = { pointSize: 6; fixed }\n"
-				+ "A $style1 = Point(1, 2)";
+		String gpad = "@style1 = { pointSize: 6; fixed }\n"
+				+ "A @style1 = Point(1, 2)";
 		GpadParser parser = new GpadParser(getKernel());
 		
 		try {
@@ -68,10 +68,10 @@ public class GpadIntegrationTest extends BaseUnitTest {
 	@Test
 	public void testComplexGpadExample() {
 		// Example from plan.md
-		String gpad = "$g = { labelOffset:28, 75; lineStyle: thickness=4 opacity=178 }\n"
-				+ "$h = { lineStyle: opacity=178 }\n"
-				+ "g* $g = Line((0,0), (1,1))\n"
-				+ "h~ $h = Line((0,0), (2,2))";
+		String gpad = "@g = { labelOffset:28, 75; lineStyle: thickness=4 opacity=178 }\n"
+				+ "@h = { lineStyle: opacity=178 }\n"
+				+ "g* @g = Line((0,0), (1,1))\n"
+				+ "h~ @h = Line((0,0), (2,2))";
 		GpadParser parser = new GpadParser(getKernel());
 		
 		try {
@@ -122,11 +122,11 @@ public class GpadIntegrationTest extends BaseUnitTest {
 	@Test
 	public void testMultiLineGpad() {
 		// Test multi-line Gpad support
-		String gpad = "$style1 = {\n"
+		String gpad = "@style1 = {\n"
 				+ "  pointSize: 6;\n"
 				+ "  fixed\n"
 				+ "}\n"
-				+ "A $style1 = Point(1, 2)";
+				+ "A @style1 = Point(1, 2)";
 		GpadParser parser = new GpadParser(getKernel());
 		
 		try {
