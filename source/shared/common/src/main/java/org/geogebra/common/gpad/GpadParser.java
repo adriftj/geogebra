@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.geogebra.common.kernel.CircularDefinitionException;
 import org.geogebra.common.kernel.Kernel;
 import org.geogebra.common.kernel.geos.GeoElement;
 import org.geogebra.common.kernel.parser.ParseException;
@@ -44,8 +45,10 @@ public class GpadParser {
 	 * @return list of created GeoElements
 	 * @throws GpadParseException
 	 *             if parsing fails
+	 * @throws CircularDefinitionException
+	 *             if circular definition is detected
 	 */
-	public List<GeoElement> parse(String gpadText) throws GpadParseException {
+	public List<GeoElement> parse(String gpadText) throws GpadParseException, CircularDefinitionException {
 		if (gpadText == null || gpadText.trim().isEmpty()) {
 			return new ArrayList<>();
 		}
@@ -64,6 +67,9 @@ public class GpadParser {
 			
 			return results;
 			
+		} catch (CircularDefinitionException e) {
+			// Let CircularDefinitionException propagate
+			throw e;
 		} catch (ParseException e) {
 			// Extract line and column information if available
 			int line = -1;
@@ -94,8 +100,10 @@ public class GpadParser {
 	 * @return list of created GeoElements
 	 * @throws GpadParseException
 	 *             if parsing fails
+	 * @throws CircularDefinitionException
+	 *             if circular definition is detected
 	 */
-	public List<GeoElement> parsePartial(String gpadText) throws GpadParseException {
+	public List<GeoElement> parsePartial(String gpadText) throws GpadParseException, CircularDefinitionException {
 		// Save current style sheets
 		Map<String, GpadStyleSheet> savedStyleSheets = new HashMap<>(globalStyleSheets);
 		
@@ -105,7 +113,7 @@ public class GpadParser {
 			// Style sheets from parsing are merged into globalStyleSheets
 			// We don't need to restore since they're already merged
 			return results;
-		} catch (GpadParseException e) {
+		} catch (GpadParseException | CircularDefinitionException e) {
 			// Restore style sheets on error
 			globalStyleSheets = savedStyleSheets;
 			throw e;

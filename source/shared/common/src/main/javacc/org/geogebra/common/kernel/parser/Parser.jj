@@ -522,7 +522,7 @@ public class Parser implements ParserInterface {
      * @return list of created GeoElements
      * @throws ParseException if parsing fails
      */
-    public java.util.List<GeoElement> parseGpad(String gpadText) throws ParseException {
+    public java.util.List<GeoElement> parseGpad(String gpadText) throws ParseException, CircularDefinitionException {
         if (gpadText == null || gpadText.trim().isEmpty())
             return new java.util.ArrayList<>();
         gpadStyleSheets = new java.util.HashMap<>();
@@ -530,6 +530,7 @@ public class Parser implements ParserInterface {
         
         myReInit(gpadText);
         buildGpadProgram();
+        
         return gpadResults;
     }
     
@@ -552,7 +553,9 @@ PARSER_END(Parser)
   "\u00A0", "\u202F", // non-breaking spaces
   "\u3000", // ideographic space
   "\uFEFF" // BOM
-  ])> }
+  ])> 
+  | <SINGLE_LINE_COMMENT: "//" (~["\n","\r"])* ("\n"|"\r"|"\r\n")?> // Single-line comment for Gpad
+  }
 
 /* OPERATORS */
 TOKEN :  {
@@ -2252,14 +2255,14 @@ ValidExpression vectorSpecial():
 /**
  * Gpad program = (statement)*
  */
-void buildGpadProgram() :
+void buildGpadProgram() throws CircularDefinitionException :
 {
 }
 {
     (gpadStatement())* (<EOF>)?
 }
 
-void gpadStatement() :
+void gpadStatement() throws CircularDefinitionException :
 {
 }
 {(
@@ -2557,7 +2560,7 @@ void gpadStyleSheetPropertyAnimation(GpadStyleSheet styleSheet) :
  * * = hide both object and label
  * ~ = show object, hide label
  */
-void gpadCommandExpression() :
+void gpadCommandExpression() throws CircularDefinitionException :
 {
     java.util.List<String> labels = new java.util.ArrayList<>();
     java.util.List<GpadStyleSheet> styleSheets = new java.util.ArrayList<>();
@@ -2583,12 +2586,10 @@ void gpadCommandExpression() :
                 gpadResults.add(geo);
             }               
         } catch (CircularDefinitionException e) {
-            org.geogebra.common.util.debug.Log.debug("CircularDefinition in Gpad: " + e.getMessage());
-        } catch (org.geogebra.common.main.MyError e) {
-            org.geogebra.common.util.debug.Log.debug("MyError in Gpad: " + e.getMessage());
-        } catch (Exception e) {
-            org.geogebra.common.util.debug.Log.debug("Exception in Gpad: " + e.getMessage());
+            // Let CircularDefinitionException propagate
+            throw e;
         }
+        // MyError is unchecked (extends Error), so it will propagate naturally
     }
 }
 
@@ -2600,7 +2601,7 @@ void gpadLabelStyleSheets(java.util.List<String> labels, java.util.List<GpadStyl
     GpadStyleSheet styleSheet = null, styleSheet2;
 }
 {
-    label = label() ( visibilityFlag = "*" | visibilityFlag = "~" )?
+    label = label() ( visibilityFlag = <MULTIPLY> | visibilityFlag = "~" )?
     (
         (
         (styleName = <GSSLABEL> { styleSheet2 = gpadStyleSheets.get(styleName.image.substring(1)); })
@@ -2618,7 +2619,7 @@ void gpadLabelStyleSheets(java.util.List<String> labels, java.util.List<GpadStyl
         if(visibilityFlag != null) {
             styleSheet2 = new GpadStyleSheet("");
             java.util.LinkedHashMap<String, String> attrs = new java.util.LinkedHashMap<>();
-            attrs.put("object", visibilityFlag.image.equals("*")? "false": "true");
+            attrs.put("object", visibilityFlag.kind==MULTIPLY? "false": "true");
             attrs.put("label", "false");
             styleSheet2.setProperty("show", attrs);
             if(styleSheet == null)

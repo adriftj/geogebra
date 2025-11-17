@@ -1,14 +1,17 @@
 package org.geogebra.common.gpad;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.List;
 
 import org.geogebra.common.BaseUnitTest;
+import org.geogebra.common.kernel.CircularDefinitionException;
 import org.geogebra.common.kernel.geos.GeoElement;
 import org.geogebra.common.kernel.geos.GeoLine;
 import org.geogebra.common.kernel.geos.GeoPoint;
+import org.geogebra.common.main.MyError;
 import org.junit.Test;
 
 /**
@@ -18,7 +21,7 @@ public class GpadParserTest extends BaseUnitTest {
 
 	@Test
 	public void testParseSimpleCommand() {
-		String gpad = "A = Point(1, 2)";
+		String gpad = "A = (1, 2)";
 		GpadParser parser = new GpadParser(getKernel());
 		
 		try {
@@ -27,14 +30,14 @@ public class GpadParserTest extends BaseUnitTest {
 			GeoElement geo = geos.get(0);
 			assertTrue(geo instanceof GeoPoint);
 			assertEquals("A", geo.getLabelSimple());
-		} catch (GpadParseException e) {
+		} catch (GpadParseException | CircularDefinitionException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
 
 	@Test
 	public void testParseStyleSheetDefinition() {
-		String gpad = "@style1 = { pointSize: 5; fixed }\nA = Point(1, 2)";
+		String gpad = "@style1 = { pointSize: 5; fixed }\nA = (1, 2)";
 		GpadParser parser = new GpadParser(getKernel());
 		
 		try {
@@ -44,15 +47,15 @@ public class GpadParserTest extends BaseUnitTest {
 			assertEquals("A", geo.getLabelSimple());
 			// Check that style sheet was registered
 			assertTrue(parser.getGlobalStyleSheets().containsKey("style1"));
-		} catch (GpadParseException e) {
+		} catch (GpadParseException | CircularDefinitionException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
 
 	@Test
 	public void testParseCommandWithStyleSheet() {
-		String gpad = "@g = { labelOffset:28, 75; lineStyle: thickness=4 opacity=178 }\n"
-				+ "g = Line((0,0), (1,1))";
+		String gpad = "@g = { labelOffset:28 75; lineStyle: thickness=4 opacity=178 }\n"
+				+ "g @g= Line((0,0), (1,1))";
 		GpadParser parser = new GpadParser(getKernel());
 		
 		try {
@@ -61,17 +64,23 @@ public class GpadParserTest extends BaseUnitTest {
 			GeoElement geo = geos.get(0);
 			assertTrue(geo instanceof GeoLine);
 			assertEquals("g", geo.getLabelSimple());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("g");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("labelOffset");
+			assertNotNull(attrs);
+			assertEquals("28", attrs.get("x"));
+			assertEquals("75", attrs.get("y"));
 			// Check label offset
 			assertEquals(28, geo.labelOffsetX);
 			assertEquals(75, geo.labelOffsetY);
-		} catch (GpadParseException e) {
+		} catch (GpadParseException | CircularDefinitionException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
 
 	@Test
 	public void testParseCommandWithVisibilityFlags() {
-		String gpad = "A* = Point(1, 2)";
+		String gpad = "A* = (1, 2)";
 		GpadParser parser = new GpadParser(getKernel());
 		
 		try {
@@ -79,17 +88,17 @@ public class GpadParserTest extends BaseUnitTest {
 			assertEquals(1, geos.size());
 			GeoElement geo = geos.get(0);
 			assertEquals("A", geo.getLabelSimple());
-			// * flag: hide object, show label
+			// * flag: hide object, hide label
 			assertTrue(!geo.isSetEuclidianVisible());
-			assertTrue(geo.isLabelVisible());
-		} catch (GpadParseException e) {
+			assertTrue(!geo.isLabelVisible());
+		} catch (GpadParseException | CircularDefinitionException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
 
 	@Test
 	public void testParseCommandWithTildeFlag() {
-		String gpad = "A~ = Point(1, 2)";
+		String gpad = "A~ = (1, 2)";
 		GpadParser parser = new GpadParser(getKernel());
 		
 		try {
@@ -100,14 +109,14 @@ public class GpadParserTest extends BaseUnitTest {
 			// ~ flag: show object, hide label
 			assertTrue(geo.isSetEuclidianVisible());
 			assertTrue(!geo.isLabelVisible());
-		} catch (GpadParseException e) {
+		} catch (GpadParseException | CircularDefinitionException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
 
 	@Test
 	public void testParseCommandWithInlineStyle() {
-		String gpad = "A { pointSize: 6 } = Point(1, 2)";
+		String gpad = "A { pointSize: 6 } = (1, 2)";
 		GpadParser parser = new GpadParser(getKernel());
 		
 		try {
@@ -115,7 +124,7 @@ public class GpadParserTest extends BaseUnitTest {
 			assertEquals(1, geos.size());
 			GeoElement geo = geos.get(0);
 			assertEquals("A", geo.getLabelSimple());
-		} catch (GpadParseException e) {
+		} catch (GpadParseException | CircularDefinitionException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -127,11 +136,10 @@ public class GpadParserTest extends BaseUnitTest {
 		
 		try {
 			List<GeoElement> geos = parser.parse(gpad);
-			assertTrue(geos.size() >= 1);
+			assertTrue(geos.size() == 2);
 			// Asymptote may return multiple lines
-		} catch (GpadParseException e) {
-			// Asymptote might not be available in all contexts
-			// This is acceptable
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
 
@@ -139,7 +147,7 @@ public class GpadParserTest extends BaseUnitTest {
 	public void testParseCommandWithMultipleStyles() {
 		String gpad = "@style1 = { pointSize: 5 }\n"
 				+ "@style2 = { pointSize: 7 }\n"
-				+ "A* @style1 { pointSize: 6 } @style2 = Point(1, 2)";
+				+ "A* @style1 { pointSize: 6 } @style2 = (1, 2)";
 		GpadParser parser = new GpadParser(getKernel());
 		
 		try {
@@ -149,7 +157,10 @@ public class GpadParserTest extends BaseUnitTest {
 			assertEquals("A", geo.getLabelSimple());
 			// Later styles should override earlier ones
 			// So pointSize should be 7 (from style2)
-		} catch (GpadParseException e) {
+			assertTrue(geo instanceof GeoPoint);
+			GeoPoint point = (GeoPoint) geo;
+			assertEquals(7, point.getPointSize());
+		} catch (GpadParseException | CircularDefinitionException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -168,14 +179,14 @@ public class GpadParserTest extends BaseUnitTest {
 			// Check that style sheet was registered
 			assertTrue(parser.getGlobalStyleSheets().containsKey("anim"));
 			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("anim");
-			assertTrue(styleSheet != null);
+			assertNotNull(styleSheet);
 			java.util.LinkedHashMap<String, String> animAttrs = styleSheet.getProperty("animation");
-			assertTrue(animAttrs != null);
+			assertNotNull(animAttrs);
 			assertEquals("true", animAttrs.get("playing"));
 			assertEquals("0.1", animAttrs.get("step"));
 			assertEquals("2", animAttrs.get("speed"));
 			assertEquals("0", animAttrs.get("type")); // Default oscillating
-		} catch (GpadParseException e) {
+		} catch (GpadParseException | CircularDefinitionException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -190,15 +201,13 @@ public class GpadParserTest extends BaseUnitTest {
 			List<GeoElement> geos = parser.parse(gpad);
 			assertEquals(1, geos.size());
 			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("anim");
-			if (styleSheet != null) {
-				java.util.LinkedHashMap<String, String> animAttrs = styleSheet.getProperty("animation");
-				if (animAttrs != null) {
-					assertEquals("1", animAttrs.get("type")); // INCREASING
-					assertEquals("0.1", animAttrs.get("step"));
-					assertEquals("2", animAttrs.get("speed"));
-				}
-			}
-		} catch (GpadParseException e) {
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> animAttrs = styleSheet.getProperty("animation");
+			assertNotNull(animAttrs);
+			assertEquals("1", animAttrs.get("type")); // INCREASING
+			assertEquals("0.1", animAttrs.get("step"));
+			assertEquals("2", animAttrs.get("speed"));
+		} catch (GpadParseException | CircularDefinitionException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -213,15 +222,13 @@ public class GpadParserTest extends BaseUnitTest {
 			List<GeoElement> geos = parser.parse(gpad);
 			assertEquals(1, geos.size());
 			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("anim");
-			if (styleSheet != null) {
-				java.util.LinkedHashMap<String, String> animAttrs = styleSheet.getProperty("animation");
-				if (animAttrs != null) {
-					assertEquals("2", animAttrs.get("type")); // DECREASING
-					assertEquals("0.1", animAttrs.get("step"));
-					assertEquals("2", animAttrs.get("speed"));
-				}
-			}
-		} catch (GpadParseException e) {
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> animAttrs = styleSheet.getProperty("animation");
+			assertNotNull(animAttrs);
+			assertEquals("2", animAttrs.get("type")); // DECREASING
+			assertEquals("0.1", animAttrs.get("step"));
+			assertEquals("2", animAttrs.get("speed"));
+		} catch (GpadParseException | CircularDefinitionException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -236,15 +243,13 @@ public class GpadParserTest extends BaseUnitTest {
 			List<GeoElement> geos = parser.parse(gpad);
 			assertEquals(1, geos.size());
 			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("anim");
-			if (styleSheet != null) {
-				java.util.LinkedHashMap<String, String> animAttrs = styleSheet.getProperty("animation");
-				if (animAttrs != null) {
-					assertEquals("3", animAttrs.get("type")); // INCREASING_ONCE
-					assertEquals("0.1", animAttrs.get("step"));
-					assertEquals("2", animAttrs.get("speed"));
-				}
-			}
-		} catch (GpadParseException e) {
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> animAttrs = styleSheet.getProperty("animation");
+			assertNotNull(animAttrs);
+			assertEquals("3", animAttrs.get("type")); // INCREASING_ONCE
+			assertEquals("0.1", animAttrs.get("step"));
+			assertEquals("2", animAttrs.get("speed"));
+		} catch (GpadParseException | CircularDefinitionException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -259,15 +264,13 @@ public class GpadParserTest extends BaseUnitTest {
 			List<GeoElement> geos = parser.parse(gpad);
 			assertEquals(1, geos.size());
 			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("anim");
-			if (styleSheet != null) {
-				java.util.LinkedHashMap<String, String> animAttrs = styleSheet.getProperty("animation");
-				if (animAttrs != null) {
-					assertEquals("0", animAttrs.get("type")); // OSCILLATING (default)
-					assertEquals("0.1", animAttrs.get("step"));
-					assertEquals("2", animAttrs.get("speed"));
-				}
-			}
-		} catch (GpadParseException e) {
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> animAttrs = styleSheet.getProperty("animation");
+			assertNotNull(animAttrs);
+			assertEquals("0", animAttrs.get("type")); // OSCILLATING (default)
+			assertEquals("0.1", animAttrs.get("step"));
+			assertEquals("2", animAttrs.get("speed"));
+		} catch (GpadParseException | CircularDefinitionException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -282,16 +285,14 @@ public class GpadParserTest extends BaseUnitTest {
 			List<GeoElement> geos = parser.parse(gpad);
 			assertEquals(1, geos.size());
 			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("anim");
-			if (styleSheet != null) {
-				java.util.LinkedHashMap<String, String> animAttrs = styleSheet.getProperty("animation");
-				if (animAttrs != null) {
-					assertEquals("true", animAttrs.get("playing"));
-					// step and speed should not be set
-					assertTrue(animAttrs.get("step") == null || animAttrs.get("step").isEmpty());
-					assertTrue(animAttrs.get("speed") == null || animAttrs.get("speed").isEmpty());
-				}
-			}
-		} catch (GpadParseException e) {
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> animAttrs = styleSheet.getProperty("animation");
+			assertNotNull(animAttrs);
+			assertEquals("true", animAttrs.get("playing"));
+			// step and speed should not be set
+			assertTrue(animAttrs.get("step") == null || animAttrs.get("step").isEmpty());
+			assertTrue(animAttrs.get("speed") == null || animAttrs.get("speed").isEmpty());
+		} catch (GpadParseException | CircularDefinitionException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -306,13 +307,11 @@ public class GpadParserTest extends BaseUnitTest {
 			List<GeoElement> geos = parser.parse(gpad);
 			assertEquals(1, geos.size());
 			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("anim");
-			if (styleSheet != null) {
-				java.util.LinkedHashMap<String, String> animAttrs = styleSheet.getProperty("animation");
-				if (animAttrs != null) {
-					assertEquals("false", animAttrs.get("playing"));
-				}
-			}
-		} catch (GpadParseException e) {
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> animAttrs = styleSheet.getProperty("animation");
+			assertNotNull(animAttrs);
+			assertEquals("false", animAttrs.get("playing"));
+		} catch (GpadParseException | CircularDefinitionException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -327,17 +326,15 @@ public class GpadParserTest extends BaseUnitTest {
 			List<GeoElement> geos = parser.parse(gpad);
 			assertEquals(1, geos.size());
 			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("anim");
-			if (styleSheet != null) {
-				java.util.LinkedHashMap<String, String> animAttrs = styleSheet.getProperty("animation");
-				if (animAttrs != null) {
-					assertEquals("0.1", animAttrs.get("step"));
-					assertEquals("0", animAttrs.get("type")); // Default oscillating
-					// playing and speed should not be set
-					assertTrue(animAttrs.get("playing") == null || animAttrs.get("playing").isEmpty());
-					assertTrue(animAttrs.get("speed") == null || animAttrs.get("speed").isEmpty());
-				}
-			}
-		} catch (GpadParseException e) {
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> animAttrs = styleSheet.getProperty("animation");
+			assertNotNull(animAttrs);
+			assertEquals("0.1", animAttrs.get("step"));
+			assertEquals("0", animAttrs.get("type")); // Default oscillating
+			// playing and speed should not be set
+			assertTrue(animAttrs.get("playing") == null || animAttrs.get("playing").isEmpty());
+			assertTrue(animAttrs.get("speed") == null || animAttrs.get("speed").isEmpty());
+		} catch (GpadParseException | CircularDefinitionException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -352,16 +349,14 @@ public class GpadParserTest extends BaseUnitTest {
 			List<GeoElement> geos = parser.parse(gpad);
 			assertEquals(1, geos.size());
 			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("anim");
-			if (styleSheet != null) {
-				java.util.LinkedHashMap<String, String> animAttrs = styleSheet.getProperty("animation");
-				if (animAttrs != null) {
-					assertEquals("2", animAttrs.get("speed"));
-					// playing and step should not be set
-					assertTrue(animAttrs.get("playing") == null || animAttrs.get("playing").isEmpty());
-					assertTrue(animAttrs.get("step") == null || animAttrs.get("step").isEmpty());
-				}
-			}
-		} catch (GpadParseException e) {
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> animAttrs = styleSheet.getProperty("animation");
+			assertNotNull(animAttrs);
+			assertEquals("2", animAttrs.get("speed"));
+			// playing and step should not be set
+			assertTrue(animAttrs.get("playing") == null || animAttrs.get("playing").isEmpty());
+			assertTrue(animAttrs.get("step") == null || animAttrs.get("step").isEmpty());
+		} catch (GpadParseException | CircularDefinitionException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -376,7 +371,7 @@ public class GpadParserTest extends BaseUnitTest {
 			assertEquals(1, geos.size());
 			GeoElement geo = geos.get(0);
 			assertEquals("t", geo.getLabelSimple());
-		} catch (GpadParseException e) {
+		} catch (GpadParseException | CircularDefinitionException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -391,15 +386,13 @@ public class GpadParserTest extends BaseUnitTest {
 			List<GeoElement> geos = parser.parse(gpad);
 			assertEquals(1, geos.size());
 			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("anim");
-			if (styleSheet != null) {
-				java.util.LinkedHashMap<String, String> animAttrs = styleSheet.getProperty("animation");
-				if (animAttrs != null) {
-					assertEquals("1.5", animAttrs.get("speed"));
-					assertEquals("0.1", animAttrs.get("step"));
-					assertEquals("true", animAttrs.get("playing"));
-				}
-			}
-		} catch (GpadParseException e) {
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> animAttrs = styleSheet.getProperty("animation");
+			assertNotNull(animAttrs);
+			assertEquals("1.5", animAttrs.get("speed"));
+			assertEquals("0.1", animAttrs.get("step"));
+			assertEquals("true", animAttrs.get("playing"));
+		} catch (GpadParseException | CircularDefinitionException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -414,15 +407,13 @@ public class GpadParserTest extends BaseUnitTest {
 			List<GeoElement> geos = parser.parse(gpad);
 			assertEquals(1, geos.size());
 			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("anim");
-			if (styleSheet != null) {
-				java.util.LinkedHashMap<String, String> animAttrs = styleSheet.getProperty("animation");
-				if (animAttrs != null) {
-					assertEquals("1", animAttrs.get("step"));
-					assertEquals("2", animAttrs.get("speed"));
-					assertEquals("true", animAttrs.get("playing"));
-				}
-			}
-		} catch (GpadParseException e) {
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> animAttrs = styleSheet.getProperty("animation");
+			assertNotNull(animAttrs);
+			assertEquals("1", animAttrs.get("step"));
+			assertEquals("2", animAttrs.get("speed"));
+			assertEquals("true", animAttrs.get("playing"));
+		} catch (GpadParseException | CircularDefinitionException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -438,16 +429,14 @@ public class GpadParserTest extends BaseUnitTest {
 			List<GeoElement> geos = parser.parse(gpad);
 			assertEquals(1, geos.size());
 			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("anim");
-			if (styleSheet != null) {
-				java.util.LinkedHashMap<String, String> animAttrs = styleSheet.getProperty("animation");
-				if (animAttrs != null) {
-					assertEquals("2", animAttrs.get("speed"));
-					assertEquals("0.1", animAttrs.get("step"));
-					assertEquals("1", animAttrs.get("type")); // INCREASING
-					assertEquals("true", animAttrs.get("playing"));
-				}
-			}
-		} catch (GpadParseException e) {
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> animAttrs = styleSheet.getProperty("animation");
+			assertNotNull(animAttrs);
+			assertEquals("2", animAttrs.get("speed"));
+			assertEquals("0.1", animAttrs.get("step"));
+			assertEquals("1", animAttrs.get("type")); // INCREASING
+			assertEquals("true", animAttrs.get("playing"));
+		} catch (GpadParseException | CircularDefinitionException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -460,14 +449,14 @@ public class GpadParserTest extends BaseUnitTest {
 		try {
 			List<GeoElement> geos = parser.parse(gpad);
 			assertEquals(0, geos.size());
-		} catch (GpadParseException e) {
+		} catch (GpadParseException | CircularDefinitionException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
 
 	@Test
 	public void testParseComments() {
-		String gpad = "// This is a comment\nA = Point(1, 2)";
+		String gpad = "// This is a comment\nA = (1, 2)";
 		GpadParser parser = new GpadParser(getKernel());
 		
 		try {
@@ -475,19 +464,61 @@ public class GpadParserTest extends BaseUnitTest {
 			assertEquals(1, geos.size());
 			GeoElement geo = geos.get(0);
 			assertEquals("A", geo.getLabelSimple());
-		} catch (GpadParseException e) {
+		} catch (GpadParseException | CircularDefinitionException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
 
 	@Test
-	public void testParseMultiLineStyleSheet() {
-		String gpad = "@style1 = {\n"
-				+ "  pointSize: 5;\n"
-				+ "  fixed;\n"
-				+ "  objColor: r=255 g=0 b=0\n"
-				+ "}\n"
-				+ "A @style1 = Point(1, 2)";
+	public void testParseCommentsAtEndOfLine() {
+		String gpad = "A = (1, 2) // This is a comment at end of line";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GeoElement geo = geos.get(0);
+			assertEquals("A", geo.getLabelSimple());
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testParseMultipleComments() {
+		String gpad = "// First comment\n// Second comment\nA = (1, 2) // Third comment";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GeoElement geo = geos.get(0);
+			assertEquals("A", geo.getLabelSimple());
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testParseCommentOnlyLine() {
+		String gpad = "// This is a comment only line\nA = (1, 2)";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GeoElement geo = geos.get(0);
+			assertEquals("A", geo.getLabelSimple());
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testParseCommentWithStyleSheet() {
+		String gpad = "// Comment before style sheet\n"
+				+ "@style1 = { pointSize: 5 } // Comment after style sheet\n"
+				+ "A @style1 = (1, 2) // Comment after command";
 		GpadParser parser = new GpadParser(getKernel());
 		
 		try {
@@ -496,7 +527,28 @@ public class GpadParserTest extends BaseUnitTest {
 			GeoElement geo = geos.get(0);
 			assertEquals("A", geo.getLabelSimple());
 			assertTrue(parser.getGlobalStyleSheets().containsKey("style1"));
-		} catch (GpadParseException e) {
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testParseMultiLineStyleSheet() {
+		String gpad = "@style1 = {\n"
+				+ "  pointSize// comment 1\n"
+				+ ": 5;// comment 2\n"
+				+ "  fixed;\n"
+				+ "}\n"
+				+ "A @style1 = (1, 2)";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GeoElement geo = geos.get(0);
+			assertEquals("A", geo.getLabelSimple());
+			assertTrue(parser.getGlobalStyleSheets().containsKey("style1"));
+		} catch (GpadParseException | CircularDefinitionException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -510,20 +562,20 @@ public class GpadParserTest extends BaseUnitTest {
 			List<GeoElement> geos = parser.parse(gpad);
 			// Nested command calls should be supported
 			assertTrue(geos.size() >= 0); // May succeed or fail depending on command syntax
-		} catch (GpadParseException e) {
+		} catch (GpadParseException | CircularDefinitionException e) {
 			// This is acceptable if the command syntax is different
 		}
 	}
 
-	@Test(expected = GpadParseException.class)
-	public void testParseInvalidCommand() throws GpadParseException {
+	@Test(expected = MyError.class)
+	public void testParseInvalidCommand() throws GpadParseException, CircularDefinitionException {
 		String gpad = "A = InvalidCommand(1, 2)";
 		GpadParser parser = new GpadParser(getKernel());
 		parser.parse(gpad);
 	}
 
 	@Test(expected = GpadParseException.class)
-	public void testParseInvalidStyleSheet() throws GpadParseException {
+	public void testParseInvalidStyleSheet() throws GpadParseException, CircularDefinitionException {
 		String gpad = "@style = invalid syntax";
 		GpadParser parser = new GpadParser(getKernel());
 		parser.parse(gpad);
@@ -538,14 +590,14 @@ public class GpadParserTest extends BaseUnitTest {
 			List<GeoElement> geos = parser.parse(gpad);
 			assertEquals(1, geos.size());
 			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
-			assertTrue(styleSheet != null);
+			assertNotNull(styleSheet);
 			java.util.LinkedHashMap<String, String> colorAttrs = styleSheet.getProperty("bgColor");
-			assertTrue(colorAttrs != null);
+			assertNotNull(colorAttrs);
 			assertEquals("255", colorAttrs.get("r"));
 			assertEquals("0", colorAttrs.get("g"));
 			assertEquals("0", colorAttrs.get("b"));
 			assertEquals("1.0", colorAttrs.get("alpha")); // Default alpha
-		} catch (GpadParseException e) {
+		} catch (GpadParseException | CircularDefinitionException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -559,14 +611,14 @@ public class GpadParserTest extends BaseUnitTest {
 			List<GeoElement> geos = parser.parse(gpad);
 			assertEquals(1, geos.size());
 			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
-			assertTrue(styleSheet != null);
+			assertNotNull(styleSheet);
 			java.util.LinkedHashMap<String, String> colorAttrs = styleSheet.getProperty("bgColor");
-			assertTrue(colorAttrs != null);
+			assertNotNull(colorAttrs);
 			assertEquals("0", colorAttrs.get("r"));
 			assertEquals("255", colorAttrs.get("g"));
 			assertEquals("0", colorAttrs.get("b"));
 			assertEquals("1.0", colorAttrs.get("alpha"));
-		} catch (GpadParseException e) {
+		} catch (GpadParseException | CircularDefinitionException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -580,16 +632,16 @@ public class GpadParserTest extends BaseUnitTest {
 			List<GeoElement> geos = parser.parse(gpad);
 			assertEquals(1, geos.size());
 			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
-			assertTrue(styleSheet != null);
+			assertNotNull(styleSheet);
 			java.util.LinkedHashMap<String, String> colorAttrs = styleSheet.getProperty("bgColor");
-			assertTrue(colorAttrs != null);
+			assertNotNull(colorAttrs);
 			assertEquals("0", colorAttrs.get("r"));
 			assertEquals("0", colorAttrs.get("g"));
 			assertEquals("255", colorAttrs.get("b"));
 			// alpha = 0x80 = 128, 128/255 = 0.50196...
 			double alpha = Double.parseDouble(colorAttrs.get("alpha"));
 			assertTrue(Math.abs(alpha - 128.0 / 255.0) < 0.001);
-		} catch (GpadParseException e) {
+		} catch (GpadParseException | CircularDefinitionException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -603,16 +655,16 @@ public class GpadParserTest extends BaseUnitTest {
 			List<GeoElement> geos = parser.parse(gpad);
 			assertEquals(1, geos.size());
 			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
-			assertTrue(styleSheet != null);
+			assertNotNull(styleSheet);
 			java.util.LinkedHashMap<String, String> colorAttrs = styleSheet.getProperty("bgColor");
-			assertTrue(colorAttrs != null);
+			assertNotNull(colorAttrs);
 			assertEquals("171", colorAttrs.get("r")); // AB = 171
 			assertEquals("205", colorAttrs.get("g")); // CD = 205
 			assertEquals("239", colorAttrs.get("b")); // EF = 239
 			// alpha = 0xAA = 170, 170/255 = 0.6666...
 			double alpha = Double.parseDouble(colorAttrs.get("alpha"));
 			assertTrue(Math.abs(alpha - 170.0 / 255.0) < 0.001);
-		} catch (GpadParseException e) {
+		} catch (GpadParseException | CircularDefinitionException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -626,14 +678,14 @@ public class GpadParserTest extends BaseUnitTest {
 			List<GeoElement> geos = parser.parse(gpad);
 			assertEquals(1, geos.size());
 			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
-			assertTrue(styleSheet != null);
+			assertNotNull(styleSheet);
 			java.util.LinkedHashMap<String, String> colorAttrs = styleSheet.getProperty("borderColor");
-			assertTrue(colorAttrs != null);
+			assertNotNull(colorAttrs);
 			assertEquals("18", colorAttrs.get("r")); // 0x12 = 18
 			assertEquals("52", colorAttrs.get("g")); // 0x34 = 52
 			assertEquals("86", colorAttrs.get("b")); // 0x56 = 86
 			assertEquals("1.0", colorAttrs.get("alpha"));
-		} catch (GpadParseException e) {
+		} catch (GpadParseException | CircularDefinitionException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -647,15 +699,15 @@ public class GpadParserTest extends BaseUnitTest {
 			List<GeoElement> geos = parser.parse(gpad);
 			assertEquals(1, geos.size());
 			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
-			assertTrue(styleSheet != null);
+			assertNotNull(styleSheet);
 			java.util.LinkedHashMap<String, String> colorAttrs = styleSheet.getProperty("borderColor");
-			assertTrue(colorAttrs != null);
+			assertNotNull(colorAttrs);
 			assertEquals("255", colorAttrs.get("r"));
 			assertEquals("0", colorAttrs.get("g"));
 			assertEquals("255", colorAttrs.get("b"));
 			// alpha = 0x00 = 0, 0/255 = 0.0
 			assertEquals("0.0", colorAttrs.get("alpha"));
-		} catch (GpadParseException e) {
+		} catch (GpadParseException | CircularDefinitionException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -669,20 +721,20 @@ public class GpadParserTest extends BaseUnitTest {
 			List<GeoElement> geos = parser.parse(gpad);
 			assertEquals(1, geos.size());
 			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
-			assertTrue(styleSheet != null);
+			assertNotNull(styleSheet);
 			
 			java.util.LinkedHashMap<String, String> bgColorAttrs = styleSheet.getProperty("bgColor");
-			assertTrue(bgColorAttrs != null);
+			assertNotNull(bgColorAttrs);
 			assertEquals("255", bgColorAttrs.get("r"));
 			assertEquals("0", bgColorAttrs.get("g"));
 			assertEquals("0", bgColorAttrs.get("b"));
 			
 			java.util.LinkedHashMap<String, String> borderColorAttrs = styleSheet.getProperty("borderColor");
-			assertTrue(borderColorAttrs != null);
+			assertNotNull(borderColorAttrs);
 			assertEquals("0", borderColorAttrs.get("r"));
 			assertEquals("255", borderColorAttrs.get("g"));
 			assertEquals("0", borderColorAttrs.get("b"));
-		} catch (GpadParseException e) {
+		} catch (GpadParseException | CircularDefinitionException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -697,11 +749,11 @@ public class GpadParserTest extends BaseUnitTest {
 			List<GeoElement> geos = parser.parse(gpad);
 			assertEquals(1, geos.size());
 			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
-			assertTrue(styleSheet != null);
+			assertNotNull(styleSheet);
 			// Invalid color format should be ignored, so bgColor property should not exist
 			java.util.LinkedHashMap<String, String> colorAttrs = styleSheet.getProperty("bgColor");
 			assertTrue(colorAttrs == null);
-		} catch (GpadParseException e) {
+		} catch (GpadParseException | CircularDefinitionException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -716,11 +768,11 @@ public class GpadParserTest extends BaseUnitTest {
 			List<GeoElement> geos = parser.parse(gpad);
 			assertEquals(1, geos.size());
 			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
-			assertTrue(styleSheet != null);
+			assertNotNull(styleSheet);
 			// Invalid color format should be ignored, so bgColor property should not exist
 			java.util.LinkedHashMap<String, String> colorAttrs = styleSheet.getProperty("bgColor");
 			assertTrue(colorAttrs == null);
-		} catch (GpadParseException e) {
+		} catch (GpadParseException | CircularDefinitionException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -735,11 +787,11 @@ public class GpadParserTest extends BaseUnitTest {
 			List<GeoElement> geos = parser.parse(gpad);
 			assertEquals(1, geos.size());
 			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
-			assertTrue(styleSheet != null);
+			assertNotNull(styleSheet);
 			// Invalid color format should be ignored, so bgColor property should not exist
 			java.util.LinkedHashMap<String, String> colorAttrs = styleSheet.getProperty("bgColor");
 			assertTrue(colorAttrs == null);
-		} catch (GpadParseException e) {
+		} catch (GpadParseException | CircularDefinitionException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}

@@ -104,6 +104,8 @@ public abstract class GgbAPI implements JavaScriptAPI {
 	protected AlgebraProcessor algebraprocessor = null;
 	/** application */
 	protected App app = null;
+	/** last error message from evalGpad */
+	private String lastError = null;
 	private static final StringTemplate nonLocalizedTemplate = StringTemplate
 			.printDecimals(ExpressionNodeConstants.StringType.GEOGEBRA, 13, false);
 
@@ -279,6 +281,7 @@ public abstract class GgbAPI implements JavaScriptAPI {
 	 * @return comma separated labels of created objects, or null if parsing fails
 	 */
 	public synchronized String evalGpad(String gpadText) {
+		lastError = null; // Clear previous error
 		try {
 			org.geogebra.common.gpad.GpadParser parser = new org.geogebra.common.gpad.GpadParser(kernel);
 			java.util.List<org.geogebra.common.kernel.geos.GeoElement> geos = parser.parse(gpadText);
@@ -297,10 +300,36 @@ public abstract class GgbAPI implements JavaScriptAPI {
 				ret.setLength(ret.length() - 1);
 			
 			return ret.toString();
+		} catch (org.geogebra.common.main.MyError e) {
+			lastError = e.getLocalizedMessage();
+			Log.error("Gpad MyError: " + lastError);
+			return null;
+		} catch (org.geogebra.common.kernel.CircularDefinitionException e) {
+			lastError = e.getMessage();
+			Log.error("Gpad CircularDefinitionException: " + lastError);
+			return null;
 		} catch (org.geogebra.common.gpad.GpadParseException e) {
-			Log.error("Gpad parse error: " + e.getMessage());
+			lastError = e.getMessage();
+			Log.error("Gpad parse error: " + lastError);
+			return null;
+		} catch (Throwable t) {
+			lastError = t.getMessage();
+			if (lastError == null) {
+				lastError = t.getClass().getSimpleName();
+			}
+			Log.error("Gpad unexpected error: " + lastError);
+			Log.debug(t);
 			return null;
 		}
+	}
+
+	/**
+	 * Gets the last error message from evalGpad, if any.
+	 * 
+	 * @return last error message, or null if no error occurred
+	 */
+	public String getLastError() {
+		return lastError;
 	}
 
 	/**

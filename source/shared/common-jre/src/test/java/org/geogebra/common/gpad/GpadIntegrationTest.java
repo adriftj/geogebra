@@ -7,6 +7,7 @@ import static org.junit.Assert.assertTrue;
 import java.util.List;
 
 import org.geogebra.common.BaseUnitTest;
+import org.geogebra.common.kernel.CircularDefinitionException;
 import org.geogebra.common.kernel.geos.GeoElement;
 import org.geogebra.common.kernel.geos.GeoPoint;
 import org.junit.Test;
@@ -20,7 +21,7 @@ public class GpadIntegrationTest extends BaseUnitTest {
 	@Test
 	public void testGpadToGeoElementAndBack() {
 		// Create a point via Gpad
-		String originalGpad = "A = Point(1, 2)";
+		String originalGpad = "A = (1, 2)";
 		GpadParser parser = new GpadParser(getKernel());
 		
 		try {
@@ -36,7 +37,7 @@ public class GpadIntegrationTest extends BaseUnitTest {
 			assertNotNull(convertedGpad);
 			assertTrue(convertedGpad.contains("A"));
 			assertTrue(convertedGpad.contains("="));
-		} catch (GpadParseException e) {
+		} catch (GpadParseException | CircularDefinitionException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -45,7 +46,7 @@ public class GpadIntegrationTest extends BaseUnitTest {
 	public void testGpadWithStyleSheetRoundTrip() {
 		// Create with style sheet
 		String gpad = "@style1 = { pointSize: 6; fixed }\n"
-				+ "A @style1 = Point(1, 2)";
+				+ "A @style1 = (1, 2)";
 		GpadParser parser = new GpadParser(getKernel());
 		
 		try {
@@ -60,7 +61,7 @@ public class GpadIntegrationTest extends BaseUnitTest {
 			// Should contain the label
 			assertNotNull(convertedGpad);
 			assertTrue(convertedGpad.contains("A"));
-		} catch (GpadParseException e) {
+		} catch (GpadParseException | CircularDefinitionException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -81,7 +82,7 @@ public class GpadIntegrationTest extends BaseUnitTest {
 			// Check that style sheets were registered
 			assertTrue(parser.getGlobalStyleSheets().containsKey("g"));
 			assertTrue(parser.getGlobalStyleSheets().containsKey("h"));
-		} catch (GpadParseException e) {
+		} catch (GpadParseException | CircularDefinitionException e) {
 			// This might fail if Line command syntax is different
 			// That's acceptable for this test
 		}
@@ -90,7 +91,7 @@ public class GpadIntegrationTest extends BaseUnitTest {
 	@Test
 	public void testAPIEvalGpad() {
 		// Test via GpadParser directly (since getGgbApi might not be available)
-		String gpad = "A = Point(1, 2)";
+		String gpad = "A = (1, 2)";
 		GpadParser parser = new GpadParser(getKernel());
 		
 		try {
@@ -101,7 +102,7 @@ public class GpadIntegrationTest extends BaseUnitTest {
 			GeoElement geo = getKernel().lookupLabel("A");
 			assertNotNull(geo);
 			assertTrue(geo instanceof GeoPoint);
-		} catch (GpadParseException e) {
+		} catch (GpadParseException | CircularDefinitionException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -126,7 +127,7 @@ public class GpadIntegrationTest extends BaseUnitTest {
 				+ "  pointSize: 6;\n"
 				+ "  fixed\n"
 				+ "}\n"
-				+ "A @style1 = Point(1, 2)";
+				+ "A @style1 = (1, 2)";
 		GpadParser parser = new GpadParser(getKernel());
 		
 		try {
@@ -135,7 +136,7 @@ public class GpadIntegrationTest extends BaseUnitTest {
 			GeoElement geo = geos.get(0);
 			assertEquals("A", geo.getLabelSimple());
 			assertTrue(parser.getGlobalStyleSheets().containsKey("style1"));
-		} catch (GpadParseException e) {
+		} catch (GpadParseException | CircularDefinitionException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -150,7 +151,7 @@ public class GpadIntegrationTest extends BaseUnitTest {
 			List<GeoElement> geos = parser.parse(gpad);
 			// Nested calls should be supported
 			assertTrue(geos.size() >= 0); // May succeed or fail depending on command syntax
-		} catch (GpadParseException e) {
+		} catch (GpadParseException | CircularDefinitionException e) {
 			// This is acceptable if the command syntax is different
 		}
 	}
