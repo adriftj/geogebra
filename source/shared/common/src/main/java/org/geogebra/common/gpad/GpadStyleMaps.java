@@ -34,11 +34,12 @@ public class GpadStyleMaps {
 	 * 映射：Gpad 属性名 -> XML 属性名
 	 */
 	public static final Map<String, String> GPAD_TO_XML_ATTR_NAME_MAP = Map.of(
-			"hideLabelInAlgebra", "labelVisible",
-			"showIf", "showObject",
-			"filename", "name",
 			"audio", "src",
-			"linkedGeo", "exp");
+			"curveParam", "t",
+			"filename", "name",
+			"hideLabelInAlgebra", "labelVisible",
+			"linkedGeo", "exp",
+			"showIf", "showObject");
 
 	/**
 	 * 布尔值反转取值表
@@ -121,6 +122,7 @@ public class GpadStyleMaps {
 			Map.entry("caption", new PropertyInfo(GK_STR, "")),
 			Map.entry("content", new PropertyInfo(GK_STR, "")),
 			Map.entry("coordStyle", new PropertyInfo(GK_STR, "cartesian")),
+			Map.entry("curveParam", new PropertyInfo(GK_STR, "")), // 值可能是表达式（字符串）
 			Map.entry("decoration", new PropertyInfo(GK_STR, "0")), // XML 中 "0" 对应 Gpad 的 "none"
 			Map.entry("dynamicCaption", new PropertyInfo(GK_STR, "")),
 			Map.entry("endStyle", new PropertyInfo(GK_STR, "default")),
