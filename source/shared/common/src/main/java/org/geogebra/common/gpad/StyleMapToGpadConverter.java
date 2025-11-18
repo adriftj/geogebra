@@ -346,19 +346,18 @@ public class StyleMapToGpadConverter {
 	 *         返回空串表示不是简单xml元素，返回null表示省略此样式
 	 */
 	private String convertSimplePropertyToGpad(String xmlTagName, LinkedHashMap<String, String> attrs) {
-		String gpadPropertyName = xmlTagName;
+		// 检查是否需要通过名字映射转换（XML 元素名 -> Gpad 属性名）
+		String gpadName = GpadStyleMaps.XML_TO_GPAD_NAME_MAP.get(xmlTagName);
+		if (gpadName == null)
+			gpadName = xmlTagName;
+		// 从 PROPERTY_INFO 获取属性信息（key 是 Gpad 属性名）
+		GpadStyleMaps.PropertyInfo propInfo = GpadStyleMaps.PROPERTY_INFO.get(gpadName);
+		if (propInfo == null) // 如果找不到，说明不是已知的属性
+			return "";
 
-		// 检查是否是直接的属性
-		Integer gkType = GpadStyleMaps.GK_PROPERTIES.get(xmlTagName);
-		if (gkType == null) {
-			// 检查是否需要通过名字映射转换
-			gpadPropertyName = GpadStyleMaps.XML_TO_GPAD_NAME_MAP.get(xmlTagName);
-			if (gpadPropertyName == null || GpadStyleMaps.GK_PROPERTIES.containsKey(gpadPropertyName))
-				return "";
-		}
-
+		Integer gkType = propInfo.type;
 		// 确定 XML 属性名（检查是否有特殊属性名映射）
-		String attrName = GpadStyleMaps.GPAD_TO_XML_ATTR_NAME_MAP.getOrDefault(gpadPropertyName, "val");
+		String attrName = GpadStyleMaps.GPAD_TO_XML_ATTR_NAME_MAP.getOrDefault(gpadName, "val");
 
 		// 获取属性值
 		String value = attrs != null ? attrs.get(attrName) : null;
@@ -369,8 +368,44 @@ public class StyleMapToGpadConverter {
 				return null; // 找不到值，省略
 		}
 
+		// 检查是否是默认值，如果是则返回 null 表示省略
+		String defaultValue = propInfo.defaultValue;
+		if (defaultValue != null) {
+			// 对于数值类型，需要比较数值是否相等
+			if (gkType == GpadStyleMaps.GK_INT || gkType == GpadStyleMaps.GK_FLOAT) {
+				try {
+					if (gkType == GpadStyleMaps.GK_INT) {
+						// 整数比较
+						if (Integer.parseInt(value) == Integer.parseInt(defaultValue))
+							return null; // 默认值，省略
+					} else {
+						// 浮点数比较（包括 NaN 的特殊处理）
+						if ("NaN".equals(defaultValue)) {
+							// 检查 value 是否是 NaN
+							if ("NaN".equals(value))
+								return null; // 默认值 NaN，省略
+							if (Double.isNaN(Double.parseDouble(value)))
+								return null; // 默认值 NaN，省略
+						} else {
+							double val = Double.parseDouble(value);
+							double def = Double.parseDouble(defaultValue);
+							// 使用小的 epsilon 来比较浮点数
+							if (Math.abs(val - def) < 1e-9)
+								return null; // 默认值，省略
+						}
+					}
+				} catch (NumberFormatException e) {
+					// 如果解析失败，继续处理（可能是表达式）
+				}
+			} else {
+				// 字符串类型，直接比较
+				if (value.equals(defaultValue))
+					return null; // 默认值，省略
+			}
+		}
+
 		if (gkType == GpadStyleMaps.GK_INT || gkType == GpadStyleMaps.GK_FLOAT)
-			return gpadPropertyName + ": " + value;
+			return gpadName + ": " + value;
 
 		// 检查是否需要值转换（通过 VALUE_MAPS_REVERSE）
 		if (GpadStyleMaps.VALUE_MAPS_REVERSE.containsKey(xmlTagName)) {
@@ -381,9 +416,9 @@ public class StyleMapToGpadConverter {
 		}
 
 		if (gkType == GpadStyleMaps.GK_BOOL) // 省略布尔false值(不出现默认就是false)
-			return "true".equals(value)? gpadPropertyName: "";
+			return "true".equals(value)? gpadName: "";
 
 		// 现在只能是字符串值，转换为 Gpad 格式（字符串值需要用引号括起来）
-		return gpadPropertyName + ": \"" + value + "\"";
+		return gpadName + ": \"" + value + "\"";
 	}
 }

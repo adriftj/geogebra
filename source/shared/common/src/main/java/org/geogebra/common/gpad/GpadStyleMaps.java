@@ -2,10 +2,6 @@ package org.geogebra.common.gpad;
 
 import java.util.Map;
 
-/**
- * 集中管理 Gpad 样式与 XML 之间的映射表。
- * 将原映射表和反映射表放在一起，方便同时维护和修改。
- */
 public class GpadStyleMaps {
 	// ==================== 属性名映射 ====================
 
@@ -30,7 +26,7 @@ public class GpadStyleMaps {
 			"emphasizeRightAngle", "showGeneralAngle",
 			"file", "filename");
 
-	// ==================== 属性名到 XML 属性名的映射 ====================
+	// ==================== 属性名到XML属性名的映射 ====================
 
 	/**
 	 * GpadStyleSheet 中可转换成唯一属性的 XML 元素的那些简单属性，
@@ -43,8 +39,6 @@ public class GpadStyleMaps {
 			"filename", "name",
 			"audio", "src",
 			"linkedGeo", "exp");
-
-	// ==================== 布尔值相关 ====================
 
 	/**
 	 * 布尔值反转取值表
@@ -59,63 +53,89 @@ public class GpadStyleMaps {
 	public static final Integer GK_FLOAT = 2;
 	public static final Integer GK_STR = 3;
 
+	// ==================== 属性信息内部类 ====================
+
 	/**
-	 * 属性归类列表(从 Parser.jj 中的 GK_BOOL/GK_INT/GK_FLOAT/GK_STR TOKEN定义而来)
+	 * 属性信息，包含类型和默认值
+	 * 默认值存储的是 XML 格式的值（因为比较时使用的是从 XML 读取的值）
 	 */
-	public static final Map<String, Integer> GK_PROPERTIES = Map.ofEntries(
-			Map.entry("autocolor", GK_BOOL),
-			Map.entry("auxiliary", GK_BOOL),
-			Map.entry("breakpoint", GK_BOOL),
-			Map.entry("centered", GK_BOOL),
-			Map.entry("comboBox", GK_BOOL),
-			Map.entry("contentSerif", GK_BOOL),
-			Map.entry("fixed", GK_BOOL),
-			Map.entry("hideLabelInAlgebra", GK_BOOL),
-			Map.entry("inBackground", GK_BOOL),
-			Map.entry("interpolate", GK_BOOL),
-			Map.entry("isLaTeX", GK_BOOL),
-			Map.entry("isMask", GK_BOOL),
-			Map.entry("keepTypeOnTransform", GK_BOOL),
-			Map.entry("levelOfDetailQuality", GK_BOOL),
-			Map.entry("outlyingIntersections", GK_BOOL),
-			Map.entry("selectionAllowed", GK_BOOL),
-			Map.entry("showGeneralAngle", GK_BOOL),
-			Map.entry("showOnAxis", GK_BOOL),
-			Map.entry("showTrimmed", GK_BOOL),
-			Map.entry("symbolic", GK_BOOL),
-			Map.entry("trace", GK_BOOL),
+	public static class PropertyInfo {
+		public final Integer type;
+		public final String defaultValue;
 
-			Map.entry("arcSize", GK_INT),
-			Map.entry("decimals", GK_INT),
-			Map.entry("layer", GK_INT),
-			Map.entry("length", GK_INT),
-			Map.entry("selectedIndex", GK_INT),
-			Map.entry("significantfigures", GK_INT),
-			Map.entry("slopeTriangleSize", GK_INT),
+		public PropertyInfo(Integer type, String defaultValue) {
+			this.type = type;
+			this.defaultValue = defaultValue;
+		}
+	}
 
-			Map.entry("fading", GK_FLOAT),
-			Map.entry("ordering", GK_FLOAT),
-			Map.entry("pointSize", GK_FLOAT),
-			Map.entry("angleStyle", GK_STR),
+	// ==================== 属性信息表（合并了类型和默认值） ====================
 
-			Map.entry("caption", GK_STR),
-			Map.entry("content", GK_STR),
-			Map.entry("coordStyle", GK_STR),
-			Map.entry("decoration", GK_STR),
-			Map.entry("dynamicCaption", GK_STR),
-			Map.entry("endStyle", GK_STR),
-			Map.entry("filename", GK_STR),
-			Map.entry("headStyle", GK_STR),
-			Map.entry("incrementY", GK_STR),
-			Map.entry("labelMode", GK_STR),
-			Map.entry("linkedGeo", GK_STR),
-			Map.entry("parentLabel", GK_STR),
-			Map.entry("pointStyle", GK_STR),
-			Map.entry("showIf", GK_STR),
-			Map.entry("startStyle", GK_STR),
-			Map.entry("textAlign", GK_STR),
-			Map.entry("tooltipMode", GK_STR),
-			Map.entry("verticalAlign", GK_STR));
+	/**
+	 * 属性信息表，同时包含类型（GK_BOOL/GK_INT/GK_FLOAT/GK_STR）和默认值
+	 * 用于统一管理属性类型和默认值，方便维护
+	 * Key 是 Gpad 属性名
+	 * 默认值存储的是 XML 格式的值（因为比较时使用的是从 XML 读取的值）
+	 */
+	public static final Map<String, PropertyInfo> PROPERTY_INFO = Map.ofEntries(
+			// GK_BOOL 类型（布尔类型没有默认值，因为 false 值会被省略）
+			Map.entry("autocolor", new PropertyInfo(GK_BOOL, null)),
+			Map.entry("auxiliary", new PropertyInfo(GK_BOOL, null)),
+			Map.entry("breakpoint", new PropertyInfo(GK_BOOL, null)),
+			Map.entry("centered", new PropertyInfo(GK_BOOL, null)),
+			Map.entry("comboBox", new PropertyInfo(GK_BOOL, null)),
+			Map.entry("contentSerif", new PropertyInfo(GK_BOOL, null)),
+			Map.entry("fixed", new PropertyInfo(GK_BOOL, null)),
+			Map.entry("hideLabelInAlgebra", new PropertyInfo(GK_BOOL, null)),
+			Map.entry("inBackground", new PropertyInfo(GK_BOOL, null)),
+			Map.entry("interpolate", new PropertyInfo(GK_BOOL, null)),
+			Map.entry("isLaTeX", new PropertyInfo(GK_BOOL, null)),
+			Map.entry("isMask", new PropertyInfo(GK_BOOL, null)),
+			Map.entry("keepTypeOnTransform", new PropertyInfo(GK_BOOL, null)),
+			Map.entry("levelOfDetailQuality", new PropertyInfo(GK_BOOL, null)),
+			Map.entry("outlyingIntersections", new PropertyInfo(GK_BOOL, null)),
+			Map.entry("selectionAllowed", new PropertyInfo(GK_BOOL, null)),
+			Map.entry("showGeneralAngle", new PropertyInfo(GK_BOOL, null)),
+			Map.entry("showOnAxis", new PropertyInfo(GK_BOOL, null)),
+			Map.entry("showTrimmed", new PropertyInfo(GK_BOOL, null)),
+			Map.entry("symbolic", new PropertyInfo(GK_BOOL, null)),
+			Map.entry("trace", new PropertyInfo(GK_BOOL, null)),
+
+			// GK_INT 类型
+			Map.entry("arcSize", new PropertyInfo(GK_INT, "30")),
+			Map.entry("decimals", new PropertyInfo(GK_INT, "-1")),
+			Map.entry("layer", new PropertyInfo(GK_INT, "0")),
+			Map.entry("length", new PropertyInfo(GK_INT, "20")),
+			Map.entry("selectedIndex", new PropertyInfo(GK_INT, "0")),
+			Map.entry("significantfigures", new PropertyInfo(GK_INT, "-1")),
+			Map.entry("slopeTriangleSize", new PropertyInfo(GK_INT, "1")),
+
+			// GK_FLOAT 类型
+			Map.entry("fading", new PropertyInfo(GK_FLOAT, "0.0")),
+			Map.entry("ordering", new PropertyInfo(GK_FLOAT, "NaN")),
+			Map.entry("pointSize", new PropertyInfo(GK_FLOAT, "5")),
+
+			// GK_STR 类型（存储 XML 格式的默认值）
+			// 对于有值映射的属性，这里存储的是 XML 值（如 "0"），而不是 Gpad 值（如 "0-360"）
+			Map.entry("angleStyle", new PropertyInfo(GK_STR, "0")), // XML 中 "0" 对应 Gpad 的 "0-360"
+			Map.entry("caption", new PropertyInfo(GK_STR, "")),
+			Map.entry("content", new PropertyInfo(GK_STR, "")),
+			Map.entry("coordStyle", new PropertyInfo(GK_STR, "cartesian")),
+			Map.entry("decoration", new PropertyInfo(GK_STR, "0")), // XML 中 "0" 对应 Gpad 的 "none"
+			Map.entry("dynamicCaption", new PropertyInfo(GK_STR, "")),
+			Map.entry("endStyle", new PropertyInfo(GK_STR, "default")),
+			Map.entry("filename", new PropertyInfo(GK_STR, "")), // XML 元素名是 "file"
+			Map.entry("headStyle", new PropertyInfo(GK_STR, "0")), // XML 中 "0" 对应 Gpad 的 "default"
+			Map.entry("incrementY", new PropertyInfo(GK_STR, "")),
+			Map.entry("labelMode", new PropertyInfo(GK_STR, "0")), // XML 中 "0" 对应 Gpad 的 "name"
+			Map.entry("linkedGeo", new PropertyInfo(GK_STR, "")),
+			Map.entry("parentLabel", new PropertyInfo(GK_STR, "")),
+			Map.entry("pointStyle", new PropertyInfo(GK_STR, "-1")), // XML 中 "-1" 对应 Gpad 的 "default"
+			Map.entry("showIf", new PropertyInfo(GK_STR, "")), // XML 元素名是 "condition"
+			Map.entry("startStyle", new PropertyInfo(GK_STR, "default")),
+			Map.entry("textAlign", new PropertyInfo(GK_STR, "left")),
+			Map.entry("tooltipMode", new PropertyInfo(GK_STR, "0")), // XML 中 "0" 对应 Gpad 的 "algebraview"
+			Map.entry("verticalAlign", new PropertyInfo(GK_STR, "top")));
 
 	// ==================== lineStyle 相关 ====================
 
@@ -159,8 +179,6 @@ public class GpadStyleMaps {
 			"1", "dashed",
 			"2", "show");
 
-	// ==================== 线段始端和终端样式 ====================
-
 	/**
 	 * 线段始端和终端样式取值表
 	 */
@@ -178,8 +196,6 @@ public class GpadStyleMaps {
 			Map.entry("diamond_outline", "diamond_outline"),
 			Map.entry("diamond", "diamond"));
 
-	// ==================== 方程样式 ====================
-
 	/**
 	 * 直线和二次曲线的方程显示形式
 	 */
@@ -193,9 +209,9 @@ public class GpadStyleMaps {
 			"conic", "conic",
 			"user", "user");
 
-	// ==================== 其他属性值映射 ====================
-
-	// 双向映射的内部 Map（在 VALUE_MAPS 和 VALUE_MAPS_REVERSE 中相同）
+	/**
+	 * 坐标系样式取值表
+	 */
 	private static final Map<String, String> COORD_STYLE_MAP = Map.of(
 			"cartesian", "cartesian",
 			"polar", "polar",
@@ -203,11 +219,17 @@ public class GpadStyleMaps {
 			"cartesian3d", "cartesian3d",
 			"spherical", "spherical");
 
+	/**
+	 * 文本左右对齐方式取值表
+	 */
 	private static final Map<String, String> TEXT_ALIGN_MAP = Map.of(
 			"left", "left",
 			"center", "center",
 			"right", "right");
 
+	/**
+	 * 上下对齐方式取值表
+	 */
 	private static final Map<String, String> VERTICAL_ALIGN_MAP = Map.of(
 			"top", "top",
 			"middle", "middle",
