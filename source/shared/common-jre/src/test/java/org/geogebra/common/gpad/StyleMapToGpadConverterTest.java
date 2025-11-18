@@ -408,5 +408,72 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		// When attributes are empty, animation property should not be output
 		assertTrue("Should not contain animation when attrs empty", gpad == null || !gpad.contains("animation"));
 	}
-}
 
+	@Test
+	public void testCheckboxWithFixedTrue() {
+		// Test checkbox with fixed="true": should output both "checkbox;" and "fixed;"
+		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
+		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
+		
+		LinkedHashMap<String, String> checkboxAttrs = new LinkedHashMap<>();
+		checkboxAttrs.put("fixed", "true");
+		styleMap.put("checkbox", checkboxAttrs);
+		
+		String gpad = converter.convert("test", styleMap);
+		assertNotNull(gpad);
+		assertTrue("Should contain checkbox", gpad.contains("checkbox"));
+		assertTrue("Should contain fixed", gpad.contains("fixed"));
+	}
+
+	@Test
+	public void testCheckboxWithFixedFalse() {
+		// Test checkbox with fixed="false": should only output "checkbox;" (fixed is default false, so omitted)
+		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
+		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
+		
+		LinkedHashMap<String, String> checkboxAttrs = new LinkedHashMap<>();
+		checkboxAttrs.put("fixed", "false");
+		styleMap.put("checkbox", checkboxAttrs);
+		
+		String gpad = converter.convert("test", styleMap);
+		assertNotNull(gpad);
+		assertTrue("Should contain checkbox", gpad.contains("checkbox"));
+		assertTrue("Should not contain fixed (default false, omitted)", !gpad.contains("fixed"));
+	}
+
+	@Test
+	public void testCheckboxWithoutFixed() {
+		// Test checkbox without fixed attribute: should only output "checkbox;" (fixed defaults to false)
+		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
+		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
+		
+		LinkedHashMap<String, String> checkboxAttrs = new LinkedHashMap<>();
+		styleMap.put("checkbox", checkboxAttrs);
+		
+		String gpad = converter.convert("test", styleMap);
+		assertNotNull(gpad);
+		assertTrue("Should contain checkbox", gpad.contains("checkbox"));
+		assertTrue("Should not contain fixed (default false, omitted)", !gpad.contains("fixed"));
+	}
+
+	@Test
+	public void testCheckboxWithFixedTrueAndOtherProperties() {
+		// Test checkbox with fixed="true" along with other properties
+		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
+		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
+		
+		LinkedHashMap<String, String> checkboxAttrs = new LinkedHashMap<>();
+		checkboxAttrs.put("fixed", "true");
+		styleMap.put("checkbox", checkboxAttrs);
+		
+		LinkedHashMap<String, String> traceAttrs = new LinkedHashMap<>();
+		traceAttrs.put("val", "true");
+		styleMap.put("trace", traceAttrs);
+		
+		String gpad = converter.convert("test", styleMap);
+		assertNotNull(gpad);
+		assertTrue("Should contain checkbox", gpad.contains("checkbox"));
+		assertTrue("Should contain fixed", gpad.contains("fixed"));
+		assertTrue("Should contain trace", gpad.contains("trace"));
+	}
+}

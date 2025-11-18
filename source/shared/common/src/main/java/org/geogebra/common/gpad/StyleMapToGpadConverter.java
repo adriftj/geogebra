@@ -29,6 +29,19 @@ public class StyleMapToGpadConverter {
 			String tagName = entry.getKey();
 			LinkedHashMap<String, String> attrs = entry.getValue();
 
+			// Special handling for checkbox: if fixed="true", output both "checkbox;" and "fixed;"
+			if ("checkbox".equals(tagName)) {
+				String fixed = attrs != null ? attrs.get("fixed") : null;
+				if (!first)
+					sb.append(";");
+				sb.append(" checkbox");
+				first = false;
+				if ("true".equals(fixed)) // Also output fixed (as a boolean property)
+					sb.append("; fixed");
+				// If fixed="false" or not present, only output "checkbox;" (fixed is default false, so omitted)
+				continue;
+			}
+
 			// Convert XML tag name and attributes to Gpad format
 			String gpadProperty = convertPropertyToGpad(tagName, attrs);
 			if (gpadProperty != null && !gpadProperty.isEmpty()) {

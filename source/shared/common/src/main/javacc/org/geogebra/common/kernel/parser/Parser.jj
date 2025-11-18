@@ -2219,6 +2219,7 @@ void gpadStyleSheetKeyValue(GpadStyleSheet styleSheet) :
         gpadStyleSheetPropertyXYCoords(styleSheet) | // XYCoords key
         gpadStyleSheetPropertyRGBA(styleSheet) | // rgba key #rrggbbaa
         gpadStyleSheetPropertyAnimation(styleSheet) | // animation key
+        gpadStyleSheetPropertyCheckbox(styleSheet) | // checkbox key
         gpadStyleSheetPropertyEqnStyle(styleSheet) | // eqnStyle key
         gpadStyleSheetPropertyLineStyle(styleSheet) // lineStyle key
         )
@@ -2248,6 +2249,11 @@ void gpadStyleSheetPropertyDelete(GpadStyleSheet styleSheet) :
         String originalKey = keyToken.image.substring(1);
         propertyName = gkNameMaps.getOrDefault(originalKey, originalKey);
         styleSheet.removeProperty(propertyName);
+        if ("fixed".equals(originalKey)) {
+            java.util.LinkedHashMap<String, String> attrsCheckbox = styleSheet.getProperty("checkbox");
+            if(attrsCheckbox != null)
+                attrsCheckbox.put("fixed", "false");
+        }
     }
 }
 
@@ -2263,7 +2269,13 @@ void gpadStyleSheetPropertyBoolean(GpadStyleSheet styleSheet) :
 {
     keyToken = <GK_BOOL>
     {
-        setPropertyWithValueConversion(styleSheet, keyToken.image, "true");
+        String key = keyToken.image;
+        setPropertyWithValueConversion(styleSheet, key, "true");
+        if ("fixed".equals(key)) {
+            java.util.LinkedHashMap<String, String> attrsCheckbox = styleSheet.getProperty("checkbox");
+            if(attrsCheckbox != null)
+                attrsCheckbox.put("fixed", "true");
+        }
     }
 }
 
@@ -2458,6 +2470,25 @@ void gpadStyleSheetPropertyAnimation(GpadStyleSheet styleSheet) :
         }
         if (speed != null)
             attrs.put("speed", speed);
+        styleSheet.setProperty(keyToken.image, attrs);
+    }
+}
+
+/**
+ * Parses checkbox property
+ * Syntax: checkbox;
+ */
+void gpadStyleSheetPropertyCheckbox(GpadStyleSheet styleSheet) :
+{
+    Token keyToken;
+}
+{
+    keyToken = <GK_checkbox>
+    {
+        java.util.LinkedHashMap<String, String> attrs = new java.util.LinkedHashMap<>();
+        java.util.LinkedHashMap<String, String> attrsFixed = styleSheet.getProperty("fixed");
+        String fixed = attrsFixed != null? attrsFixed.getOrDefault("val", "false"): "false";
+        attrs.put("fixed", fixed);
         styleSheet.setProperty(keyToken.image, attrs);
     }
 }
