@@ -429,7 +429,7 @@ PARSER_END(Parser)
 
 
 // Note: includes all Unicode whitespaces (incl. non-breaking), separators and ZWSP
-<DEFAULT, GK_BLOCK, GK_animation_BLOCK, GK_STR_BLOCK, GK_RGBA_BLOCK, GK_lineStyle_BLOCK> SKIP : {
+<DEFAULT, GK_BLOCK, GK_animation_BLOCK, GK_STR_BLOCK, GK_RGBA_BLOCK, GK_lineStyle_BLOCK, GK_boundingBox_BLOCK, GK_contentSize_BLOCK, GK_cropBox_BLOCK, GK_dimensions_BLOCK> SKIP : {
   <(["\u0009" - "\u000E", // ASCII spaces, \u000E added to work around JavaCC bug
   "\u001C" - "\u0020", // separators
   "\u1680",
@@ -601,7 +601,7 @@ TOKEN : {
 |   < LBRACE: "{" >
 }
 
-<DEFAULT, GK_BLOCK, GK_animation_BLOCK, GK_STR_BLOCK, GK_RGBA_BLOCK, GK_lineStyle_BLOCK> TOKEN : {
+<DEFAULT, GK_BLOCK, GK_animation_BLOCK, GK_STR_BLOCK, GK_RGBA_BLOCK, GK_lineStyle_BLOCK, GK_boundingBox_BLOCK, GK_contentSize_BLOCK, GK_cropBox_BLOCK, GK_dimensions_BLOCK> TOKEN : {
    < RBRACE: "}" >
 |   < POLAR_SEPARATOR: ( "\u2221" | ";" ) > // separator used by Giac instead of ;
 }
@@ -737,7 +737,42 @@ TOKEN : {
  < GK_lineStyle_float: (["0"-"9"])+("." (["0"-"9"])+)? >
 }
 
-<GK_BLOCK, GK_animation_BLOCK, GK_STR_BLOCK, GK_RGBA_BLOCK, GK_lineStyle_BLOCK> TOKEN : {
+<GK_boundingBox_BLOCK> TOKEN : {
+ < GK_boundingBox_width: "width" > |
+ < GK_boundingBox_height: "height" > |
+ < GK_boundingBox_equal: "=" > |
+ < GK_boundingBox_float: (["0"-"9"])+("." (["0"-"9"])+)? >
+}
+
+<GK_contentSize_BLOCK> TOKEN : {
+ < GK_contentSize_width: "width" > |
+ < GK_contentSize_height: "height" > |
+ < GK_contentSize_equal: "=" > |
+ < GK_contentSize_float: (["0"-"9"])+("." (["0"-"9"])+)? >
+}
+
+<GK_cropBox_BLOCK> TOKEN : {
+ < GK_cropBox_x: "x" > |
+ < GK_cropBox_y: "y" > |
+ < GK_cropBox_width: "width" > |
+ < GK_cropBox_height: "height" > |
+ < GK_cropBox_cropped: "cropped" > |
+ < GK_cropBox_tilde_cropped: "~cropped" > |
+ < GK_cropBox_equal: "=" > |
+ < GK_cropBox_float: (["0"-"9"])+("." (["0"-"9"])+)? >
+}
+
+<GK_dimensions_BLOCK> TOKEN : {
+ < GK_dimensions_width: "width" > |
+ < GK_dimensions_height: "height" > |
+ < GK_dimensions_angle: "angle" > |
+ < GK_dimensions_scaled: "scaled" > |
+ < GK_dimensions_tilde_scaled: "~scaled" > |
+ < GK_dimensions_equal: "=" > |
+ < GK_dimensions_float: (["0"-"9"])+("." (["0"-"9"])+)? >
+}
+
+<GK_BLOCK, GK_animation_BLOCK, GK_STR_BLOCK, GK_RGBA_BLOCK, GK_lineStyle_BLOCK, GK_boundingBox_BLOCK, GK_contentSize_BLOCK, GK_cropBox_BLOCK, GK_dimensions_BLOCK> TOKEN : {
  < GK_INVALID: (~[";", "}"]) >
 }
 
@@ -2226,7 +2261,11 @@ void gpadStyleSheetKeyValue(GpadStyleSheet styleSheet) :
         gpadStyleSheetPropertyAnimation(styleSheet) | // animation key
         gpadStyleSheetPropertyCheckbox(styleSheet) | // checkbox key
         gpadStyleSheetPropertyEqnStyle(styleSheet) | // eqnStyle key
-        gpadStyleSheetPropertyLineStyle(styleSheet) // lineStyle key
+        gpadStyleSheetPropertyLineStyle(styleSheet) | // lineStyle key
+        gpadStyleSheetPropertyBoundingBox(styleSheet) | // boundingBox key
+        gpadStyleSheetPropertyContentSize(styleSheet) | // contentSize key
+        gpadStyleSheetPropertyCropBox(styleSheet) | // cropBox key
+        gpadStyleSheetPropertyDimensions(styleSheet) // dimensions key
         )
         { token_source.SwitchTo(DEFAULT); }
     }
@@ -2666,6 +2705,209 @@ void gpadStyleSheetPropertyLineStyle(GpadStyleSheet styleSheet) :
         }
         // Always set property since we now always have type and thickness
         styleSheet.setProperty(keyToken.image, attrs);
+    }
+}
+
+/**
+ * Parses boundingBox property
+ * Syntax: boundingBox: width=<value> height=<value>;
+ * Both width and height are integers (FLOAT matched, decimal part ignored)
+ */
+void gpadStyleSheetPropertyBoundingBox(GpadStyleSheet styleSheet) :
+{
+    Token keyToken;
+    String width = null;
+    String height = null;
+    Token floatToken = null;
+    int dotIndex;
+}
+{
+    keyToken = <GK_boundingBox> <GK_COLON> { token_source.SwitchTo(GK_boundingBox_BLOCK); }
+    ( (
+        // Parse width=value
+        <GK_boundingBox_width> <GK_boundingBox_equal> floatToken = <GK_boundingBox_float>
+        {
+            // Extract integer part (ignore decimal)
+            String widthStr = floatToken.image;
+            dotIndex = widthStr.indexOf('.');
+            width = dotIndex >= 0 ? widthStr.substring(0, dotIndex) : widthStr;
+        }
+    ) | (
+        // Parse height=value
+        <GK_boundingBox_height> <GK_boundingBox_equal> floatToken = <GK_boundingBox_float>
+        {
+            // Extract integer part (ignore decimal)
+            String heightStr = floatToken.image;
+            dotIndex = heightStr.indexOf('.');
+            height = dotIndex >= 0 ? heightStr.substring(0, dotIndex) : heightStr;
+        }
+    ) )*
+    {
+        java.util.LinkedHashMap<String, String> attrs = new java.util.LinkedHashMap<>();
+        if (width != null)
+            attrs.put("width", width);
+        if (height != null)
+            attrs.put("height", height);
+        if (!attrs.isEmpty())
+            styleSheet.setProperty(keyToken.image, attrs);
+    }
+}
+
+/**
+ * Parses contentSize property
+ * Syntax: contentSize: width=<value> height=<value>;
+ * Both width and height are floats
+ */
+void gpadStyleSheetPropertyContentSize(GpadStyleSheet styleSheet) :
+{
+    Token keyToken;
+    String width = null;
+    String height = null;
+    Token floatToken = null;
+}
+{
+    keyToken = <GK_contentSize> <GK_COLON> { token_source.SwitchTo(GK_contentSize_BLOCK); }
+    ( (
+        // Parse width=value
+        <GK_contentSize_width> <GK_contentSize_equal> floatToken = <GK_contentSize_float>
+        {
+            width = floatToken.image;
+        }
+    ) | (
+        // Parse height=value
+        <GK_contentSize_height> <GK_contentSize_equal> floatToken = <GK_contentSize_float>
+        {
+            height = floatToken.image;
+        }
+    ) )*
+    {
+        java.util.LinkedHashMap<String, String> attrs = new java.util.LinkedHashMap<>();
+        if (width != null)
+            attrs.put("width", width);
+        if (height != null)
+            attrs.put("height", height);
+        if (!attrs.isEmpty())
+            styleSheet.setProperty(keyToken.image, attrs);
+    }
+}
+
+/**
+ * Parses cropBox property
+ * Syntax: cropBox: x=<value> y=<value> width=<value> height=<value> [cropped|~cropped];
+ * x, y, width, height are floats, cropped is boolean (cropped for true, ~cropped for false)
+ */
+void gpadStyleSheetPropertyCropBox(GpadStyleSheet styleSheet) :
+{
+    Token keyToken;
+    String x = null;
+    String y = null;
+    String width = null;
+    String height = null;
+    String cropped = null;
+    Token floatToken = null;
+}
+{
+    keyToken = <GK_cropBox> <GK_COLON> { token_source.SwitchTo(GK_cropBox_BLOCK); }
+    ( (
+        // Parse x=value
+        <GK_cropBox_x> <GK_cropBox_equal> floatToken = <GK_cropBox_float>
+        {
+            x = floatToken.image;
+        }
+    ) | (
+        // Parse y=value
+        <GK_cropBox_y> <GK_cropBox_equal> floatToken = <GK_cropBox_float>
+        {
+            y = floatToken.image;
+        }
+    ) | (
+        // Parse width=value
+        <GK_cropBox_width> <GK_cropBox_equal> floatToken = <GK_cropBox_float>
+        {
+            width = floatToken.image;
+        }
+    ) | (
+        // Parse height=value
+        <GK_cropBox_height> <GK_cropBox_equal> floatToken = <GK_cropBox_float>
+        {
+            height = floatToken.image;
+        }
+    ) | (
+        // Parse cropped or ~cropped
+        <GK_cropBox_cropped> { cropped = "true"; } |
+        <GK_cropBox_tilde_cropped> { cropped = "false"; }
+    ) )*
+    {
+        java.util.LinkedHashMap<String, String> attrs = new java.util.LinkedHashMap<>();
+        if (x != null)
+            attrs.put("x", x);
+        if (y != null)
+            attrs.put("y", y);
+        if (width != null)
+            attrs.put("width", width);
+        if (height != null)
+            attrs.put("height", height);
+        if (cropped != null)
+            attrs.put("cropped", cropped);
+        if (!attrs.isEmpty())
+            styleSheet.setProperty(keyToken.image, attrs);
+    }
+}
+
+/**
+ * Parses dimensions property
+ * Syntax: dimensions: width=<value> height=<value> [angle=<value>] [scaled|~scaled];
+ * width, height, angle are floats, scaled is boolean (scaled for true, ~scaled for false)
+ * Note: unscaled default is true, so we use scaled (inverse) in gpad syntax
+ */
+void gpadStyleSheetPropertyDimensions(GpadStyleSheet styleSheet) :
+{
+    Token keyToken;
+    String width = null;
+    String height = null;
+    String angle = null;
+    String scaled = null;
+    Token floatToken = null;
+}
+{
+    keyToken = <GK_dimensions> <GK_COLON> { token_source.SwitchTo(GK_dimensions_BLOCK); }
+    ( (
+        // Parse width=value
+        <GK_dimensions_width> <GK_dimensions_equal> floatToken = <GK_dimensions_float>
+        {
+            width = floatToken.image;
+        }
+    ) | (
+        // Parse height=value
+        <GK_dimensions_height> <GK_dimensions_equal> floatToken = <GK_dimensions_float>
+        {
+            height = floatToken.image;
+        }
+    ) | (
+        // Parse angle=value
+        <GK_dimensions_angle> <GK_dimensions_equal> floatToken = <GK_dimensions_float>
+        {
+            angle = floatToken.image;
+        }
+    ) | (
+        // Parse scaled or ~scaled
+        <GK_dimensions_scaled> { scaled = "true"; } |
+        <GK_dimensions_tilde_scaled> { scaled = "false"; }
+    ) )*
+    {
+        java.util.LinkedHashMap<String, String> attrs = new java.util.LinkedHashMap<>();
+        if (width != null)
+            attrs.put("width", width);
+        if (height != null)
+            attrs.put("height", height);
+        if (angle != null)
+            attrs.put("angle", angle);
+        if (scaled != null) {
+            // Convert scaled to unscaled (inverse)
+            attrs.put("unscaled", "true".equals(scaled) ? "false" : "true");
+        }
+        if (!attrs.isEmpty())
+            styleSheet.setProperty(keyToken.image, attrs);
     }
 }
 

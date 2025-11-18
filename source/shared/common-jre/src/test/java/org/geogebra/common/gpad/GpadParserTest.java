@@ -1186,4 +1186,418 @@ public class GpadParserTest extends BaseUnitTest {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
+
+	// ========== Tests for boundingBox ==========
+
+	@Test
+	public void testParseBoundingBoxBasic() {
+		String gpad = "@style = { boundingBox: width=100 height=200 }\nA @style = (1, 2)";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("boundingBox");
+			assertNotNull(attrs);
+			assertEquals("100", attrs.get("width"));
+			assertEquals("200", attrs.get("height"));
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testParseBoundingBoxWithFloatIgnoresDecimal() {
+		// Test that decimal part is ignored (width=100.5 should become width=100)
+		String gpad = "@style = { boundingBox: width=100.5 height=200.9 }\nA @style = (1, 2)";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("boundingBox");
+			assertNotNull(attrs);
+			assertEquals("100", attrs.get("width")); // Decimal part ignored
+			assertEquals("200", attrs.get("height")); // Decimal part ignored
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testParseBoundingBoxDifferentOrder() {
+		// Test that order doesn't matter
+		String gpad = "@style = { boundingBox: height=200 width=100 }\nA @style = (1, 2)";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("boundingBox");
+			assertNotNull(attrs);
+			assertEquals("100", attrs.get("width"));
+			assertEquals("200", attrs.get("height"));
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testParseBoundingBoxOnlyWidth() {
+		// Test with only width
+		String gpad = "@style = { boundingBox: width=100 }\nA @style = (1, 2)";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("boundingBox");
+			assertNotNull(attrs);
+			assertEquals("100", attrs.get("width"));
+			assertTrue(attrs.get("height") == null);
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testParseBoundingBoxOnlyHeight() {
+		// Test with only height
+		String gpad = "@style = { boundingBox: height=200 }\nA @style = (1, 2)";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("boundingBox");
+			assertNotNull(attrs);
+			assertTrue(attrs.get("width") == null);
+			assertEquals("200", attrs.get("height"));
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	// ========== Tests for contentSize ==========
+
+	@Test
+	public void testParseContentSizeBasic() {
+		String gpad = "@style = { contentSize: width=100.5 height=200.3 }\nA @style = (1, 2)";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("contentSize");
+			assertNotNull(attrs);
+			assertEquals("100.5", attrs.get("width"));
+			assertEquals("200.3", attrs.get("height"));
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testParseContentSizeWithInteger() {
+		// Test with integer values (should preserve as-is)
+		String gpad = "@style = { contentSize: width=100 height=200 }\nA @style = (1, 2)";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("contentSize");
+			assertNotNull(attrs);
+			assertEquals("100", attrs.get("width"));
+			assertEquals("200", attrs.get("height"));
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testParseContentSizeDifferentOrder() {
+		// Test that order doesn't matter
+		String gpad = "@style = { contentSize: height=200.3 width=100.5 }\nA @style = (1, 2)";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("contentSize");
+			assertNotNull(attrs);
+			assertEquals("100.5", attrs.get("width"));
+			assertEquals("200.3", attrs.get("height"));
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testParseContentSizeOnlyWidth() {
+		// Test with only width
+		String gpad = "@style = { contentSize: width=100.5 }\nA @style = (1, 2)";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("contentSize");
+			assertNotNull(attrs);
+			assertEquals("100.5", attrs.get("width"));
+			assertTrue(attrs.get("height") == null);
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	// ========== Tests for cropBox ==========
+
+	@Test
+	public void testParseCropBoxBasic() {
+		String gpad = "@style = { cropBox: x=10 y=20 width=100 height=200 cropped }\nA @style = (1, 2)";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("cropBox");
+			assertNotNull(attrs);
+			assertEquals("10", attrs.get("x"));
+			assertEquals("20", attrs.get("y"));
+			assertEquals("100", attrs.get("width"));
+			assertEquals("200", attrs.get("height"));
+			assertEquals("true", attrs.get("cropped"));
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testParseCropBoxWithTildeCropped() {
+		// Test with ~cropped (false)
+		String gpad = "@style = { cropBox: x=10 y=20 width=100 height=200 ~cropped }\nA @style = (1, 2)";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("cropBox");
+			assertNotNull(attrs);
+			assertEquals("false", attrs.get("cropped"));
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testParseCropBoxWithFloatValues() {
+		// Test with float values
+		String gpad = "@style = { cropBox: x=10.5 y=20.7 width=100.2 height=200.9 cropped }\nA @style = (1, 2)";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("cropBox");
+			assertNotNull(attrs);
+			assertEquals("10.5", attrs.get("x"));
+			assertEquals("20.7", attrs.get("y"));
+			assertEquals("100.2", attrs.get("width"));
+			assertEquals("200.9", attrs.get("height"));
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testParseCropBoxDifferentOrder() {
+		// Test that order doesn't matter
+		String gpad = "@style = { cropBox: height=200 width=100 y=20 x=10 cropped }\nA @style = (1, 2)";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("cropBox");
+			assertNotNull(attrs);
+			assertEquals("10", attrs.get("x"));
+			assertEquals("20", attrs.get("y"));
+			assertEquals("100", attrs.get("width"));
+			assertEquals("200", attrs.get("height"));
+			assertEquals("true", attrs.get("cropped"));
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testParseCropBoxWithoutCropped() {
+		// Test without cropped attribute
+		String gpad = "@style = { cropBox: x=10 y=20 width=100 height=200 }\nA @style = (1, 2)";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("cropBox");
+			assertNotNull(attrs);
+			assertTrue(attrs.get("cropped") == null);
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	// ========== Tests for dimensions ==========
+
+	@Test
+	public void testParseDimensionsBasic() {
+		String gpad = "@style = { dimensions: width=100 height=200 angle=45 scaled }\nA @style = (1, 2)";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("dimensions");
+			assertNotNull(attrs);
+			assertEquals("100", attrs.get("width"));
+			assertEquals("200", attrs.get("height"));
+			assertEquals("45", attrs.get("angle"));
+			// scaled=true means unscaled=false
+			assertEquals("false", attrs.get("unscaled"));
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testParseDimensionsWithTildeScaled() {
+		// Test with ~scaled (scaled=false means unscaled=true)
+		String gpad = "@style = { dimensions: width=100 height=200 ~scaled }\nA @style = (1, 2)";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("dimensions");
+			assertNotNull(attrs);
+			// ~scaled means scaled=false, so unscaled=true
+			assertEquals("true", attrs.get("unscaled"));
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testParseDimensionsWithFloatValues() {
+		// Test with float values
+		String gpad = "@style = { dimensions: width=100.5 height=200.3 angle=45.7 scaled }\nA @style = (1, 2)";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("dimensions");
+			assertNotNull(attrs);
+			assertEquals("100.5", attrs.get("width"));
+			assertEquals("200.3", attrs.get("height"));
+			assertEquals("45.7", attrs.get("angle"));
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testParseDimensionsWithoutAngle() {
+		// Test without angle
+		String gpad = "@style = { dimensions: width=100 height=200 scaled }\nA @style = (1, 2)";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("dimensions");
+			assertNotNull(attrs);
+			assertTrue(attrs.get("angle") == null);
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testParseDimensionsWithoutScaled() {
+		// Test without scaled attribute
+		String gpad = "@style = { dimensions: width=100 height=200 angle=45 }\nA @style = (1, 2)";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("dimensions");
+			assertNotNull(attrs);
+			assertTrue(attrs.get("unscaled") == null);
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testParseDimensionsDifferentOrder() {
+		// Test that order doesn't matter
+		String gpad = "@style = { dimensions: angle=45 scaled height=200 width=100 }\nA @style = (1, 2)";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("dimensions");
+			assertNotNull(attrs);
+			assertEquals("100", attrs.get("width"));
+			assertEquals("200", attrs.get("height"));
+			assertEquals("45", attrs.get("angle"));
+			assertEquals("false", attrs.get("unscaled"));
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
 }

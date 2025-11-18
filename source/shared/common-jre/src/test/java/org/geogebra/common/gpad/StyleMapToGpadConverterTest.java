@@ -476,4 +476,347 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		assertTrue("Should contain fixed", gpad.contains("fixed"));
 		assertTrue("Should contain trace", gpad.contains("trace"));
 	}
+
+	// ========== Tests for boundingBox ==========
+
+	@Test
+	public void testBoundingBoxBasic() {
+		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
+		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
+		
+		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
+		attrs.put("width", "100");
+		attrs.put("height", "200");
+		styleMap.put("boundingBox", attrs);
+		
+		String gpad = converter.convert("test", styleMap);
+		assertNotNull(gpad);
+		assertTrue("Should contain boundingBox", gpad.contains("boundingBox"));
+		assertTrue("Should contain width=100", gpad.contains("width=100"));
+		assertTrue("Should contain height=200", gpad.contains("height=200"));
+	}
+
+	@Test
+	public void testBoundingBoxWithFloatIgnoresDecimal() {
+		// Test that decimal part is ignored when converting from XML
+		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
+		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
+		
+		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
+		attrs.put("width", "100.5");
+		attrs.put("height", "200.9");
+		styleMap.put("boundingBox", attrs);
+		
+		String gpad = converter.convert("test", styleMap);
+		assertNotNull(gpad);
+		assertTrue("Should contain width=100 (decimal ignored)", gpad.contains("width=100"));
+		assertTrue("Should contain height=200 (decimal ignored)", gpad.contains("height=200"));
+		assertTrue("Should not contain 100.5", !gpad.contains("100.5"));
+		assertTrue("Should not contain 200.9", !gpad.contains("200.9"));
+	}
+
+	@Test
+	public void testBoundingBoxOnlyWidth() {
+		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
+		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
+		
+		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
+		attrs.put("width", "100");
+		styleMap.put("boundingBox", attrs);
+		
+		String gpad = converter.convert("test", styleMap);
+		assertNotNull(gpad);
+		assertTrue("Should contain boundingBox", gpad.contains("boundingBox"));
+		assertTrue("Should contain width=100", gpad.contains("width=100"));
+		assertTrue("Should not contain height", !gpad.contains("height"));
+	}
+
+	@Test
+	public void testBoundingBoxOnlyHeight() {
+		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
+		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
+		
+		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
+		attrs.put("height", "200");
+		styleMap.put("boundingBox", attrs);
+		
+		String gpad = converter.convert("test", styleMap);
+		assertNotNull(gpad);
+		assertTrue("Should contain boundingBox", gpad.contains("boundingBox"));
+		assertTrue("Should contain height=200", gpad.contains("height=200"));
+		assertTrue("Should not contain width", !gpad.contains("width"));
+	}
+
+	// ========== Tests for contentSize ==========
+
+	@Test
+	public void testContentSizeBasic() {
+		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
+		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
+		
+		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
+		attrs.put("width", "100.5");
+		attrs.put("height", "200.3");
+		styleMap.put("contentSize", attrs);
+		
+		String gpad = converter.convert("test", styleMap);
+		assertNotNull(gpad);
+		assertTrue("Should contain contentSize", gpad.contains("contentSize"));
+		assertTrue("Should contain width=100.5", gpad.contains("width=100.5"));
+		assertTrue("Should contain height=200.3", gpad.contains("height=200.3"));
+	}
+
+	@Test
+	public void testContentSizeWithInteger() {
+		// Test with integer values (should preserve as-is)
+		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
+		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
+		
+		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
+		attrs.put("width", "100");
+		attrs.put("height", "200");
+		styleMap.put("contentSize", attrs);
+		
+		String gpad = converter.convert("test", styleMap);
+		assertNotNull(gpad);
+		assertTrue("Should contain width=100", gpad.contains("width=100"));
+		assertTrue("Should contain height=200", gpad.contains("height=200"));
+	}
+
+	@Test
+	public void testContentSizeOnlyWidth() {
+		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
+		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
+		
+		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
+		attrs.put("width", "100.5");
+		styleMap.put("contentSize", attrs);
+		
+		String gpad = converter.convert("test", styleMap);
+		assertNotNull(gpad);
+		assertTrue("Should contain contentSize", gpad.contains("contentSize"));
+		assertTrue("Should contain width=100.5", gpad.contains("width=100.5"));
+		assertTrue("Should not contain height", !gpad.contains("height"));
+	}
+
+	// ========== Tests for cropBox ==========
+
+	@Test
+	public void testCropBoxBasic() {
+		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
+		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
+		
+		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
+		attrs.put("x", "10");
+		attrs.put("y", "20");
+		attrs.put("width", "100");
+		attrs.put("height", "200");
+		attrs.put("cropped", "true");
+		styleMap.put("cropBox", attrs);
+		
+		String gpad = converter.convert("test", styleMap);
+		assertNotNull(gpad);
+		assertTrue("Should contain cropBox", gpad.contains("cropBox"));
+		assertTrue("Should contain x=10", gpad.contains("x=10"));
+		assertTrue("Should contain y=20", gpad.contains("y=20"));
+		assertTrue("Should contain width=100", gpad.contains("width=100"));
+		assertTrue("Should contain height=200", gpad.contains("height=200"));
+		assertTrue("Should contain cropped", gpad.contains("cropped"));
+		assertTrue("Should not contain ~cropped", !gpad.contains("~cropped"));
+	}
+
+	@Test
+	public void testCropBoxWithCroppedFalse() {
+		// Test with cropped=false (should not output, as it's the default value)
+		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
+		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
+		
+		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
+		attrs.put("x", "10");
+		attrs.put("y", "20");
+		attrs.put("width", "100");
+		attrs.put("height", "200");
+		attrs.put("cropped", "false");
+		styleMap.put("cropBox", attrs);
+		
+		String gpad = converter.convert("test", styleMap);
+		assertNotNull(gpad);
+		assertTrue("Should not contain cropped (default value)", !gpad.contains("cropped"));
+		assertTrue("Should not contain ~cropped (default value)", !gpad.contains("~cropped"));
+	}
+
+	@Test
+	public void testCropBoxWithFloatValues() {
+		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
+		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
+		
+		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
+		attrs.put("x", "10.5");
+		attrs.put("y", "20.7");
+		attrs.put("width", "100.2");
+		attrs.put("height", "200.9");
+		attrs.put("cropped", "true");
+		styleMap.put("cropBox", attrs);
+		
+		String gpad = converter.convert("test", styleMap);
+		assertNotNull(gpad);
+		assertTrue("Should contain x=10.5", gpad.contains("x=10.5"));
+		assertTrue("Should contain y=20.7", gpad.contains("y=20.7"));
+		assertTrue("Should contain width=100.2", gpad.contains("width=100.2"));
+		assertTrue("Should contain height=200.9", gpad.contains("height=200.9"));
+	}
+
+	@Test
+	public void testCropBoxWithoutCropped() {
+		// Test without cropped attribute
+		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
+		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
+		
+		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
+		attrs.put("x", "10");
+		attrs.put("y", "20");
+		attrs.put("width", "100");
+		attrs.put("height", "200");
+		styleMap.put("cropBox", attrs);
+		
+		String gpad = converter.convert("test", styleMap);
+		assertNotNull(gpad);
+		assertTrue("Should contain cropBox", gpad.contains("cropBox"));
+		assertTrue("Should not contain cropped", !gpad.contains("cropped"));
+	}
+
+	// ========== Tests for dimensions ==========
+
+	@Test
+	public void testDimensionsBasic() {
+		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
+		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
+		
+		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
+		attrs.put("width", "100");
+		attrs.put("height", "200");
+		attrs.put("angle", "45");
+		attrs.put("unscaled", "false"); // unscaled=false means scaled=true
+		styleMap.put("dimensions", attrs);
+		
+		String gpad = converter.convert("test", styleMap);
+		assertNotNull(gpad);
+		assertTrue("Should contain dimensions", gpad.contains("dimensions"));
+		assertTrue("Should contain width=100", gpad.contains("width=100"));
+		assertTrue("Should contain height=200", gpad.contains("height=200"));
+		assertTrue("Should contain angle=45", gpad.contains("angle=45"));
+		assertTrue("Should contain scaled", gpad.contains("scaled"));
+		assertTrue("Should not contain ~scaled", !gpad.contains("~scaled"));
+	}
+
+	@Test
+	public void testDimensionsWithUnscaledTrue() {
+		// Test with unscaled=true (should not output, as it's the default value)
+		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
+		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
+		
+		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
+		attrs.put("width", "100");
+		attrs.put("height", "200");
+		attrs.put("unscaled", "true"); // unscaled=true is default, so should not output
+		styleMap.put("dimensions", attrs);
+		
+		String gpad = converter.convert("test", styleMap);
+		assertNotNull(gpad);
+		assertTrue("Should not contain scaled (default value)", !gpad.contains("scaled"));
+		assertTrue("Should not contain ~scaled (default value)", !gpad.contains("~scaled"));
+	}
+
+	@Test
+	public void testDimensionsWithFloatValues() {
+		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
+		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
+		
+		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
+		attrs.put("width", "100.5");
+		attrs.put("height", "200.3");
+		attrs.put("angle", "45.7");
+		attrs.put("unscaled", "false");
+		styleMap.put("dimensions", attrs);
+		
+		String gpad = converter.convert("test", styleMap);
+		assertNotNull(gpad);
+		assertTrue("Should contain width=100.5", gpad.contains("width=100.5"));
+		assertTrue("Should contain height=200.3", gpad.contains("height=200.3"));
+		assertTrue("Should contain angle=45.7", gpad.contains("angle=45.7"));
+	}
+
+	@Test
+	public void testDimensionsWithoutAngle() {
+		// Test without angle
+		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
+		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
+		
+		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
+		attrs.put("width", "100");
+		attrs.put("height", "200");
+		attrs.put("unscaled", "false");
+		styleMap.put("dimensions", attrs);
+		
+		String gpad = converter.convert("test", styleMap);
+		assertNotNull(gpad);
+		assertTrue("Should contain dimensions", gpad.contains("dimensions"));
+		assertTrue("Should not contain angle", !gpad.contains("angle"));
+	}
+
+	@Test
+	public void testDimensionsWithAngleZero() {
+		// Test with angle=0 (should not output, as it's the default value)
+		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
+		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
+		
+		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
+		attrs.put("width", "100");
+		attrs.put("height", "200");
+		attrs.put("angle", "0");
+		attrs.put("unscaled", "false");
+		styleMap.put("dimensions", attrs);
+		
+		String gpad = converter.convert("test", styleMap);
+		assertNotNull(gpad);
+		assertTrue("Should contain dimensions", gpad.contains("dimensions"));
+		assertTrue("Should not contain angle (default value)", !gpad.contains("angle"));
+	}
+
+	@Test
+	public void testDimensionsWithAngleNonZero() {
+		// Test with angle=45 (should output)
+		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
+		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
+		
+		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
+		attrs.put("width", "100");
+		attrs.put("height", "200");
+		attrs.put("angle", "45");
+		attrs.put("unscaled", "false");
+		styleMap.put("dimensions", attrs);
+		
+		String gpad = converter.convert("test", styleMap);
+		assertNotNull(gpad);
+		assertTrue("Should contain angle=45", gpad.contains("angle=45"));
+	}
+
+	@Test
+	public void testDimensionsWithoutScaled() {
+		// Test without unscaled attribute
+		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
+		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
+		
+		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
+		attrs.put("width", "100");
+		attrs.put("height", "200");
+		attrs.put("angle", "45");
+		styleMap.put("dimensions", attrs);
+		
+		String gpad = converter.convert("test", styleMap);
+		assertNotNull(gpad);
+		assertTrue("Should contain dimensions", gpad.contains("dimensions"));
+		assertTrue("Should not contain scaled", !gpad.contains("scaled"));
+		assertTrue("Should not contain ~scaled", !gpad.contains("~scaled"));
+	}
 }

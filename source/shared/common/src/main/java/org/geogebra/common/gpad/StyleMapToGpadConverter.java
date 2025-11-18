@@ -114,6 +114,22 @@ public class StyleMapToGpadConverter {
 					sb.append("=").append(attrs.get("parameter"));
 			}
 			break;
+		case "boundingBox":
+			// boundingBox: width=100 height=200
+			sb.append(convertBoundingBox(attrs));
+			break;
+		case "contentSize":
+			// contentSize: width=100.5 height=200.3
+			sb.append(convertContentSize(attrs));
+			break;
+		case "cropBox":
+			// cropBox: x=10 y=20 width=100 height=200 cropped
+			sb.append(convertCropBox(attrs));
+			break;
+		case "dimensions":
+			// dimensions: width=100 height=200 angle=45 scaled
+			sb.append(convertDimensions(attrs));
+			break;
 		}
 
 		return sb.toString();
@@ -449,4 +465,211 @@ public class StyleMapToGpadConverter {
 	private static boolean containsSpecialChars(String text) {
         return SPECIAL_CHARS_PATTERN.matcher(text).find();
     }
+
+	/**
+	 * Converts boundingBox XML attributes to Gpad format.
+	 * Syntax: boundingBox: width=<value> height=<value>;
+	 * Both width and height are integers (decimal part ignored when converting from XML)
+	 * 
+	 * @param attrs boundingBox attributes map
+	 * @return Gpad boundingBox string (e.g., "width=100 height=200")
+	 */
+	private String convertBoundingBox(LinkedHashMap<String, String> attrs) {
+		if (attrs == null || attrs.isEmpty())
+			return "";
+
+		StringBuilder sb = new StringBuilder();
+		boolean first = true;
+
+		String width = attrs.get("width");
+		if (width != null) {
+			// Extract integer part (ignore decimal if present)
+			int dotIndex = width.indexOf('.');
+			if (dotIndex >= 0)
+				width = width.substring(0, dotIndex);
+			if (!first)
+				sb.append(" ");
+			sb.append("width=").append(width);
+			first = false;
+		}
+
+		String height = attrs.get("height");
+		if (height != null) {
+			// Extract integer part (ignore decimal if present)
+			int dotIndex = height.indexOf('.');
+			if (dotIndex >= 0)
+				height = height.substring(0, dotIndex);
+			if (!first)
+				sb.append(" ");
+			sb.append("height=").append(height);
+			first = false;
+		}
+
+		return sb.toString();
+	}
+
+	/**
+	 * Converts contentSize XML attributes to Gpad format.
+	 * Syntax: contentSize: width=<value> height=<value>;
+	 * Both width and height are floats
+	 * 
+	 * @param attrs contentSize attributes map
+	 * @return Gpad contentSize string (e.g., "width=100.5 height=200.3")
+	 */
+	private String convertContentSize(LinkedHashMap<String, String> attrs) {
+		if (attrs == null || attrs.isEmpty())
+			return "";
+
+		StringBuilder sb = new StringBuilder();
+		boolean first = true;
+
+		String width = attrs.get("width");
+		if (width != null) {
+			if (!first)
+				sb.append(" ");
+			sb.append("width=").append(width);
+			first = false;
+		}
+
+		String height = attrs.get("height");
+		if (height != null) {
+			if (!first)
+				sb.append(" ");
+			sb.append("height=").append(height);
+			first = false;
+		}
+
+		return sb.toString();
+	}
+
+	/**
+	 * Converts cropBox XML attributes to Gpad format.
+	 * Syntax: cropBox: x=<value> y=<value> width=<value> height=<value> [cropped|~cropped];
+	 * x, y, width, height are floats, cropped is boolean (cropped for true, ~cropped for false)
+	 * 
+	 * @param attrs cropBox attributes map
+	 * @return Gpad cropBox string (e.g., "x=10 y=20 width=100 height=200 cropped")
+	 */
+	private String convertCropBox(LinkedHashMap<String, String> attrs) {
+		if (attrs == null || attrs.isEmpty())
+			return "";
+
+		StringBuilder sb = new StringBuilder();
+		boolean first = true;
+
+		String x = attrs.get("x");
+		if (x != null) {
+			if (!first)
+				sb.append(" ");
+			sb.append("x=").append(x);
+			first = false;
+		}
+
+		String y = attrs.get("y");
+		if (y != null) {
+			if (!first)
+				sb.append(" ");
+			sb.append("y=").append(y);
+			first = false;
+		}
+
+		String width = attrs.get("width");
+		if (width != null) {
+			if (!first)
+				sb.append(" ");
+			sb.append("width=").append(width);
+			first = false;
+		}
+
+		String height = attrs.get("height");
+		if (height != null) {
+			if (!first)
+				sb.append(" ");
+			sb.append("height=").append(height);
+			first = false;
+		}
+
+		String cropped = attrs.get("cropped");
+		if (cropped != null) {
+			// Only output if cropped=true (default is false, so false is not output)
+			if ("true".equals(cropped)) {
+				if (!first)
+					sb.append(" ");
+				sb.append("cropped");
+			}
+			// If cropped=false, don't output (default value)
+		}
+
+		return sb.toString();
+	}
+
+	/**
+	 * Converts dimensions XML attributes to Gpad format.
+	 * Syntax: dimensions: width=<value> height=<value> [angle=<value>] [scaled|~scaled];
+	 * width, height, angle are floats, scaled is boolean (scaled for true, ~scaled for false)
+	 * Note: unscaled default is true in XML, so we use scaled (inverse) in gpad syntax
+	 * 
+	 * @param attrs dimensions attributes map
+	 * @return Gpad dimensions string (e.g., "width=100 height=200 angle=45 scaled")
+	 */
+	private String convertDimensions(LinkedHashMap<String, String> attrs) {
+		if (attrs == null || attrs.isEmpty())
+			return "";
+
+		StringBuilder sb = new StringBuilder();
+		boolean first = true;
+
+		String width = attrs.get("width");
+		if (width != null) {
+			if (!first)
+				sb.append(" ");
+			sb.append("width=").append(width);
+			first = false;
+		}
+
+		String height = attrs.get("height");
+		if (height != null) {
+			if (!first)
+				sb.append(" ");
+			sb.append("height=").append(height);
+			first = false;
+		}
+
+		String angle = attrs.get("angle");
+		if (angle != null) {
+			// Only output if angle is not default (0)
+			try {
+				double angleValue = Double.parseDouble(angle);
+				if (Math.abs(angleValue) > 1e-9) { // Not zero (with epsilon)
+					if (!first)
+						sb.append(" ");
+					sb.append("angle=").append(angle);
+					first = false;
+				}
+			} catch (NumberFormatException e) {
+				// If not a valid number, output as-is (might be an expression)
+				if (!first)
+					sb.append(" ");
+				sb.append("angle=").append(angle);
+				first = false;
+			}
+		}
+
+		String unscaled = attrs.get("unscaled");
+		if (unscaled != null) {
+			// Convert unscaled to scaled (inverse)
+			// unscaled=true means scaled=false, so would output ~scaled
+			// unscaled=false means scaled=true, so output scaled
+			// But unscaled default is true (scaled default is false), so only output scaled when unscaled=false
+			if ("false".equals(unscaled)) {
+				// unscaled=false means scaled=true, output scaled
+				if (!first)
+					sb.append(" ");
+				sb.append("scaled");
+			}
+			// If unscaled=true (default), don't output ~scaled (default value)
+		}
+
+		return sb.toString();
+	}
 }
