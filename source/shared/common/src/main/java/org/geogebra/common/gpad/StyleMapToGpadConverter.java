@@ -8,7 +8,6 @@ import java.util.Map;
  * This converter takes the XML-style attribute maps and converts them to Gpad syntax.
  */
 public class StyleMapToGpadConverter {
-
 	/**
 	 * Converts a style map to Gpad style sheet format.
 	 * 
@@ -19,9 +18,8 @@ public class StyleMapToGpadConverter {
 	 * @return Gpad style sheet string, or null if styleMap is empty
 	 */
 	public String convert(String name, Map<String, LinkedHashMap<String, String>> styleMap) {
-		if (styleMap == null || styleMap.isEmpty()) {
+		if (styleMap == null || styleMap.isEmpty())
 			return null;
-		}
 
 		StringBuilder sb = new StringBuilder();
 		sb.append("$").append(name).append(" = {");
@@ -31,14 +29,12 @@ public class StyleMapToGpadConverter {
 			String tagName = entry.getKey();
 			LinkedHashMap<String, String> attrs = entry.getValue();
 
-			if (!first) {
-				sb.append(";");
-			}
-			sb.append(" ");
-
 			// Convert XML tag name and attributes to Gpad format
 			String gpadProperty = convertPropertyToGpad(tagName, attrs);
 			if (gpadProperty != null && !gpadProperty.isEmpty()) {
+				if (!first)
+					sb.append(";");
+				sb.append(" ");
 				sb.append(gpadProperty);
 				first = false;
 			}
@@ -51,25 +47,23 @@ public class StyleMapToGpadConverter {
 	/**
 	 * Converts a single property (XML tag + attributes) to Gpad format.
 	 * 
-	 * @param tagName
-	 *            XML tag name (e.g., "lineStyle", "objColor")
-	 * @param attrs
-	 *            attribute map
+	 * @param tagName XML tag name (e.g., "lineStyle", "objColor")
+	 * @param attrs attribute map
 	 * @return Gpad property string (e.g., "lineStyle: thickness=4 opacity=178")
 	 */
 	private String convertPropertyToGpad(String tagName, LinkedHashMap<String, String> attrs) {
-		// Check if this is a GK_BOOL property
-		String gpadPropertyName = convertBooleanPropertyName(tagName);
-		if (gpadPropertyName != null) // This is a boolean property
-			return convertBooleanPropertyToGpad(tagName, gpadPropertyName, attrs);
+		String prop = convertSimplePropertyToGpad(tagName, attrs);
+		if (prop == null)
+			return null;
+		if (!prop.isEmpty())
+			return prop;
 
-		if (attrs == null || attrs.isEmpty()) {
-			// Boolean property without value
-			return tagName;
-		}
+		if (attrs == null || attrs.isEmpty())
+			return null;
 
+		String gpadName = GpadStyleMaps.XML_TO_GPAD_NAME_MAP.getOrDefault(tagName, tagName);
 		StringBuilder sb = new StringBuilder();
-		sb.append(tagName).append(": ");
+		sb.append(gpadName).append(": ");
 
 		// Handle different property types
 		switch (tagName) {
@@ -83,29 +77,14 @@ public class StyleMapToGpadConverter {
 			// objColor/bgColor/borderColor: #rrggbb or #rrggbbaa (if alpha is not default)
 			sb.append(convertColorToHex(attrs));
 			break;
-		case "labelOffset":
-			// labelOffset: 28, 75
-			if (attrs.containsKey("x") && attrs.containsKey("y")) {
-				sb.append(attrs.get("x")).append(", ").append(attrs.get("y"));
-			} else if (attrs.containsKey("val")) {
-				sb.append(attrs.get("val"));
-			}
+		case "absoluteScreenLocation": // @screen: 100 200
+		case "labelOffset": // labelOffset: 28 75
+			if (attrs.containsKey("x") && attrs.containsKey("y"))
+				sb.append(attrs.get("x")).append(" ").append(attrs.get("y"));
 			break;
 		case "animation":
-			// animation: play +0.1 2x
+			// animation: play +0.1 speed=2
 			sb.append(convertAnimation(attrs));
-			break;
-		case "absoluteScreenLocation":
-			// @screen: 100 200
-			if (attrs.containsKey("x") && attrs.containsKey("y")) {
-				sb.append("@screen: ").append(attrs.get("x")).append(" ").append(attrs.get("y"));
-			}
-			break;
-		case "angleStyle":
-			// angleStyle: "0-360"
-			if (attrs.containsKey("val")) {
-				sb.append("\"").append(attrs.get("val")).append("\"");
-			}
 			break;
 		case "eqnStyle":
 			// eqnStyle: implicit; or eqnStyle: parametric=t;
@@ -113,50 +92,20 @@ public class StyleMapToGpadConverter {
 				String style = attrs.get("style");
 				sb.append(style);
 				// If style is parametric and has parameter attribute, add =parameter
-				if ("parametric".equals(style) && attrs.containsKey("parameter")) {
+				if ("parametric".equals(style) && attrs.containsKey("parameter"))
 					sb.append("=").append(attrs.get("parameter"));
-				}
-			}
-			break;
-		default:
-			// Generic property: use "val" if present, otherwise convert all attributes
-			if (attrs.containsKey("val") && attrs.size() == 1) {
-				sb.append(attrs.get("val"));
-			} else {
-				sb.append(convertKeyValuePairs(attrs));
 			}
 			break;
 		}
 
-		return sb.toString();
-	}
-
-	/**
-	 * Converts a map of key-value pairs to Gpad format.
-	 * 
-	 * @param attrs
-	 *            attribute map
-	 * @return Gpad string (e.g., "thickness=4 opacity=178")
-	 */
-	private String convertKeyValuePairs(LinkedHashMap<String, String> attrs) {
-		StringBuilder sb = new StringBuilder();
-		boolean first = true;
-		for (Map.Entry<String, String> entry : attrs.entrySet()) {
-			if (!first) {
-				sb.append(" ");
-			}
-			sb.append(entry.getKey()).append("=").append(entry.getValue());
-			first = false;
-		}
 		return sb.toString();
 	}
 
 	/**
 	 * Converts animation attributes to Gpad format.
 	 * 
-	 * @param attrs
-	 *            animation attributes
-	 * @return Gpad animation string (e.g., "play +0.1 2x")
+	 * @param attrs animation attributes
+	 * @return Gpad animation string (e.g., "play +0.1 speed=2")
 	 */
 	private String convertAnimation(LinkedHashMap<String, String> attrs) {
 		StringBuilder sb = new StringBuilder();
@@ -171,9 +120,8 @@ public class StyleMapToGpadConverter {
 		// Step with prefix
 		String step = attrs.get("step");
 		if (step != null) {
-			if (hasAny) {
+			if (hasAny)
 				sb.append(" ");
-			}
 			String type = attrs.get("type");
 			if (type != null) {
 				switch (type) {
@@ -199,10 +147,9 @@ public class StyleMapToGpadConverter {
 		// Speed
 		String speed = attrs.get("speed");
 		if (speed != null && !"1".equals(speed)) {
-			if (hasAny) {
+			if (hasAny)
 				sb.append(" ");
-			}
-			sb.append(speed).append("x");
+			sb.append("speed=").append(speed);
 		}
 
 		return sb.toString();
@@ -217,9 +164,8 @@ public class StyleMapToGpadConverter {
 	 * @return Gpad lineStyle string
 	 */
 	private String convertLineStyle(LinkedHashMap<String, String> attrs) {
-		if (attrs == null || attrs.isEmpty()) {
+		if (attrs == null || attrs.isEmpty())
 			return "";
-		}
 
 		StringBuilder sb = new StringBuilder();
 		boolean first = true;
@@ -229,9 +175,8 @@ public class StyleMapToGpadConverter {
 		if (typeValue != null) {
 			String typeKey = GpadStyleMaps.LINE_STYLE_TYPE_REVERSE_MAP.get(typeValue);
 			if (typeKey != null) {
-				if (!first) {
+				if (!first)
 					sb.append(" ");
-				}
 				sb.append(typeKey);
 				first = false;
 			}
@@ -240,9 +185,8 @@ public class StyleMapToGpadConverter {
 		// Convert thickness=value
 		String thickness = attrs.get("thickness");
 		if (thickness != null) {
-			if (!first) {
+			if (!first)
 				sb.append(" ");
-			}
 			sb.append("thickness=").append(thickness);
 			first = false;
 		}
@@ -250,29 +194,24 @@ public class StyleMapToGpadConverter {
 		// Convert typeHidden (hidden, hidden=dashed, or hidden=show)
 		String typeHiddenValue = attrs.get("typeHidden");
 		if (typeHiddenValue != null) {
-			if (!first) {
+			if (!first)
 				sb.append(" ");
-			}
 			String typeHiddenKey = GpadStyleMaps.LINE_STYLE_TYPE_HIDDEN_REVERSE_MAP.get(typeHiddenValue);
 			if (typeHiddenKey != null) {
-				if (typeHiddenKey.isEmpty()) {
+				if (typeHiddenKey.isEmpty())
 					sb.append("hidden");
-				} else {
+				else
 					sb.append("hidden=").append(typeHiddenKey);
-				}
-			} else {
-				// Default to hidden if value not recognized
+			} else // Default to hidden if value not recognized
 				sb.append("hidden");
-			}
 			first = false;
 		}
 
 		// Convert opacity=value
 		String opacity = attrs.get("opacity");
 		if (opacity != null) {
-			if (!first) {
+			if (!first)
 				sb.append(" ");
-			}
 			sb.append("opacity=").append(opacity);
 			first = false;
 		}
@@ -280,15 +219,12 @@ public class StyleMapToGpadConverter {
 		// Convert drawArrow (arrow or ~arrow)
 		String drawArrow = attrs.get("drawArrow");
 		if (drawArrow != null) {
-			if (!first) {
-				sb.append(" ");
-			}
 			if ("true".equals(drawArrow)) {
+				if (!first)
+					sb.append(" ");
 				sb.append("arrow");
-			} else if ("false".equals(drawArrow)) {
-				sb.append("~arrow");
+				first = false;
 			}
-			first = false;
 		}
 
 		return sb.toString();
@@ -355,70 +291,52 @@ public class StyleMapToGpadConverter {
 	}
 
 	/**
-	 * 检查并转换布尔属性的名字（XML -> Gpad）
+	 * 转换简单xml元素(GK_BOOL/GK_INT/GK_FLOAT/GK_STR)的属性map到Gpad样式
 	 * 
-	 * @param xmlTagName
-	 *            XML 标签名
-	 * @return Gpad 属性名，如果不是布尔属性则返回 null
+	 * @param xmlTagName XML标签名
+	 * @param attrs 属性映射
+	 * @return Gpad 格式的字符串（如 "angleStyle: 0-360" 或 "caption: \"text\""）
+	 *         返回空串表示不是简单xml元素，返回null表示省略此样式
 	 */
-	private String convertBooleanPropertyName(String xmlTagName) {
-		// 首先检查是否是直接的 GK_BOOL 属性
-		if (GpadStyleMaps.GK_BOOL_PROPERTIES.containsKey(xmlTagName))
-			return xmlTagName;
+	private String convertSimplePropertyToGpad(String xmlTagName, LinkedHashMap<String, String> attrs) {
+		String gpadPropertyName = xmlTagName;
 
-		// 检查是否需要通过名字映射转换
-		String gpadName = GpadStyleMaps.XML_TO_GPAD_NAME_MAP.get(xmlTagName);
-		if (gpadName != null && GpadStyleMaps.GK_BOOL_PROPERTIES.containsKey(gpadName))
-			return gpadName;
+		// 检查是否是直接的属性
+		Integer gkType = GpadStyleMaps.GK_PROPERTIES.get(xmlTagName);
+		if (gkType == null) {
+			// 检查是否需要通过名字映射转换
+			gpadPropertyName = GpadStyleMaps.XML_TO_GPAD_NAME_MAP.get(xmlTagName);
+			if (gpadPropertyName == null || GpadStyleMaps.GK_PROPERTIES.containsKey(gpadPropertyName))
+				return "";
+		}
 
-		return null;
-	}
-
-	/**
-	 * 转换布尔属性到 Gpad 格式
-	 * 
-	 * 转换逻辑：
-	 * 1. 用 Gpad 属性名查 gpadToXmlAttrNameMap 得到 XML 属性名（如果没有，默认是 "val"）
-	 * 2. 用 Gpad 属性名查 xmlToGpadNameMap 的反向得到 XML 元素名（实际上我们已经有了 xmlTagName）
-	 * 3. 用 XML 元素名查 booleanValueRevertMap 判断是否需要反转布尔值
-	 * 
-	 * 特殊情况：
-	 * - hideLabelInAlgebra (gpad) -> algebra (xml元素) + labelVisible (xml属性)
-	 *   由于 labelVisible 在 XML 中是反义的（labelVisible=true 表示隐藏），
-	 *   所以 labelVisible 的值需要反转才能得到正确的 Gpad 布尔值
-	 * - showGeneralAngle (gpad) -> emphasizeRightAngle (xml元素)
-	 *   由于 emphasizeRightAngle 需要反转，所以 XML 的 val 值需要反转
-	 * 
-	 * @param xmlTagName
-	 *            XML 标签名
-	 * @param gpadPropertyName
-	 *            Gpad 属性名
-	 * @param attrs
-	 *            属性映射
-	 * @return Gpad 格式的字符串（如 "autocolor;" 或 "~autocolor;"）
-	 */
-	private String convertBooleanPropertyToGpad(String xmlTagName, String gpadPropertyName,
-			LinkedHashMap<String, String> attrs) {
-		// 1. 确定 XML 属性名（检查是否有特殊属性名映射）
+		// 确定 XML 属性名（检查是否有特殊属性名映射）
 		String attrName = GpadStyleMaps.GPAD_TO_XML_ATTR_NAME_MAP.getOrDefault(gpadPropertyName, "val");
 
-		// 2. 获取属性值
+		// 获取属性值
 		String value = attrs != null ? attrs.get(attrName) : null;
 		if (value == null && attrs != null && attrs.size() == 1) {
 			// 如果没有找到特殊属性名，尝试使用唯一的属性值
 			value = attrs.values().iterator().next();
+			if (value == null)
+				return null; // 找不到值，省略
 		}
 
-		// 3. 解析布尔值
-		boolean boolValue = true; // 默认值
-		if (value != null)
-			boolValue = "true".equals(value);
+		if (gkType == GpadStyleMaps.GK_INT || gkType == GpadStyleMaps.GK_FLOAT)
+			return gpadPropertyName + ": " + value;
 
-		// 4. 检查属性值是否需要转换（如 emphasizeRightAngle）
-		if (GpadStyleMaps.VALUE_MAPS_REVERSE.containsKey(xmlTagName))
-			boolValue = !boolValue;
+		// 检查是否需要值转换（通过 VALUE_MAPS_REVERSE）
+		if (GpadStyleMaps.VALUE_MAPS_REVERSE.containsKey(xmlTagName)) {
+			Map<String, String> valueMap = GpadStyleMaps.VALUE_MAPS_REVERSE.get(xmlTagName);
+			String convertedValue = valueMap.get(value);
+			if (convertedValue != null)
+				value = convertedValue;
+		}
 
-		// 5. 转换为 Gpad 格式
-		return boolValue? gpadPropertyName: "~" + gpadPropertyName;
+		if (gkType == GpadStyleMaps.GK_BOOL) // 省略布尔false值(不出现默认就是false)
+			return "true".equals(value)? gpadPropertyName: "";
+
+		// 现在只能是字符串值，转换为 Gpad 格式（字符串值需要用引号括起来）
+		return gpadPropertyName + ": \"" + value + "\"";
 	}
 }

@@ -273,7 +273,7 @@ public class LineStyleTest extends BaseUnitTest {
 		assertTrue(gpad.contains("thickness=5"));
 		assertTrue(gpad.contains("hidden"));
 		assertTrue(gpad.contains("opacity=128"));
-		assertTrue(gpad.contains("~arrow"));
+		assertTrue(!gpad.contains("arrow"));
 	}
 
 	/**
@@ -377,13 +377,13 @@ public class LineStyleTest extends BaseUnitTest {
 		assertTrue(gpad1.contains("arrow"));
 		assertTrue(!gpad1.contains("~arrow"));
 		
-		// Test drawArrow="false" -> ~arrow
+		// Test drawArrow="false" -> 不出现
 		LinkedHashMap<String, String> attrs2 = new LinkedHashMap<>();
 		attrs2.put("drawArrow", "false");
 		Map<String, LinkedHashMap<String, String>> styleMap2 = new LinkedHashMap<>();
 		styleMap2.put("lineStyle", attrs2);
 		String gpad2 = converter.convert("test", styleMap2);
-		assertTrue(gpad2.contains("~arrow"));
+		assertTrue(!gpad2.contains("arrow"));
 	}
 
 	/**
@@ -427,7 +427,7 @@ public class LineStyleTest extends BaseUnitTest {
 			assertTrue(convertedGpad.contains("thickness=5"));
 			assertTrue(convertedGpad.contains("hidden"));
 			assertTrue(convertedGpad.contains("opacity=128"));
-			assertTrue(convertedGpad.contains("~arrow"));
+			assertTrue(!convertedGpad.contains("arrow"));
 		} catch (GpadParseException | CircularDefinitionException e) {
 			throw new AssertionError("Round-trip failed: " + e.getMessage(), e);
 		}

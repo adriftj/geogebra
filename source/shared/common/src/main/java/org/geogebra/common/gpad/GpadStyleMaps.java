@@ -7,7 +7,6 @@ import java.util.Map;
  * 将原映射表和反映射表放在一起，方便同时维护和修改。
  */
 public class GpadStyleMaps {
-
 	// ==================== 属性名映射 ====================
 
 	/**
@@ -55,32 +54,68 @@ public class GpadStyleMaps {
 			"true", "false",
 			"false", "true");
 
+	public static final Integer GK_BOOL = 0;
+	public static final Integer GK_INT = 1;
+	public static final Integer GK_FLOAT = 2;
+	public static final Integer GK_STR = 3;
+
 	/**
-	 * GK_BOOL 属性列表（从 Parser.jj 中的 GK_BOOL token 定义）
-	 * 所有归类到 GK_BOOL 的属性
+	 * 属性归类列表(从 Parser.jj 中的 GK_BOOL/GK_INT/GK_FLOAT/GK_STR TOKEN定义而来)
 	 */
-	public static final Map<String, Boolean> GK_BOOL_PROPERTIES = Map.ofEntries(
-			Map.entry("autocolor", true),
-			Map.entry("auxiliary", true),
-			Map.entry("breakpoint", true),
-			Map.entry("centered", true),
-			Map.entry("comboBox", true),
-			Map.entry("contentSerif", true),
-			Map.entry("fixed", true),
-			Map.entry("hideLabelInAlgebra", true),
-			Map.entry("inBackground", true),
-			Map.entry("interpolate", true),
-			Map.entry("isLaTeX", true),
-			Map.entry("isMask", true),
-			Map.entry("keepTypeOnTransform", true),
-			Map.entry("levelOfDetailQuality", true),
-			Map.entry("outlyingIntersections", true),
-			Map.entry("selectionAllowed", true),
-			Map.entry("showGeneralAngle", true),
-			Map.entry("showOnAxis", true),
-			Map.entry("showTrimmed", true),
-			Map.entry("symbolic", true),
-			Map.entry("trace", true));
+	public static final Map<String, Integer> GK_PROPERTIES = Map.ofEntries(
+			Map.entry("autocolor", GK_BOOL),
+			Map.entry("auxiliary", GK_BOOL),
+			Map.entry("breakpoint", GK_BOOL),
+			Map.entry("centered", GK_BOOL),
+			Map.entry("comboBox", GK_BOOL),
+			Map.entry("contentSerif", GK_BOOL),
+			Map.entry("fixed", GK_BOOL),
+			Map.entry("hideLabelInAlgebra", GK_BOOL),
+			Map.entry("inBackground", GK_BOOL),
+			Map.entry("interpolate", GK_BOOL),
+			Map.entry("isLaTeX", GK_BOOL),
+			Map.entry("isMask", GK_BOOL),
+			Map.entry("keepTypeOnTransform", GK_BOOL),
+			Map.entry("levelOfDetailQuality", GK_BOOL),
+			Map.entry("outlyingIntersections", GK_BOOL),
+			Map.entry("selectionAllowed", GK_BOOL),
+			Map.entry("showGeneralAngle", GK_BOOL),
+			Map.entry("showOnAxis", GK_BOOL),
+			Map.entry("showTrimmed", GK_BOOL),
+			Map.entry("symbolic", GK_BOOL),
+			Map.entry("trace", GK_BOOL),
+
+			Map.entry("arcSize", GK_INT),
+			Map.entry("decimals", GK_INT),
+			Map.entry("layer", GK_INT),
+			Map.entry("length", GK_INT),
+			Map.entry("selectedIndex", GK_INT),
+			Map.entry("significantfigures", GK_INT),
+			Map.entry("slopeTriangleSize", GK_INT),
+
+			Map.entry("fading", GK_FLOAT),
+			Map.entry("ordering", GK_FLOAT),
+			Map.entry("pointSize", GK_FLOAT),
+			Map.entry("angleStyle", GK_STR),
+
+			Map.entry("caption", GK_STR),
+			Map.entry("content", GK_STR),
+			Map.entry("coordStyle", GK_STR),
+			Map.entry("decoration", GK_STR),
+			Map.entry("dynamicCaption", GK_STR),
+			Map.entry("endStyle", GK_STR),
+			Map.entry("filename", GK_STR),
+			Map.entry("headStyle", GK_STR),
+			Map.entry("incrementY", GK_STR),
+			Map.entry("labelMode", GK_STR),
+			Map.entry("linkedGeo", GK_STR),
+			Map.entry("parentLabel", GK_STR),
+			Map.entry("pointStyle", GK_STR),
+			Map.entry("showIf", GK_STR),
+			Map.entry("startStyle", GK_STR),
+			Map.entry("textAlign", GK_STR),
+			Map.entry("tooltipMode", GK_STR),
+			Map.entry("verticalAlign", GK_STR));
 
 	// ==================== lineStyle 相关 ====================
 
