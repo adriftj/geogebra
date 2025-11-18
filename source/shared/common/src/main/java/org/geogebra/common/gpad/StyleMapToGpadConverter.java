@@ -2,7 +2,6 @@ package org.geogebra.common.gpad;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.HashMap;
 
 /**
  * Converts style map (Map<String, LinkedHashMap<String, String>>) to Gpad format.
@@ -59,6 +58,11 @@ public class StyleMapToGpadConverter {
 	 * @return Gpad property string (e.g., "lineStyle: thickness=4 opacity=178")
 	 */
 	private String convertPropertyToGpad(String tagName, LinkedHashMap<String, String> attrs) {
+		// Check if this is a GK_BOOL property
+		String gpadPropertyName = convertBooleanPropertyName(tagName);
+		if (gpadPropertyName != null) // This is a boolean property
+			return convertBooleanPropertyToGpad(tagName, gpadPropertyName, attrs);
+
 		if (attrs == null || attrs.isEmpty()) {
 			// Boolean property without value
 			return tagName;
@@ -220,24 +224,10 @@ public class StyleMapToGpadConverter {
 		StringBuilder sb = new StringBuilder();
 		boolean first = true;
 
-		// Reverse maps for converting XML values to Gpad keys
-		Map<String, String> typeReverseMap = new HashMap<>();
-		typeReverseMap.put("-1", "pointwise");
-		typeReverseMap.put("0", "full");
-		typeReverseMap.put("10", "dashedshort");
-		typeReverseMap.put("15", "dashedlong");
-		typeReverseMap.put("20", "dotted");
-		typeReverseMap.put("30", "dasheddotted");
-
-		Map<String, String> typeHiddenReverseMap = new HashMap<>();
-		typeHiddenReverseMap.put("0", "");
-		typeHiddenReverseMap.put("1", "dashed");
-		typeHiddenReverseMap.put("2", "show");
-
 		// Convert type (no prefix)
 		String typeValue = attrs.get("type");
 		if (typeValue != null) {
-			String typeKey = typeReverseMap.get(typeValue);
+			String typeKey = GpadStyleMaps.LINE_STYLE_TYPE_REVERSE_MAP.get(typeValue);
 			if (typeKey != null) {
 				if (!first) {
 					sb.append(" ");
@@ -263,7 +253,7 @@ public class StyleMapToGpadConverter {
 			if (!first) {
 				sb.append(" ");
 			}
-			String typeHiddenKey = typeHiddenReverseMap.get(typeHiddenValue);
+			String typeHiddenKey = GpadStyleMaps.LINE_STYLE_TYPE_HIDDEN_REVERSE_MAP.get(typeHiddenValue);
 			if (typeHiddenKey != null) {
 				if (typeHiddenKey.isEmpty()) {
 					sb.append("hidden");
@@ -362,5 +352,73 @@ public class StyleMapToGpadConverter {
 		} catch (NumberFormatException e) {
 			return "#000000";
 		}
+	}
+
+	/**
+	 * 检查并转换布尔属性的名字（XML -> Gpad）
+	 * 
+	 * @param xmlTagName
+	 *            XML 标签名
+	 * @return Gpad 属性名，如果不是布尔属性则返回 null
+	 */
+	private String convertBooleanPropertyName(String xmlTagName) {
+		// 首先检查是否是直接的 GK_BOOL 属性
+		if (GpadStyleMaps.GK_BOOL_PROPERTIES.containsKey(xmlTagName))
+			return xmlTagName;
+
+		// 检查是否需要通过名字映射转换
+		String gpadName = GpadStyleMaps.XML_TO_GPAD_NAME_MAP.get(xmlTagName);
+		if (gpadName != null && GpadStyleMaps.GK_BOOL_PROPERTIES.containsKey(gpadName))
+			return gpadName;
+
+		return null;
+	}
+
+	/**
+	 * 转换布尔属性到 Gpad 格式
+	 * 
+	 * 转换逻辑：
+	 * 1. 用 Gpad 属性名查 gpadToXmlAttrNameMap 得到 XML 属性名（如果没有，默认是 "val"）
+	 * 2. 用 Gpad 属性名查 xmlToGpadNameMap 的反向得到 XML 元素名（实际上我们已经有了 xmlTagName）
+	 * 3. 用 XML 元素名查 booleanValueRevertMap 判断是否需要反转布尔值
+	 * 
+	 * 特殊情况：
+	 * - hideLabelInAlgebra (gpad) -> algebra (xml元素) + labelVisible (xml属性)
+	 *   由于 labelVisible 在 XML 中是反义的（labelVisible=true 表示隐藏），
+	 *   所以 labelVisible 的值需要反转才能得到正确的 Gpad 布尔值
+	 * - showGeneralAngle (gpad) -> emphasizeRightAngle (xml元素)
+	 *   由于 emphasizeRightAngle 需要反转，所以 XML 的 val 值需要反转
+	 * 
+	 * @param xmlTagName
+	 *            XML 标签名
+	 * @param gpadPropertyName
+	 *            Gpad 属性名
+	 * @param attrs
+	 *            属性映射
+	 * @return Gpad 格式的字符串（如 "autocolor;" 或 "~autocolor;"）
+	 */
+	private String convertBooleanPropertyToGpad(String xmlTagName, String gpadPropertyName,
+			LinkedHashMap<String, String> attrs) {
+		// 1. 确定 XML 属性名（检查是否有特殊属性名映射）
+		String attrName = GpadStyleMaps.GPAD_TO_XML_ATTR_NAME_MAP.getOrDefault(gpadPropertyName, "val");
+
+		// 2. 获取属性值
+		String value = attrs != null ? attrs.get(attrName) : null;
+		if (value == null && attrs != null && attrs.size() == 1) {
+			// 如果没有找到特殊属性名，尝试使用唯一的属性值
+			value = attrs.values().iterator().next();
+		}
+
+		// 3. 解析布尔值
+		boolean boolValue = true; // 默认值
+		if (value != null)
+			boolValue = "true".equals(value);
+
+		// 4. 检查属性值是否需要转换（如 emphasizeRightAngle）
+		if (GpadStyleMaps.VALUE_MAPS_REVERSE.containsKey(xmlTagName))
+			boolValue = !boolValue;
+
+		// 5. 转换为 Gpad 格式
+		return boolValue? gpadPropertyName: "~" + gpadPropertyName;
 	}
 }

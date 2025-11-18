@@ -78,9 +78,8 @@ import org.geogebra.common.gpad.GpadStyleSheet;
 import org.geogebra.common.gpad.GpadStyleApplier;
 import org.geogebra.common.kernel.commands.EvalInfo;
 import org.geogebra.common.kernel.CircularDefinitionException;
-import static java.util.Map.entry;
 import java.util.Map;
-import java.util.Map.Entry;
+import org.geogebra.common.gpad.GpadStyleMaps;
 
 import java.util.ArrayList;
 import java.util.Vector;
@@ -347,136 +346,15 @@ public class Parser implements ParserInterface {
         System.out.println("Exit error recovery");
     }
 
-    /**
-     * GpadStyleSheet中可转换成唯一属性的xml元素的那些简单属性，
-     * 若其唯一属性名不是"val"，则在此登记
-     * 登记表的key就是GpadStyleSheet的属性名，value是转换后的xml元素的唯一属性名
-     */
-    private static final Map<String, String> gkUniqueAttrs
-        = Map.of("hideLabelInAlgebra", "labelVisible",
-                "showIf", "showObject",
-                "filename", "name",
-                "audio", "src",
-                "linkedGeo", "exp");
-
-    /**
-     * GpadStyleSheet中必须更换元素名称的那些属性，在此登记
-     */
-    private static final Map<String, String> gkNameMaps
-        = Map.of("@screen", "absoluteScreenLocation",
-                "hideLabelInAlgebra", "algebra",
-                "showIf", "condition",
-                "showGeneralAngle", "emphasizeRightAngle",
-                "filename", "file");
-
-    /**
-     * 线段始端和终端样式取值表
-     */
-    private static final Map<String, String> gkStartEndStyleValues
-        = Map.ofEntries(entry("default", "default"),
-                    entry("line", "line"),
-                    entry("arrow", "arrow"),
-                    entry("crows_foot", "crows_foot"),
-                    entry("arrow_outline", "arrow_outline"),
-                    entry("arrow_filled", "arrow_filled"),
-                    entry("circle_outline", "circle_outline"),
-                    entry("circle", "circle"),
-                    entry("square_outline", "square_outline"),
-                    entry("square", "square"),
-                    entry("diamond_outline", "diamond_outline"),
-                    entry("diamond", "diamond"));
-
-    /**
-     * 布尔值反转取值表
-     */
-    private static final Map<String, String> gkRevertBooleanValues
-        = Map.of("true", "false", "false", "true");
-
-    /**
-     * 直线和二次曲线的方程显示形式
-     */
-    private static final Map<String, String> gkEqnStyleValues
-        = Map.of("implicit", "implicit",
-                "explicit", "explicit",
-                "parametric", "parametric",
-                "specific", "specific",
-                "general", "general",
-                "vertex", "vertex",
-                "conic", "conic",
-                "user", "user");
-
-    /**
-     * lineStyle的type取值表
-     */
-    private static final Map<String, String> gkLineStyleTypeValues
-        = Map.of("pointwise", "-1",
-                "full", "0",
-                "dashedshort", "10",
-                "dashedlong", "15",
-                "dotted", "20",
-                "dasheddotted", "30");
-
-    /**
-     * lineStyle的typeHidden取值表(用于3d)
-     */
-    private static final Map<String, String> gkLineStyleTypeHiddenValues
-        = Map.of("", "0",
-                "dashed", "1",
-                "show", "2");
-
-    /**
-     * GpadStyleSheet中属性值到xml元素属性值的映射表
-     * 如果值映射到null表示不做改变
-     */
-    private static final Map<String, Map<String, String>> gkValueMaps
-        = Map.ofEntries(
-            entry("angleStyle", Map.of("0-360", "0",
-                                    "0-180", "1",
-                                    "180-360", "2",
-                                    "any", "3")),
-            entry("coordStyle", Map.of("cartesian", "cartesian",
-                                "polar", "polar",
-                                "complex", "complex",
-                                "cartesian3d", "cartesian3d",
-                                "spherical", "spherical")),
-            entry("decoration", Map.of("none","0",
-                                "single_tick", "1",
-                                "double_tick", "2",
-                                "triple_tick", "3",
-                                "simple_arrow", "4",
-                                "double_arrow", "5",
-                                "triple_arrow", "6")),
-            entry("showGeneralAngle", gkRevertBooleanValues),
-            entry("endStyle", gkStartEndStyleValues),
-            entry("headStyle", Map.of("default", "0", "arrow", "1")),
-            entry("labelMode", Map.of("name", "0",
-                                "namevalue", "1",
-                                "value", "2",
-                                "caption", "3")),
-            entry("pointStyle", Map.ofEntries(entry("default", "-1"),
-                                        entry("dot", "0"),
-                                        entry("cross", "1"),
-                                        entry("circle", "2"),
-                                        entry("plus", "3"),
-                                        entry("diamond", "4"),
-                                        entry("empty_diamond", "5"),
-                                        entry("triangle_north", "6"),
-                                        entry("triangle_south", "7"),
-                                        entry("triangle_east", "8"),
-                                        entry("triangle_west", "9"),
-                                        entry("no_outline", "10"))),
-            entry("startStyle", gkStartEndStyleValues),
-            entry("textAlign", Map.of("left", "left",
-                                "center", "center",
-                                "right", "right")),
-            entry("tooltipMode", Map.of("algebraview", "0",
-                                "on", "1",
-                                "off", "2",
-                                "caption", "3",
-                                "nextcell", "4")),
-            entry("verticalAlign", Map.of("top", "top",
-                                "middle", "middle",
-                                "bottom", "bottom")));
+    // 使用 GpadStyleMaps 中定义的映射表
+    private static final Map<String, String> gkUniqueAttrs = GpadStyleMaps.GPAD_TO_XML_ATTR_NAME_MAP;
+    private static final Map<String, String> gkNameMaps = GpadStyleMaps.GPAD_TO_XML_NAME_MAP;
+    private static final Map<String, String> gkStartEndStyleValues = GpadStyleMaps.START_END_STYLE_VALUES;
+    private static final Map<String, String> gkRevertBooleanValues = GpadStyleMaps.BOOLEAN_VALUE_REVERT_MAP;
+    private static final Map<String, String> gkEqnStyleValues = GpadStyleMaps.EQN_STYLE_VALUES;
+    private static final Map<String, String> gkLineStyleTypeValues = GpadStyleMaps.LINE_STYLE_TYPE_MAP;
+    private static final Map<String, String> gkLineStyleTypeHiddenValues = GpadStyleMaps.LINE_STYLE_TYPE_HIDDEN_MAP;
+    private static final Map<String, Map<String, String>> gkValueMaps = GpadStyleMaps.VALUE_MAPS;
 
     /**
      * Helper method to convert property key name and determine attribute name.
@@ -518,126 +396,6 @@ public class Parser implements ParserInterface {
         java.util.LinkedHashMap<String, String> attrs = new java.util.LinkedHashMap<>();
         attrs.put(converted[1], finalValue);
         styleSheet.setProperty(converted[0], attrs);
-    }
-
-    /**
-     * Parses lineStyle tokens and converts them to XML attributes.
-     * 
-     * @param tokens list of tokens to parse
-     * @return map of XML attributes
-     */
-    private java.util.LinkedHashMap<String, String> parseLineStyleTokens(
-            java.util.ArrayList<Token> tokens) {
-        java.util.LinkedHashMap<String, String> attrs = new java.util.LinkedHashMap<>();
-        String type = null;
-        String thickness = null;
-        String typeHidden = null;
-        String opacity = null;
-        String drawArrow = null;
-        
-        int i = 0;
-        while (i < tokens.size()) {
-            Token t = tokens.get(i);
-            String tokenStr = t.image;
-            
-            // Check for thickness=value
-            if ("thickness".equals(tokenStr) && i + 2 < tokens.size() 
-                    && tokens.get(i + 1).kind == EQUAL) {
-                Token valueToken = tokens.get(i + 2);
-                if (valueToken.kind == FLOAT) {
-                    String thicknessStr = valueToken.image;
-                    int dotIndex = thicknessStr.indexOf('.');
-                    thickness = dotIndex >= 0 ? thicknessStr.substring(0, dotIndex) : thicknessStr;
-                    i += 3;
-                    continue;
-                }
-            }
-            
-            // Check for hidden[=dashed|show]
-            if ("hidden".equals(tokenStr)) {
-                if (i + 2 < tokens.size() && tokens.get(i + 1).kind == EQUAL) {
-                    Token valueToken = tokens.get(i + 2);
-                    if (valueToken.kind == LABEL) {
-                        String hiddenValue = valueToken.image;
-                        if ("dashed".equals(hiddenValue)) {
-                            typeHidden = "dashed";
-                        } else if ("show".equals(hiddenValue)) {
-                            typeHidden = "show";
-                        }
-                        i += 3;
-                    } else {
-                        typeHidden = "";
-                        i += 1;
-                    }
-                } else {
-                    typeHidden = "";
-                    i += 1;
-                }
-                continue;
-            }
-            
-            // Check for opacity=value
-            if ("opacity".equals(tokenStr) && i + 2 < tokens.size() 
-                    && tokens.get(i + 1).kind == EQUAL) {
-                Token valueToken = tokens.get(i + 2);
-                if (valueToken.kind == FLOAT) {
-                    String opacityStr = valueToken.image;
-                    int dotIndex = opacityStr.indexOf('.');
-                    opacity = dotIndex >= 0 ? opacityStr.substring(0, dotIndex) : opacityStr;
-                    i += 3;
-                    continue;
-                }
-            }
-            
-            // Check for ~arrow
-            if (t.kind == GK_DELETE && tokenStr.startsWith("~") && "arrow".equals(tokenStr.substring(1))) {
-                drawArrow = "false";
-                i += 1;
-                continue;
-            }
-            
-            // Check for arrow
-            if ("arrow".equals(tokenStr)) {
-                drawArrow = "true";
-                i += 1;
-                continue;
-            }
-            
-            // Check for type (no prefix, must be one of gkLineStyleTypeValues keys)
-            if (t.kind == LABEL && gkLineStyleTypeValues.containsKey(tokenStr)) {
-                type = tokenStr;
-                i += 1;
-                continue;
-            }
-            
-            // Unknown token, skip it
-            i += 1;
-        }
-        
-        // Convert to XML attributes
-        if (type != null) {
-            String typeValue = gkLineStyleTypeValues.get(type);
-            if (typeValue != null) {
-                attrs.put("type", typeValue);
-            }
-        }
-        if (thickness != null) {
-            attrs.put("thickness", thickness);
-        }
-        if (typeHidden != null) {
-            String typeHiddenValue = gkLineStyleTypeHiddenValues.get(typeHidden);
-            if (typeHiddenValue != null) {
-                attrs.put("typeHidden", typeHiddenValue);
-            }
-        }
-        if (opacity != null) {
-            attrs.put("opacity", opacity);
-        }
-        if (drawArrow != null) {
-            attrs.put("drawArrow", drawArrow);
-        }
-        
-        return attrs;
     }
 
     /**
@@ -714,6 +472,7 @@ TOKEN :  {
   | < POWER:    ("^" | "**" | "\u02C6") >
     // dot operators for multiplication sign
   | < MULTIPLY: ("*" | "\u22c5" | "\u2219" | "\u00D7") >
+  | < TILDE: "~" >
   | < VECTORPRODUCT: "\u2297" >
   | < DIVIDE:   ("/" | "\u00f7") >
   | < INVISIBLE_PLUS: "\u2064" >
@@ -2880,7 +2639,7 @@ void gpadCommandExpression() throws CircularDefinitionException :
 {
     gpadLabelStyleSheets(labels, styleSheets)
     ( <COMMA> gpadLabelStyleSheets(labels, styleSheets) )*
-    <EQUAL> ve = expressionOrEquation()
+    <EQUAL> ve = expressionOrEquation() [<POLAR_SEPARATOR>]
     {
         try {
             if (labels != null)
@@ -2911,7 +2670,7 @@ void gpadLabelStyleSheets(java.util.List<String> labels, java.util.List<GpadStyl
     GpadStyleSheet styleSheet = null, styleSheet2;
 }
 {
-    label = label() ( visibilityFlag = <MULTIPLY> | visibilityFlag = "~" )?
+    label = label() ( visibilityFlag = <MULTIPLY> | visibilityFlag = <TILDE> )?
     (
         (
         (styleName = <GSSLABEL> { styleSheet2 = gpadStyleSheets.get(styleName.image.substring(1)); })

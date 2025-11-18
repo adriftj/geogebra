@@ -68,10 +68,9 @@ public class GpadIntegrationTest extends BaseUnitTest {
 
 	@Test
 	public void testComplexGpadExample() {
-		// Example from plan.md
-		String gpad = "@g = { labelOffset:28, 75; lineStyle: thickness=4 opacity=178 }\n"
+		String gpad = "@g = { labelOffset:28 75; lineStyle: thickness=4 opacity=178 }\n"
 				+ "@h = { lineStyle: opacity=178 }\n"
-				+ "g* @g = Line((0,0), (1,1))\n"
+				+ "g* @g = Line((0,0), (1,1));\n"
 				+ "h~ @h = Line((0,0), (2,2))";
 		GpadParser parser = new GpadParser(getKernel());
 		
@@ -83,8 +82,7 @@ public class GpadIntegrationTest extends BaseUnitTest {
 			assertTrue(parser.getGlobalStyleSheets().containsKey("g"));
 			assertTrue(parser.getGlobalStyleSheets().containsKey("h"));
 		} catch (GpadParseException | CircularDefinitionException e) {
-			// This might fail if Line command syntax is different
-			// That's acceptable for this test
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
 
@@ -152,7 +150,7 @@ public class GpadIntegrationTest extends BaseUnitTest {
 			// Nested calls should be supported
 			assertTrue(geos.size() >= 0); // May succeed or fail depending on command syntax
 		} catch (GpadParseException | CircularDefinitionException e) {
-			// This is acceptable if the command syntax is different
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
 }
