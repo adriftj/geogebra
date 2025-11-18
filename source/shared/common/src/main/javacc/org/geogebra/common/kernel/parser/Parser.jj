@@ -2439,11 +2439,14 @@ void gpadStyleSheetPropertyAnimation(GpadStyleSheet styleSheet) :
         <GK_animation_plus> { type = "1"; } |
         <GK_animation_minus> { type = "2"; } |
         <GK_animation_equal> { type = "3"; }
-        )?
+        )
         (
         stepToken = <TEXT> { step = stepToken.image.substring(1, stepToken.image.length() - 1); } |
         stepToken = <GK_number> { step = stepToken.image; }
-        )
+        )?
+    ) | (
+        stepToken = <TEXT> { step = stepToken.image.substring(1, stepToken.image.length() - 1); } |
+        stepToken = <GK_number> { step = stepToken.image; }
     ) )*
     {
         java.util.LinkedHashMap<String, String> attrs = new java.util.LinkedHashMap<>();

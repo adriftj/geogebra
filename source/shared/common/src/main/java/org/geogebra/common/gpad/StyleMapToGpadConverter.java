@@ -84,7 +84,10 @@ public class StyleMapToGpadConverter {
 			break;
 		case "animation":
 			// animation: play +0.1 speed=2
-			sb.append(convertAnimation(attrs));
+			String animationResult = convertAnimation(attrs);
+			if (animationResult == null || animationResult.isEmpty())
+				return null;
+			sb.append(animationResult);
 			break;
 		case "eqnStyle":
 			// eqnStyle: implicit; or eqnStyle: parametric=t;
@@ -103,56 +106,100 @@ public class StyleMapToGpadConverter {
 
 	/**
 	 * Converts animation attributes to Gpad format.
+	 * Syntax: animation: [play|~play] [type step] [speed x];
+	 * Three parts separated by whitespace, any order, any can be omitted
+	 * Default values: playing=false, type=0, step=0.1, speed=1
 	 * 
 	 * @param attrs animation attributes
-	 * @return Gpad animation string (e.g., "play +0.1 speed=2")
+	 * @return Gpad animation string (e.g., "play +0.2 speed=2" or "=0.5 speed=\"1+1\"")
 	 */
 	private String convertAnimation(LinkedHashMap<String, String> attrs) {
+		if (attrs == null || attrs.isEmpty())
+			return "";
+
 		StringBuilder sb = new StringBuilder();
 		boolean hasAny = false;
 
-		// Playing state
-		if ("true".equals(attrs.get("playing"))) {
+		// Playing state: play (default is false, so only output when true)
+		String playing = attrs.get("playing");
+		if ("true".equals(playing)) {
 			sb.append("play");
 			hasAny = true;
 		}
 
-		// Step with prefix
-		String step = attrs.get("step");
-		if (step != null) {
-			if (hasAny)
-				sb.append(" ");
-			String type = attrs.get("type");
-			if (type != null) {
-				switch (type) {
-				case "1": // ANIMATION_INCREASING
-					sb.append("+");
-					break;
-				case "2": // ANIMATION_DECREASING
-					sb.append("-");
-					break;
-				case "3": // ANIMATION_INCREASING_ONCE
-					sb.append("~");
-					break;
-				case "0": // ANIMATION_OSCILLATING
-				default:
-					// No prefix
-					break;
-				}
+		// Step with type prefix: [+|-|=][step]
+		// + for type="1" (ANIMATION_INCREASING)
+		// - for type="2" (ANIMATION_DECREASING)
+		// = for type="3" (ANIMATION_INCREASING_ONCE)
+		// no prefix for type="0" (ANIMATION_OSCILLATING, default)
+		// Output type prefix if it is not default(0), even if step is default
+		// If both type and step exist, step should follow type immediately without space
+		String type = attrs.get("type");
+		String prefix = null;
+		if (type != null) {
+			switch (type) {
+			case "1": // ANIMATION_INCREASING
+				prefix = "+";
+				break;
+			case "2": // ANIMATION_DECREASING
+				prefix = "-";
+				break;
+			case "3": // ANIMATION_INCREASING_ONCE
+				prefix = "=";
+				break;
 			}
-			sb.append(step);
+			if (prefix != null) {
+				if (hasAny)
+					sb.append(" ");
+				sb.append(prefix);
+				hasAny = true;
+			}
+		}
+			
+		// Output step if non-default (immediately after type prefix if exists)
+		String step = attrs.get("step");
+		if (step != null && !"0.1".equals(step)) {
+			if (hasAny && prefix==null)
+				sb.append(" ");
+			// If step is an expression (not a plain number), wrap it in quotes
+			if (isExpression(step))
+				sb.append("\"").append(step).append("\"");
+			else
+				sb.append(step);
 			hasAny = true;
 		}
 
-		// Speed
+		// Speed: speed=value (default is 1, so only output when different)
 		String speed = attrs.get("speed");
 		if (speed != null && !"1".equals(speed)) {
 			if (hasAny)
 				sb.append(" ");
-			sb.append("speed=").append(speed);
+			sb.append("speed=");
+			// If speed is an expression (not a plain number), wrap it in quotes
+			if (isExpression(speed))
+				sb.append("\"").append(speed).append("\"");
+			else
+				sb.append(speed);
 		}
 
 		return sb.toString();
+	}
+
+	/**
+	 * Checks if a string is an expression (not a plain unsigned number).
+	 * A plain number is an integer or floating-point number without sign.
+	 * 
+	 * @param value the string to check
+	 * @return true if the string is an expression, false if it's a plain number
+	 */
+	private boolean isExpression(String value) {
+		if (value == null || value.isEmpty())
+			return false;
+		
+		// Try to match unsigned integer or floating-point number
+		// Pattern: optional digits, optional decimal point, optional digits
+		// Must not start with + or -
+		return !value.matches("^\\d+(\\.\\d+)?$");
 	}
 
 	/**

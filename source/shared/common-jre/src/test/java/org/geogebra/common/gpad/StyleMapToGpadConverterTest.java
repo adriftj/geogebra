@@ -1,5 +1,6 @@
 package org.geogebra.common.gpad;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -144,6 +145,268 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		assertNotNull(gpad);
 		assertTrue("Should contain eqnStyle", gpad.contains("eqnStyle"));
 		assertTrue("Should contain pointSize", gpad.contains("pointSize"));
+	}
+
+	// ========== Animation Tests ==========
+
+	@Test
+	public void testAnimationAllDefaults() {
+		// Test animation with all default values (should not output animation property)
+		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
+		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
+		
+		LinkedHashMap<String, String> animAttrs = new LinkedHashMap<>();
+		animAttrs.put("playing", "false");
+		animAttrs.put("type", "0");
+		animAttrs.put("step", "0.1");
+		animAttrs.put("speed", "1");
+		styleMap.put("animation", animAttrs);
+		
+		String gpad = converter.convert("test", styleMap);
+		// When all values are default, animation property should not be output
+		assertTrue("Should not contain animation when all defaults", gpad == null || !gpad.contains("animation"));
+	}
+
+	@Test
+	public void testAnimationOnlyPlaying() {
+		// Test animation with only playing=true
+		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
+		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
+		
+		LinkedHashMap<String, String> animAttrs = new LinkedHashMap<>();
+		animAttrs.put("playing", "true");
+		styleMap.put("animation", animAttrs);
+		
+		String gpad = converter.convert("test", styleMap);
+		assertNotNull(gpad);
+		assertTrue("Should contain animation", gpad.contains("animation"));
+		assertTrue("Should contain play", gpad.contains("play"));
+	}
+
+	@Test
+	public void testAnimationOnlyTypeIncreasing() {
+		// Test animation with only type=1 (INCREASING), step is default
+		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
+		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
+		
+		LinkedHashMap<String, String> animAttrs = new LinkedHashMap<>();
+		animAttrs.put("type", "1");
+		animAttrs.put("step", "0.1");
+		styleMap.put("animation", animAttrs);
+		
+		String gpad = converter.convert("test", styleMap);
+		assertNotNull(gpad);
+		assertTrue("Should contain animation", gpad.contains("animation"));
+		assertTrue("Should contain + prefix", gpad.contains("+"));
+		// Should not contain step value since it's default
+		assertTrue("Should not contain 0.1 after +", !gpad.contains("+0.1"));
+	}
+
+	@Test
+	public void testAnimationOnlyTypeDecreasing() {
+		// Test animation with only type=2 (DECREASING), step is default
+		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
+		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
+		
+		LinkedHashMap<String, String> animAttrs = new LinkedHashMap<>();
+		animAttrs.put("type", "2");
+		animAttrs.put("step", "0.1");
+		styleMap.put("animation", animAttrs);
+		
+		String gpad = converter.convert("test", styleMap);
+		assertNotNull(gpad);
+		assertTrue("Should contain animation", gpad.contains("animation"));
+		assertTrue("Should contain - prefix", gpad.contains(" -"));
+	}
+
+	@Test
+	public void testAnimationOnlyTypeIncreasingOnce() {
+		// Test animation with only type=3 (INCREASING_ONCE), step is default
+		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
+		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
+		
+		LinkedHashMap<String, String> animAttrs = new LinkedHashMap<>();
+		animAttrs.put("type", "3");
+		animAttrs.put("step", "0.1");
+		styleMap.put("animation", animAttrs);
+		
+		String gpad = converter.convert("test", styleMap);
+		assertNotNull(gpad);
+		assertTrue("Should contain animation", gpad.contains("animation"));
+		// Should contain = but not speed=, and not contain step value
+		assertTrue("Should contain = prefix", gpad.contains("="));
+		assertTrue("Should not contain speed=", !gpad.contains("speed="));
+		assertTrue("Should not contain 0.1 after =", !gpad.contains("=0.1"));
+	}
+
+	@Test
+	public void testAnimationOnlyStep() {
+		// Test animation with only step (non-default), type is default
+		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
+		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
+		
+		LinkedHashMap<String, String> animAttrs = new LinkedHashMap<>();
+		animAttrs.put("type", "0");
+		animAttrs.put("step", "0.2");
+		styleMap.put("animation", animAttrs);
+		
+		String gpad = converter.convert("test", styleMap);
+		assertNotNull(gpad);
+		assertTrue("Should contain animation", gpad.contains("animation"));
+		assertTrue("Should contain 0.2", gpad.contains("0.2"));
+		assertTrue("Should not contain +, -, or = prefix", !gpad.contains("+0.2") && !gpad.contains("-0.2") && !gpad.contains("=0.2"));
+	}
+
+	@Test
+	public void testAnimationOnlySpeed() {
+		// Test animation with only speed (non-default)
+		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
+		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
+		
+		LinkedHashMap<String, String> animAttrs = new LinkedHashMap<>();
+		animAttrs.put("speed", "2");
+		styleMap.put("animation", animAttrs);
+		
+		String gpad = converter.convert("test", styleMap);
+		assertNotNull(gpad);
+		assertTrue("Should contain animation", gpad.contains("animation"));
+		assertTrue("Should contain speed=2", gpad.contains("speed=2"));
+	}
+
+	@Test
+	public void testAnimationTypeAndStep() {
+		// Test animation with type and step (both non-default)
+		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
+		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
+		
+		LinkedHashMap<String, String> animAttrs = new LinkedHashMap<>();
+		animAttrs.put("type", "1");
+		animAttrs.put("step", "0.2");
+		styleMap.put("animation", animAttrs);
+		
+		String gpad = converter.convert("test", styleMap);
+		assertNotNull(gpad);
+		assertTrue("Should contain animation", gpad.contains("animation"));
+		assertTrue("Should contain +0.2", gpad.contains("+0.2"));
+	}
+
+	@Test
+	public void testAnimationAllProperties() {
+		// Test animation with all properties (non-default)
+		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
+		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
+		
+		LinkedHashMap<String, String> animAttrs = new LinkedHashMap<>();
+		animAttrs.put("playing", "true");
+		animAttrs.put("type", "2");
+		animAttrs.put("step", "0.5");
+		animAttrs.put("speed", "3");
+		styleMap.put("animation", animAttrs);
+		
+		String gpad = converter.convert("test", styleMap);
+		assertNotNull(gpad);
+		assertTrue("Should contain animation", gpad.contains("animation"));
+		assertTrue("Should contain play", gpad.contains("play"));
+		assertTrue("Should contain -0.5", gpad.contains("-0.5"));
+		assertTrue("Should contain speed=3", gpad.contains("speed=3"));
+	}
+
+	@Test
+	public void testAnimationStepExpression() {
+		// Test animation with step as expression (should be quoted)
+		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
+		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
+		
+		LinkedHashMap<String, String> animAttrs = new LinkedHashMap<>();
+		animAttrs.put("step", "1+1");
+		styleMap.put("animation", animAttrs);
+		
+		String gpad = converter.convert("test", styleMap);
+		assertNotNull(gpad);
+		assertTrue("Should contain animation", gpad.contains("animation"));
+		assertTrue("Should contain quoted expression", gpad.contains("\"1+1\""));
+	}
+
+	@Test
+	public void testAnimationSpeedExpression() {
+		// Test animation with speed as expression (should be quoted)
+		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
+		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
+		
+		LinkedHashMap<String, String> animAttrs = new LinkedHashMap<>();
+		animAttrs.put("speed", "2*3");
+		styleMap.put("animation", animAttrs);
+		
+		String gpad = converter.convert("test", styleMap);
+		assertNotNull(gpad);
+		assertTrue("Should contain animation", gpad.contains("animation"));
+		assertTrue("Should contain quoted expression", gpad.contains("speed=\"2*3\""));
+	}
+
+	@Test
+	public void testAnimationStepNumericNotQuoted() {
+		// Test animation with step as plain number (should not be quoted)
+		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
+		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
+		
+		LinkedHashMap<String, String> animAttrs = new LinkedHashMap<>();
+		animAttrs.put("step", "0.25");
+		styleMap.put("animation", animAttrs);
+		
+		String gpad = converter.convert("test", styleMap);
+		assertNotNull(gpad);
+		assertTrue("Should contain animation", gpad.contains("animation"));
+		assertTrue("Should contain 0.25", gpad.contains("0.25"));
+		assertTrue("Should not contain quotes around 0.25", !gpad.contains("\"0.25\""));
+	}
+
+	@Test
+	public void testAnimationSpeedNumericNotQuoted() {
+		// Test animation with speed as plain number (should not be quoted)
+		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
+		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
+		
+		LinkedHashMap<String, String> animAttrs = new LinkedHashMap<>();
+		animAttrs.put("speed", "2.5");
+		styleMap.put("animation", animAttrs);
+		
+		String gpad = converter.convert("test", styleMap);
+		assertNotNull(gpad);
+		assertTrue("Should contain animation", gpad.contains("animation"));
+		assertTrue("Should contain speed=2.5", gpad.contains("speed=2.5"));
+		assertTrue("Should not contain quotes around 2.5", !gpad.contains("speed=\"2.5\""));
+	}
+
+	@Test
+	public void testAnimationTypeWithStepExpression() {
+		// Test animation with type and step as expression
+		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
+		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
+		
+		LinkedHashMap<String, String> animAttrs = new LinkedHashMap<>();
+		animAttrs.put("type", "1");
+		animAttrs.put("step", "a+b");
+		styleMap.put("animation", animAttrs);
+		
+		String gpad = converter.convert("test", styleMap);
+		assertNotNull(gpad);
+		assertTrue("Should contain animation", gpad.contains("animation"));
+		assertTrue("Should contain + prefix", gpad.contains("+"));
+		assertTrue("Should contain quoted expression", gpad.contains("\"a+b\""));
+	}
+
+	@Test
+	public void testAnimationEmptyAttrs() {
+		// Test animation with empty attributes (should not output animation property)
+		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
+		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
+		
+		LinkedHashMap<String, String> animAttrs = new LinkedHashMap<>();
+		styleMap.put("animation", animAttrs);
+		
+		String gpad = converter.convert("test", styleMap);
+		// When attributes are empty, animation property should not be output
+		assertTrue("Should not contain animation when attrs empty", gpad == null || !gpad.contains("animation"));
 	}
 }
 
