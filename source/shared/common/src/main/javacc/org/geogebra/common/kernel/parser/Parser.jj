@@ -429,7 +429,8 @@ PARSER_END(Parser)
 
 
 // Note: includes all Unicode whitespaces (incl. non-breaking), separators and ZWSP
-<DEFAULT, GK_BLOCK, GK_animation_BLOCK, GK_RGBA_BLOCK, GK_lineStyle_BLOCK> SKIP : { <(["\u0009" - "\u000E", // ASCII spaces, \u000E added to work around JavaCC bug
+<DEFAULT, GK_BLOCK, GK_animation_BLOCK, GK_STR_BLOCK, GK_RGBA_BLOCK, GK_lineStyle_BLOCK> SKIP : {
+  <(["\u0009" - "\u000E", // ASCII spaces, \u000E added to work around JavaCC bug
   "\u001C" - "\u0020", // separators
   "\u1680",
   "\u2000" - "\u200B", "\u2028" , "\u2029", "\u205F", // various width spaces, including ZWSP
@@ -438,7 +439,7 @@ PARSER_END(Parser)
   "\uFEFF" // BOM
   ])> 
   | <SINGLE_LINE_COMMENT: "//" (~["\n","\r"])* ("\n"|"\r"|"\r\n")?> // Single-line comment for Gpad
-  }
+}
 
 /* OPERATORS */
 TOKEN :  {
@@ -600,12 +601,12 @@ TOKEN : {
 |   < LBRACE: "{" >
 }
 
-<DEFAULT, GK_BLOCK, GK_animation_BLOCK, GK_RGBA_BLOCK, GK_lineStyle_BLOCK> TOKEN : {
+<DEFAULT, GK_BLOCK, GK_animation_BLOCK, GK_STR_BLOCK, GK_RGBA_BLOCK, GK_lineStyle_BLOCK> TOKEN : {
    < RBRACE: "}" >
 |   < POLAR_SEPARATOR: ( "\u2221" | ";" ) > // separator used by Giac instead of ;
 }
 
-<DEFAULT, GK_animation_BLOCK> TOKEN : {
+<DEFAULT, GK_STR_BLOCK, GK_animation_BLOCK> TOKEN : {
  < TEXT: "\""  (<CHAR>)* "\"" > |
  < #CHAR: ["\u0000"-"\u0021", "\u0023"-"\uffff"]  >
 }
@@ -710,6 +711,10 @@ TOKEN : {
  < GK_number: (["0"-"9"])+("." (["0"-"9"])+)? >
 }
 
+<GK_STR_BLOCK> TOKEN : {
+ < GK_STR_UNQUOTED: (~["\"", ";", "}", " ", "\t", "\r", "\n"]) >
+}
+
 <GK_RGBA_BLOCK> TOKEN : {
  < GK_RGBA_HEX_COLOR: "#" (["0"-"9","A"-"F","a"-"f"])+ >
 }
@@ -732,7 +737,7 @@ TOKEN : {
  < GK_lineStyle_float: (["0"-"9"])+("." (["0"-"9"])+)? >
 }
 
-<GK_BLOCK, GK_animation_BLOCK, GK_RGBA_BLOCK, GK_lineStyle_BLOCK> TOKEN : {
+<GK_BLOCK, GK_animation_BLOCK, GK_STR_BLOCK, GK_RGBA_BLOCK, GK_lineStyle_BLOCK> TOKEN : {
  < GK_INVALID: (~[";", "}"]) >
 }
 
@@ -2330,17 +2335,23 @@ void gpadStyleSheetPropertyStr(GpadStyleSheet styleSheet) :
     Token keyToken;
     Token valueToken;
     String val;
+    StringBuilder sb = new StringBuilder();
 }
 {
-    keyToken = <GK_STR> <GK_COLON> { token_source.SwitchTo(DEFAULT); }
+    keyToken = <GK_STR> <GK_COLON> { token_source.SwitchTo(GK_STR_BLOCK); }
     (
         valueToken = <TEXT> {
             val = valueToken.image;
-            val = val.substring(1, val.length() - 1);
+            val = val.substring(1, val.length() - 1)
+                    .replace("\\n", "\n")
+    			    .replace("\\r", "\r")
+                    .replace("\\\"", "\"")
+                    .replace("\\\\", "\\");
+            sb.append(val);
         }
-        | valueToken = <LABEL> { val = valueToken.image; }
-    )
-    { setPropertyWithValueConversion(styleSheet, keyToken.image, val); }
+        | valueToken = <GK_STR_UNQUOTED> { sb.append(valueToken.image); }
+    )+
+    { setPropertyWithValueConversion(styleSheet, keyToken.image, sb.toString()); }
 }
 
 /**

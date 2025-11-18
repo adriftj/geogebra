@@ -1,5 +1,7 @@
 package org.geogebra.common.gpad;
 
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -431,7 +433,20 @@ public class StyleMapToGpadConverter {
 		if (gkType == GpadStyleMaps.GK_BOOL) // 省略布尔false值(不出现默认就是false)
 			return "true".equals(value)? gpadName: "";
 
-		// 现在只能是字符串值，转换为 Gpad 格式（字符串值需要用引号括起来）
-		return gpadName + ": \"" + value + "\"";
+		// 现在只能是字符串值，转换为 Gpad 格式（如果有特殊字符，需要用引号括起来并转义）
+		if (containsSpecialChars(value)) // 注意：这里的顺序很重要
+			value = "\"" + value.replace("\\", "\\\\")
+						 .replace("\"", "\\\"")
+						 .replace("\n", "\\n")
+						 .replace("\r", "\\r") + "\"";
+		return gpadName + ": " + value;
 	}
+
+    // 特殊字符：双引号、分号、右大括号、空格、制表符、回车、换行
+    // 这些字符在 GK_STR 值中必须用引号括起来
+    private static final Pattern SPECIAL_CHARS_PATTERN = Pattern.compile("[;\"}\t \r\n]");
+
+	private static boolean containsSpecialChars(String text) {
+        return SPECIAL_CHARS_PATTERN.matcher(text).find();
+    }
 }

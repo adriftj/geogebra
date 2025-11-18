@@ -408,7 +408,8 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 		String gpad = converter.convert("test", styleMap);
 		assertNotNull(gpad);
 		assertTrue("Should contain coordStyle", gpad.contains("coordStyle"));
-		assertTrue("Should contain quoted value", gpad.contains("\"polar\""));
+		// 根据新语法，不包含特殊字符的值可以不带引号
+		assertTrue("Should contain value polar", gpad.contains("polar"));
 	}
 
 	@Test
@@ -468,7 +469,8 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 		String gpad = converter.convert("test", styleMap);
 		assertNotNull(gpad);
 		assertTrue("Should contain endStyle", gpad.contains("endStyle"));
-		assertTrue("Should contain quoted value", gpad.contains("\"arrow\""));
+		// 根据新语法，不包含特殊字符的值可以不带引号
+		assertTrue("Should contain value arrow", gpad.contains("arrow"));
 	}
 
 	@Test
@@ -588,7 +590,8 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 		String gpad = converter.convert("test", styleMap);
 		assertNotNull(gpad);
 		assertTrue("Should contain startStyle", gpad.contains("startStyle"));
-		assertTrue("Should contain quoted value", gpad.contains("\"arrow\""));
+		// 根据新语法，不包含特殊字符的值可以不带引号
+		assertTrue("Should contain value arrow", gpad.contains("arrow"));
 	}
 
 	@Test
@@ -618,7 +621,8 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 		String gpad = converter.convert("test", styleMap);
 		assertNotNull(gpad);
 		assertTrue("Should contain textAlign", gpad.contains("textAlign"));
-		assertTrue("Should contain quoted value", gpad.contains("\"center\""));
+		// 根据新语法，不包含特殊字符的值可以不带引号
+		assertTrue("Should contain value center", gpad.contains("center"));
 	}
 
 	@Test
@@ -678,7 +682,8 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 		String gpad = converter.convert("test", styleMap);
 		assertNotNull(gpad);
 		assertTrue("Should contain verticalAlign", gpad.contains("verticalAlign"));
-		assertTrue("Should contain quoted value", gpad.contains("\"middle\""));
+		// 根据新语法，不包含特殊字符的值可以不带引号
+		assertTrue("Should contain value middle", gpad.contains("middle"));
 	}
 
 	// ========== Tests for XML element name mapping ==========

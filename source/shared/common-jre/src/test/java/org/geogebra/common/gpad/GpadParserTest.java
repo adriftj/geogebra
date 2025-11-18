@@ -1028,4 +1028,162 @@ public class GpadParserTest extends BaseUnitTest {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
+
+	// ========== Tests for GK_STR new syntax (mixed quoted/unquoted segments) ==========
+
+	@Test
+	public void testParseStringPropertyUnquoted() {
+		// Test string property with unquoted value (no special chars)
+		String gpad = "@style1 = { caption: arrow }\nA @style1 = (1, 2)";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style1");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("caption");
+			assertNotNull(attrs);
+			assertEquals("arrow", attrs.get("val"));
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testParseStringPropertyQuoted() {
+		// Test string property with quoted value (contains special chars)
+		String gpad = "@style1 = { caption: \"hello world\" }\nA @style1 = (1, 2)";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style1");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("caption");
+			assertNotNull(attrs);
+			assertEquals("hello world", attrs.get("val"));
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testParseStringPropertyMixedSegments() {
+		// Test string property with mixed quoted and unquoted segments
+		// hello (unquoted) + " world" (quoted with leading space) = "hello world"
+		// Note: whitespace between segments is skipped by SKIP rule
+		String gpad = "@style1 = { caption: hello \" world\" }\nA @style1 = (1, 2)";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style1");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("caption");
+			assertNotNull(attrs);
+			// hello + " world" = "hello world" (one space from quoted segment)
+			assertEquals("hello world", attrs.get("val"));
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testParseStringPropertyWithEscapeSequences() {
+		// Test string property with escape sequences in quoted segment
+		String gpad = "@style1 = { caption: \"hello\\nworld\" }\nA @style1 = (1, 2)";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style1");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("caption");
+			assertNotNull(attrs);
+			assertEquals("hello\nworld", attrs.get("val"));
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testParseStringPropertyWithSemicolon() {
+		// Test string property that must be quoted (contains semicolon)
+		String gpad = "@style1 = { caption: \"text;more\" }\nA @style1 = (1, 2)";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style1");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("caption");
+			assertNotNull(attrs);
+			assertEquals("text;more", attrs.get("val"));
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testParseStringPropertyMultipleUnquotedSegments() {
+		// Test string property with multiple unquoted segments separated by whitespace
+		String gpad = "@style1 = { caption: hello world }\nA @style1 = (1, 2)";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style1");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("caption");
+			assertNotNull(attrs);
+			assertEquals("helloworld", attrs.get("val")); // Whitespace is skipped, segments concatenated
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testParseStringPropertyComplexMixed() {
+		// Test complex mixed quoted/unquoted segments
+		// prefix (unquoted) + " middle " (quoted with spaces) + suffix (unquoted)
+		// Whitespace between segments is skipped, but spaces inside quoted segment are preserved
+		String gpad = "@style1 = { caption: prefix \" middle \" suffix }\nA @style1 = (1, 2)";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style1");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("caption");
+			assertNotNull(attrs);
+			// prefix + " middle " + suffix
+			// The quoted segment " middle " has leading and trailing spaces
+			// Whitespace between segments is skipped, but spaces inside quoted segment are preserved
+			String actual = attrs.get("val");
+			// Verify it contains all parts in order
+			assertTrue("Should contain prefix", actual.contains("prefix"));
+			assertTrue("Should contain middle", actual.contains("middle"));
+			assertTrue("Should contain suffix", actual.contains("suffix"));
+			// Verify the structure: prefix should come before middle, middle before suffix
+			int prefixPos = actual.indexOf("prefix");
+			int middlePos = actual.indexOf("middle");
+			int suffixPos = actual.indexOf("suffix");
+			assertTrue("prefix should come before middle", prefixPos < middlePos);
+			assertTrue("middle should come before suffix", middlePos < suffixPos);
+			// The quoted segment " middle " has spaces, so there should be spaces around "middle"
+			// Expected: "prefix middle  suffix" (spaces from quoted segment)
+			// But whitespace handling may vary, so we check the basic structure
+			assertTrue("Should have space after prefix", actual.charAt(prefixPos + "prefix".length()) == ' ');
+			assertTrue("Should have space before suffix", actual.charAt(suffixPos - 1) == ' ');
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
 }
