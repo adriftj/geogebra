@@ -737,6 +737,12 @@ TOKEN : {
  < GK_dimensions_angle: "angle" > |
  < GK_dimensions_scaled: "scaled" > |
  < GK_dimensions_tilde_scaled: "~scaled" > |
+ < GK_font_serif: "serif" > |
+ < GK_font_tilde_serif: "~serif" > |
+ < GK_font_size: "size" > |
+ < GK_font_plain: "plain" > |
+ < GK_font_bold: "bold" > |
+ < GK_font_italic: "italic" > |
  < GK_VALUE_width: "width" > |
  < GK_VALUE_height: "height" > |
  < GK_VALUE_equal: "=" > |
@@ -2236,7 +2242,8 @@ void gpadStyleSheetKeyValue(GpadStyleSheet styleSheet) :
         gpadStyleSheetPropertyBoundingBox(styleSheet) | // boundingBox key
         gpadStyleSheetPropertyContentSize(styleSheet) | // contentSize key
         gpadStyleSheetPropertyCropBox(styleSheet) | // cropBox key
-        gpadStyleSheetPropertyDimensions(styleSheet) // dimensions key
+        gpadStyleSheetPropertyDimensions(styleSheet) | // dimensions key
+        gpadStyleSheetPropertyFont(styleSheet) // font key
         )
         { token_source.SwitchTo(DEFAULT); }
     }
@@ -2877,6 +2884,56 @@ void gpadStyleSheetPropertyDimensions(GpadStyleSheet styleSheet) :
             // Convert scaled to unscaled (inverse)
             attrs.put("unscaled", "true".equals(scaled) ? "false" : "true");
         }
+        if (!attrs.isEmpty())
+            styleSheet.setProperty(keyToken.image, attrs);
+    }
+}
+
+/**
+ * Parses font property
+ * Syntax: font: [serif|~serif] [size=value] [plain|bold|italic|bold italic|italic bold];
+ * serif: serif (true) or ~serif (false), default is false
+ * size: sizeM multiplier (float), default is 1.0
+ * style: plain (0), bold (1), italic (2), or bold italic/italic bold (3)
+ */
+void gpadStyleSheetPropertyFont(GpadStyleSheet styleSheet) :
+{
+    Token keyToken;
+    String serif = null;
+    String sizeM = null;
+    Token floatToken = null;
+    boolean plain = false;
+    boolean bold = false;
+    boolean italic = false;
+}
+{
+    keyToken = <GK_font> <GK_COLON> { token_source.SwitchTo(GK_VALUE_BLOCK); }
+    ( (
+        // Parse serif or ~serif
+        <GK_font_serif> { serif = "true"; } |
+        <GK_font_tilde_serif> { serif = "false"; }
+    ) | (
+        // Parse size=value
+        <GK_font_size> <GK_VALUE_equal> floatToken = <GK_VALUE_float>
+        {
+            sizeM = floatToken.image;
+        }
+    ) | (
+        // Parse style keywords (plain, bold, italic)
+        // Note: plain resets style, but if bold/italic appear after plain, they override
+        <GK_font_plain> { plain = true; bold = false; italic = false; } |
+        <GK_font_bold> { bold = true; } |
+        <GK_font_italic> { italic = true; }
+    ) )*
+    {
+        java.util.LinkedHashMap<String, String> attrs = new java.util.LinkedHashMap<>();
+        if (serif != null)
+            attrs.put("serif", serif);
+        if (sizeM != null)
+            attrs.put("sizeM", sizeM);
+        if (plain || bold || italic) // style = bit-OR of bold(1) and italic(2)
+            attrs.put("style", bold? (italic? "3": "1"): (italic? "2": "0"));
+        
         if (!attrs.isEmpty())
             styleSheet.setProperty(keyToken.image, attrs);
     }

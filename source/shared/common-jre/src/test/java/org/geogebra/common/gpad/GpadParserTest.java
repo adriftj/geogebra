@@ -1685,4 +1685,344 @@ public class GpadParserTest extends BaseUnitTest {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
+
+	// ========== Tests for font ==========
+
+	@Test
+	public void testParseFontBasicSerifSizePlain() {
+		// Test font: serif size=0.5 plain
+		String gpad = "@style = { font: serif size=0.5 plain }\nA @style = (1, 2)";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("font");
+			assertNotNull(attrs);
+			assertEquals("true", attrs.get("serif"));
+			assertEquals("0.5", attrs.get("sizeM"));
+			assertEquals("0", attrs.get("style")); // plain
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testParseFontTildeSerifSizeItalicBold() {
+		// Test font: ~serif size=2 italic bold
+		String gpad = "@style = { font: ~serif size=2 italic bold }\nA @style = (1, 2)";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("font");
+			assertNotNull(attrs);
+			assertEquals("false", attrs.get("serif"));
+			assertEquals("2", attrs.get("sizeM"));
+			assertEquals("3", attrs.get("style")); // bold + italic
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testParseFontBoldItalicOrder() {
+		// Test that bold and italic can be in any order
+		String gpad = "@style = { font: bold italic }\nA @style = (1, 2)";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("font");
+			assertNotNull(attrs);
+			assertEquals("3", attrs.get("style")); // bold + italic
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testParseFontItalicBoldOrder() {
+		// Test italic bold order (should also result in style=3)
+		String gpad = "@style = { font: italic bold }\nA @style = (1, 2)";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("font");
+			assertNotNull(attrs);
+			assertEquals("3", attrs.get("style")); // bold + italic
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testParseFontSerifOnly() {
+		// Test font with only serif
+		String gpad = "@style = { font: serif }\nA @style = (1, 2)";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("font");
+			assertNotNull(attrs);
+			assertEquals("true", attrs.get("serif"));
+			// sizeM and style should not be set (defaults)
+			assertTrue(attrs.get("sizeM") == null);
+			assertTrue(attrs.get("style") == null);
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testParseFontSizeOnly() {
+		// Test font with only size
+		String gpad = "@style = { font: size=1.5 }\nA @style = (1, 2)";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("font");
+			assertNotNull(attrs);
+			assertEquals("1.5", attrs.get("sizeM"));
+			// serif and style should not be set (defaults)
+			assertTrue(attrs.get("serif") == null);
+			assertTrue(attrs.get("style") == null);
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testParseFontBoldOnly() {
+		// Test font with only bold
+		String gpad = "@style = { font: bold }\nA @style = (1, 2)";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("font");
+			assertNotNull(attrs);
+			assertEquals("1", attrs.get("style")); // bold
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testParseFontItalicOnly() {
+		// Test font with only italic
+		String gpad = "@style = { font: italic }\nA @style = (1, 2)";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("font");
+			assertNotNull(attrs);
+			assertEquals("2", attrs.get("style")); // italic
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testParseFontPlainOnly() {
+		// Test font with only plain
+		String gpad = "@style = { font: plain }\nA @style = (1, 2)";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("font");
+			assertNotNull(attrs);
+			assertEquals("0", attrs.get("style")); // plain
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testParseFontPlainResetsBoldItalic() {
+		// Test that plain resets bold/italic
+		String gpad = "@style = { font: bold italic plain }\nA @style = (1, 2)";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("font");
+			assertNotNull(attrs);
+			// plain at the end should reset to 0
+			assertEquals("0", attrs.get("style")); // plain
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testParseFontPlainThenBold() {
+		// Test that bold after plain overrides plain
+		String gpad = "@style = { font: plain bold }\nA @style = (1, 2)";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("font");
+			assertNotNull(attrs);
+			// bold after plain should override
+			assertEquals("1", attrs.get("style")); // bold
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testParseFontAllProperties() {
+		// Test font with all properties
+		String gpad = "@style = { font: serif size=1.8 bold italic }\nA @style = (1, 2)";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("font");
+			assertNotNull(attrs);
+			assertEquals("true", attrs.get("serif"));
+			assertEquals("1.8", attrs.get("sizeM"));
+			assertEquals("3", attrs.get("style")); // bold + italic
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testParseFontDifferentOrder() {
+		// Test that order doesn't matter
+		String gpad = "@style = { font: size=2 bold serif italic }\nA @style = (1, 2)";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("font");
+			assertNotNull(attrs);
+			assertEquals("true", attrs.get("serif"));
+			assertEquals("2", attrs.get("sizeM"));
+			assertEquals("3", attrs.get("style")); // bold + italic
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testParseFontWithFloatSize() {
+		// Test font with float size
+		String gpad = "@style = { font: size=0.75 italic }\nA @style = (1, 2)";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("font");
+			assertNotNull(attrs);
+			assertEquals("0.75", attrs.get("sizeM"));
+			assertEquals("2", attrs.get("style")); // italic
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testParseFontWithNegativeSize() {
+		// Test font with negative size
+		String gpad = "@style = { font: size=-0.5 }\nA @style = (1, 2)";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("font");
+			assertNotNull(attrs);
+			assertEquals("-0.5", attrs.get("sizeM"));
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testParseFontWithInlineStyle() {
+		// Test font with inline style
+		String gpad = "A { font: serif size=1.5 bold } = (1, 2)";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GeoElement geo = geos.get(0);
+			assertEquals("A", geo.getLabelSimple());
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testParseFontMultipleBoldItalic() {
+		// Test that multiple bold/italic keywords still result in correct style
+		String gpad = "@style = { font: bold bold italic italic }\nA @style = (1, 2)";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("font");
+			assertNotNull(attrs);
+			// Multiple bold/italic should still result in style=3
+			assertEquals("3", attrs.get("style")); // bold + italic
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
 }

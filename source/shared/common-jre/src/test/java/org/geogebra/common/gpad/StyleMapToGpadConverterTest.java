@@ -899,4 +899,292 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		assertTrue("Should not contain -100.5", !gpad.contains("-100.5"));
 		assertTrue("Should not contain -200.9", !gpad.contains("-200.9"));
 	}
+
+	// ========== Tests for font ==========
+
+	@Test
+	public void testFontBasicSerifSizePlain() {
+		// Test font: serif size=0.5 plain
+		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
+		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
+		
+		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
+		attrs.put("serif", "true");
+		attrs.put("sizeM", "0.5");
+		attrs.put("style", "0");
+		styleMap.put("font", attrs);
+		
+		String gpad = converter.convert("test", styleMap);
+		assertNotNull(gpad);
+		assertTrue("Should contain font", gpad.contains("font"));
+		assertTrue("Should contain serif", gpad.contains("serif"));
+		assertTrue("Should contain size=0.5", gpad.contains("size=0.5"));
+		// style=0 (plain) is default, so should not be output
+		assertTrue("Should not contain plain (default)", !gpad.contains("plain"));
+	}
+
+	@Test
+	public void testFontTildeSerifSizeItalicBold() {
+		// Test font: ~serif size=2 italic bold
+		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
+		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
+		
+		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
+		attrs.put("serif", "false");
+		attrs.put("sizeM", "2");
+		attrs.put("style", "3");
+		styleMap.put("font", attrs);
+		
+		String gpad = converter.convert("test", styleMap);
+		assertNotNull(gpad);
+		assertTrue("Should contain font", gpad.contains("font"));
+		// serif=false is default, so should not output ~serif
+		assertTrue("Should not contain ~serif (default false)", !gpad.contains("~serif"));
+		assertTrue("Should contain size=2", gpad.contains("size=2"));
+		assertTrue("Should contain italic bold", gpad.contains("italic bold"));
+	}
+
+	@Test
+	public void testFontSerifOnly() {
+		// Test font with only serif=true
+		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
+		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
+		
+		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
+		attrs.put("serif", "true");
+		attrs.put("sizeM", "1.0"); // default
+		attrs.put("style", "0"); // default
+		styleMap.put("font", attrs);
+		
+		String gpad = converter.convert("test", styleMap);
+		assertNotNull(gpad);
+		assertTrue("Should contain font", gpad.contains("font"));
+		assertTrue("Should contain serif", gpad.contains("serif"));
+		assertTrue("Should not contain size (default 1.0)", !gpad.contains("size="));
+		assertTrue("Should not contain style keywords (default plain)", !gpad.contains("plain") && !gpad.contains("bold") && !gpad.contains("italic"));
+	}
+
+	@Test
+	public void testFontSizeOnly() {
+		// Test font with only sizeM
+		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
+		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
+		
+		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
+		attrs.put("serif", "false"); // default
+		attrs.put("sizeM", "1.5");
+		attrs.put("style", "0"); // default
+		styleMap.put("font", attrs);
+		
+		String gpad = converter.convert("test", styleMap);
+		assertNotNull(gpad);
+		assertTrue("Should contain font", gpad.contains("font"));
+		assertTrue("Should not contain serif (default false)", !gpad.contains("serif"));
+		assertTrue("Should contain size=1.5", gpad.contains("size=1.5"));
+		assertTrue("Should not contain style keywords", !gpad.contains("plain") && !gpad.contains("bold") && !gpad.contains("italic"));
+	}
+
+	@Test
+	public void testFontBoldOnly() {
+		// Test font with only bold style
+		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
+		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
+		
+		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
+		attrs.put("serif", "false"); // default
+		attrs.put("sizeM", "1.0"); // default
+		attrs.put("style", "1"); // bold
+		styleMap.put("font", attrs);
+		
+		String gpad = converter.convert("test", styleMap);
+		assertNotNull(gpad);
+		assertTrue("Should contain font", gpad.contains("font"));
+		assertTrue("Should not contain serif", !gpad.contains("serif"));
+		assertTrue("Should not contain size", !gpad.contains("size="));
+		assertTrue("Should contain bold", gpad.contains("bold"));
+		assertTrue("Should not contain italic", !gpad.contains("italic"));
+	}
+
+	@Test
+	public void testFontItalicOnly() {
+		// Test font with only italic style
+		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
+		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
+		
+		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
+		attrs.put("serif", "false"); // default
+		attrs.put("sizeM", "1.0"); // default
+		attrs.put("style", "2"); // italic
+		styleMap.put("font", attrs);
+		
+		String gpad = converter.convert("test", styleMap);
+		assertNotNull(gpad);
+		assertTrue("Should contain font", gpad.contains("font"));
+		assertTrue("Should contain italic", gpad.contains("italic"));
+		assertTrue("Should not contain bold", !gpad.contains("bold"));
+	}
+
+	@Test
+	public void testFontBoldItalic() {
+		// Test font with bold+italic (style=3)
+		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
+		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
+		
+		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
+		attrs.put("serif", "false"); // default
+		attrs.put("sizeM", "1.0"); // default
+		attrs.put("style", "3"); // bold + italic
+		styleMap.put("font", attrs);
+		
+		String gpad = converter.convert("test", styleMap);
+		assertNotNull(gpad);
+		assertTrue("Should contain font", gpad.contains("font"));
+		assertTrue("Should contain italic bold", gpad.contains("italic bold"));
+	}
+
+	@Test
+	public void testFontAllProperties() {
+		// Test font with all properties
+		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
+		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
+		
+		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
+		attrs.put("serif", "true");
+		attrs.put("sizeM", "1.8");
+		attrs.put("style", "3"); // bold + italic
+		styleMap.put("font", attrs);
+		
+		String gpad = converter.convert("test", styleMap);
+		assertNotNull(gpad);
+		assertTrue("Should contain font", gpad.contains("font"));
+		assertTrue("Should contain serif", gpad.contains("serif"));
+		assertTrue("Should contain size=1.8", gpad.contains("size=1.8"));
+		assertTrue("Should contain italic bold", gpad.contains("italic bold"));
+	}
+
+	@Test
+	public void testFontSerifFalseOmitted() {
+		// Test that serif=false is omitted (default value)
+		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
+		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
+		
+		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
+		attrs.put("serif", "false");
+		attrs.put("sizeM", "1.0"); // default
+		attrs.put("style", "0"); // default
+		styleMap.put("font", attrs);
+		
+		String gpad = converter.convert("test", styleMap);
+		// When all values are default, font property should not be output
+		assertTrue("Should not contain font when all defaults", gpad == null || !gpad.contains("font"));
+	}
+
+	@Test
+	public void testFontSizeDefaultOmitted() {
+		// Test that sizeM=1.0 is omitted (default value)
+		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
+		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
+		
+		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
+		attrs.put("serif", "false"); // default
+		attrs.put("sizeM", "1.0");
+		attrs.put("style", "1"); // bold
+		styleMap.put("font", attrs);
+		
+		String gpad = converter.convert("test", styleMap);
+		assertNotNull(gpad);
+		assertTrue("Should contain font", gpad.contains("font"));
+		assertTrue("Should not contain size (default 1.0)", !gpad.contains("size="));
+		assertTrue("Should contain bold", gpad.contains("bold"));
+	}
+
+	@Test
+	public void testFontStylePlainOmitted() {
+		// Test that style=0 (plain) is omitted (default value)
+		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
+		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
+		
+		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
+		attrs.put("serif", "true");
+		attrs.put("sizeM", "1.5");
+		attrs.put("style", "0"); // plain (default)
+		styleMap.put("font", attrs);
+		
+		String gpad = converter.convert("test", styleMap);
+		assertNotNull(gpad);
+		assertTrue("Should contain font", gpad.contains("font"));
+		assertTrue("Should contain serif", gpad.contains("serif"));
+		assertTrue("Should contain size=1.5", gpad.contains("size=1.5"));
+		assertTrue("Should not contain plain (default)", !gpad.contains("plain"));
+	}
+
+	@Test
+	public void testFontWithFloatSize() {
+		// Test font with float size values
+		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
+		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
+		
+		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
+		attrs.put("serif", "true");
+		attrs.put("sizeM", "0.75");
+		attrs.put("style", "2"); // italic
+		styleMap.put("font", attrs);
+		
+		String gpad = converter.convert("test", styleMap);
+		assertNotNull(gpad);
+		assertTrue("Should contain size=0.75", gpad.contains("size=0.75"));
+		assertTrue("Should contain italic", gpad.contains("italic"));
+	}
+
+	@Test
+	public void testFontWithLargeSize() {
+		// Test font with large size value
+		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
+		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
+		
+		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
+		attrs.put("serif", "false"); // default
+		attrs.put("sizeM", "3.5");
+		attrs.put("style", "0"); // default
+		styleMap.put("font", attrs);
+		
+		String gpad = converter.convert("test", styleMap);
+		assertNotNull(gpad);
+		assertTrue("Should contain size=3.5", gpad.contains("size=3.5"));
+	}
+
+	@Test
+	public void testFontEmptyAttrs() {
+		// Test font with empty attributes (should not output font property)
+		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
+		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
+		
+		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
+		styleMap.put("font", attrs);
+		
+		String gpad = converter.convert("test", styleMap);
+		// When attributes are empty, font property should not be output
+		assertTrue("Should not contain font when attrs empty", gpad == null || !gpad.contains("font"));
+	}
+
+	@Test
+	public void testFontWithInvalidStyleValue() {
+		// Test font with invalid style value (should ignore)
+		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
+		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
+		
+		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
+		attrs.put("serif", "true");
+		attrs.put("sizeM", "1.5");
+		attrs.put("style", "invalid"); // invalid value
+		styleMap.put("font", attrs);
+		
+		String gpad = converter.convert("test", styleMap);
+		assertNotNull(gpad);
+		assertTrue("Should contain font", gpad.contains("font"));
+		assertTrue("Should contain serif", gpad.contains("serif"));
+		assertTrue("Should contain size=1.5", gpad.contains("size=1.5"));
+		// Invalid style should be ignored
+		assertTrue("Should not contain style keywords", !gpad.contains("plain") && !gpad.contains("bold") && !gpad.contains("italic"));
+	}
 }

@@ -732,7 +732,6 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 		
 		String gpad = converter.convert("test", styleMap);
 		assertNotNull(gpad);
-		assertTrue("Should contain hideLabelInAlgebra", gpad.contains("hideLabelInAlgebra"));
+		assertTrue("Should not contain hideLabelInAlgebra", !gpad.contains("hideLabelInAlgebra"));
 	}
 }
-

@@ -76,63 +76,70 @@ public class StyleMapToGpadConverter {
 		if (attrs == null || attrs.isEmpty())
 			return null;
 
-		String gpadName = GpadStyleMaps.XML_TO_GPAD_NAME_MAP.getOrDefault(tagName, tagName);
-		StringBuilder sb = new StringBuilder();
-		sb.append(gpadName).append(": ");
+		String convertedValue = null;
 
-		// Handle different property types
 		switch (tagName) {
 		case "lineStyle":
 			// lineStyle: dashedlong thickness=5 hidden opacity=128 ~arrow
-			sb.append(convertLineStyle(attrs));
+			convertedValue = convertLineStyle(attrs);
 			break;
 		case "objColor":
 		case "bgColor":
 		case "borderColor":
 			// objColor/bgColor/borderColor: #rrggbb or #rrggbbaa (if alpha is not default)
-			sb.append(convertColorToHex(attrs));
+			convertedValue = convertColorToHex(attrs);
 			break;
 		case "absoluteScreenLocation": // @screen: 100 200
 		case "labelOffset": // labelOffset: 28 75
 			if (attrs.containsKey("x") && attrs.containsKey("y"))
-				sb.append(attrs.get("x")).append(" ").append(attrs.get("y"));
+				convertedValue = attrs.get("x") + " " + attrs.get("y");
 			break;
 		case "animation":
 			// animation: play +0.1 speed=2
-			String animationResult = convertAnimation(attrs);
-			if (animationResult == null || animationResult.isEmpty())
+			convertedValue = convertAnimation(attrs);
+			if (convertedValue == null || convertedValue.isEmpty())
 				return null;
-			sb.append(animationResult);
 			break;
 		case "eqnStyle":
 			// eqnStyle: implicit; or eqnStyle: parametric=t;
 			if (attrs.containsKey("style")) {
 				String style = attrs.get("style");
-				sb.append(style);
+				StringBuilder eqnSb = new StringBuilder();
+				eqnSb.append(style);
 				// If style is parametric and has parameter attribute, add =parameter
 				if ("parametric".equals(style) && attrs.containsKey("parameter"))
-					sb.append("=").append(attrs.get("parameter"));
+					eqnSb.append("=").append(attrs.get("parameter"));
+				convertedValue = eqnSb.toString();
 			}
 			break;
 		case "boundingBox":
 			// boundingBox: width=100 height=200
-			sb.append(convertBoundingBox(attrs));
+			convertedValue = convertBoundingBox(attrs);
 			break;
 		case "contentSize":
 			// contentSize: width=100.5 height=200.3
-			sb.append(convertContentSize(attrs));
+			convertedValue = convertContentSize(attrs);
 			break;
 		case "cropBox":
 			// cropBox: x=10 y=20 width=100 height=200 cropped
-			sb.append(convertCropBox(attrs));
+			convertedValue = convertCropBox(attrs);
 			break;
 		case "dimensions":
 			// dimensions: width=100 height=200 angle=45 scaled
-			sb.append(convertDimensions(attrs));
+			convertedValue = convertDimensions(attrs);
+			break;
+		case "font":
+			// font: serif size=0.5 plain; or font: ~serif size=2 italic bold;
+			convertedValue = convertFont(attrs);
 			break;
 		}
 
-		return sb.toString();
+		// Only add property name prefix if converted value is not null and not empty
+		if (convertedValue == null || convertedValue.isEmpty())
+			return null;
+
+		String gpadName = GpadStyleMaps.XML_TO_GPAD_NAME_MAP.getOrDefault(tagName, tagName);
+		return gpadName + ": " + convertedValue;
 	}
 
 	/**
@@ -668,6 +675,78 @@ public class StyleMapToGpadConverter {
 				sb.append("scaled");
 			}
 			// If unscaled=true (default), don't output ~scaled (default value)
+		}
+
+		return sb.toString();
+	}
+
+	/**
+	 * Converts font XML attributes to Gpad format.
+	 * Syntax: font: [serif|~serif] [size=value] [plain|bold|italic|bold italic|italic bold];
+	 * serif: serif (true) or ~serif (false), default is false (omit if false)
+	 * size: sizeM multiplier (float), default is 1.0 (omit if 1.0)
+	 * style: plain (0), bold (1), italic (2), or bold italic/italic bold (3), default is plain (omit if 0)
+	 * 
+	 * @param attrs font attributes map
+	 * @return Gpad font string (e.g., "serif size=0.5 plain" or "~serif size=2 italic bold")
+	 */
+	private String convertFont(LinkedHashMap<String, String> attrs) {
+		if (attrs == null || attrs.isEmpty())
+			return "";
+
+		StringBuilder sb = new StringBuilder();
+		boolean first = true;
+
+		// Convert serif (only output if true, false is default so omit)
+		String serif = attrs.get("serif");
+		if (serif != null && "true".equals(serif)) {
+			if (!first)
+				sb.append(" ");
+			sb.append("serif");
+			first = false;
+		}
+
+		// Convert sizeM (only output if not default 1.0)
+		String sizeM = attrs.get("sizeM");
+		if (sizeM != null) {
+			try {
+				double sizeValue = Double.parseDouble(sizeM);
+				// Only output if not default (1.0)
+				if (Math.abs(sizeValue - 1.0) > 1e-9) {
+					if (!first)
+						sb.append(" ");
+					sb.append("size=").append(sizeM);
+					first = false;
+				}
+			} catch (NumberFormatException e) {
+				// If not a valid number, ignore sizeM
+			}
+		}
+
+		// Convert style (0=plain, 1=bold, 2=italic, 3=bold+italic)
+		String styleValue = attrs.get("style");
+		if (styleValue != null) {
+			try {
+				int style = Integer.parseInt(styleValue);
+				if (style >=1 && style <= 3) { // Only output if not plain (default)
+					if (!first)
+						sb.append(" ");
+					switch (style) {
+					case 1:
+						sb.append("bold");
+						break;
+					case 2:
+						sb.append("italic");
+						break;
+					default:
+						sb.append("italic bold");
+						break;
+					}
+					first = false;
+				}
+			} catch (NumberFormatException e) {
+				// If not a valid number, ignore style
+			}
 		}
 
 		return sb.toString();
