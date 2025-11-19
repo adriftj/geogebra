@@ -682,13 +682,13 @@ public class StyleMapToGpadConverter {
 
 	/**
 	 * Converts font XML attributes to Gpad format.
-	 * Syntax: font: [serif|~serif] [size=value] [plain|bold|italic|bold italic|italic bold];
+	 * Syntax: font: [serif|~serif] [*sizeM] [plain|bold|italic|bold italic|italic bold];
 	 * serif: serif (true) or ~serif (false), default is false (omit if false)
-	 * size: sizeM multiplier (float), default is 1.0 (omit if 1.0)
+	 * sizeM: multiplier (float), default is 1.0 (omit if 1.0)
 	 * style: plain (0), bold (1), italic (2), or bold italic/italic bold (3), default is plain (omit if 0)
 	 * 
 	 * @param attrs font attributes map
-	 * @return Gpad font string (e.g., "serif size=0.5 plain" or "~serif size=2 italic bold")
+	 * @return Gpad font string (e.g., "serif *0.5 plain" or "~serif *2 italic bold")
 	 */
 	private String convertFont(LinkedHashMap<String, String> attrs) {
 		if (attrs == null || attrs.isEmpty())
@@ -715,7 +715,7 @@ public class StyleMapToGpadConverter {
 				if (Math.abs(sizeValue - 1.0) > 1e-9) {
 					if (!first)
 						sb.append(" ");
-					sb.append("size=").append(sizeM);
+					sb.append("*").append(sizeM);
 					first = false;
 				}
 			} catch (NumberFormatException e) {

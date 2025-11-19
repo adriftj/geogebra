@@ -739,13 +739,13 @@ TOKEN : {
  < GK_dimensions_tilde_scaled: "~scaled" > |
  < GK_font_serif: "serif" > |
  < GK_font_tilde_serif: "~serif" > |
- < GK_font_size: "size" > |
  < GK_font_plain: "plain" > |
  < GK_font_bold: "bold" > |
  < GK_font_italic: "italic" > |
  < GK_VALUE_width: "width" > |
  < GK_VALUE_height: "height" > |
  < GK_VALUE_equal: "=" > |
+ < GK_VALUE_star: "*" > |
  < GK_VALUE_float: ("-")? (["0"-"9"])+("." (["0"-"9"])+)? >
 }
 
@@ -2891,9 +2891,9 @@ void gpadStyleSheetPropertyDimensions(GpadStyleSheet styleSheet) :
 
 /**
  * Parses font property
- * Syntax: font: [serif|~serif] [size=value] [plain|bold|italic|bold italic|italic bold];
+ * Syntax: font: [serif|~serif] [*sizeM] [plain|bold|italic|bold italic|italic bold];
  * serif: serif (true) or ~serif (false), default is false
- * size: sizeM multiplier (float), default is 1.0
+ * sizeM: multiplier (float), default is 1.0
  * style: plain (0), bold (1), italic (2), or bold italic/italic bold (3)
  */
 void gpadStyleSheetPropertyFont(GpadStyleSheet styleSheet) :
@@ -2913,11 +2913,8 @@ void gpadStyleSheetPropertyFont(GpadStyleSheet styleSheet) :
         <GK_font_serif> { serif = "true"; } |
         <GK_font_tilde_serif> { serif = "false"; }
     ) | (
-        // Parse size=value
-        <GK_font_size> <GK_VALUE_equal> floatToken = <GK_VALUE_float>
-        {
-            sizeM = floatToken.image;
-        }
+        // Parse *sizeM
+        <GK_VALUE_star> floatToken = <GK_VALUE_float> { sizeM = floatToken.image; }
     ) | (
         // Parse style keywords (plain, bold, italic)
         // Note: plain resets style, but if bold/italic appear after plain, they override

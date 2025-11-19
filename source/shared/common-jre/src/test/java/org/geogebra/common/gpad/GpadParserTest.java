@@ -1690,8 +1690,8 @@ public class GpadParserTest extends BaseUnitTest {
 
 	@Test
 	public void testParseFontBasicSerifSizePlain() {
-		// Test font: serif size=0.5 plain
-		String gpad = "@style = { font: serif size=0.5 plain }\nA @style = (1, 2)";
+		// Test font: serif *0.5 plain
+		String gpad = "@style = { font: serif *0.5 plain }\nA @style = (1, 2)";
 		GpadParser parser = new GpadParser(getKernel());
 		
 		try {
@@ -1711,8 +1711,8 @@ public class GpadParserTest extends BaseUnitTest {
 
 	@Test
 	public void testParseFontTildeSerifSizeItalicBold() {
-		// Test font: ~serif size=2 italic bold
-		String gpad = "@style = { font: ~serif size=2 italic bold }\nA @style = (1, 2)";
+		// Test font: ~serif *2 italic bold
+		String gpad = "@style = { font: ~serif *2 italic bold }\nA @style = (1, 2)";
 		GpadParser parser = new GpadParser(getKernel());
 		
 		try {
@@ -1793,7 +1793,7 @@ public class GpadParserTest extends BaseUnitTest {
 	@Test
 	public void testParseFontSizeOnly() {
 		// Test font with only size
-		String gpad = "@style = { font: size=1.5 }\nA @style = (1, 2)";
+		String gpad = "@style = { font: *1.5 }\nA @style = (1, 2)";
 		GpadParser parser = new GpadParser(getKernel());
 		
 		try {
@@ -1912,7 +1912,7 @@ public class GpadParserTest extends BaseUnitTest {
 	@Test
 	public void testParseFontAllProperties() {
 		// Test font with all properties
-		String gpad = "@style = { font: serif size=1.8 bold italic }\nA @style = (1, 2)";
+		String gpad = "@style = { font: serif *1.8 bold italic }\nA @style = (1, 2)";
 		GpadParser parser = new GpadParser(getKernel());
 		
 		try {
@@ -1933,7 +1933,7 @@ public class GpadParserTest extends BaseUnitTest {
 	@Test
 	public void testParseFontDifferentOrder() {
 		// Test that order doesn't matter
-		String gpad = "@style = { font: size=2 bold serif italic }\nA @style = (1, 2)";
+		String gpad = "@style = { font: *2 bold serif italic }\nA @style = (1, 2)";
 		GpadParser parser = new GpadParser(getKernel());
 		
 		try {
@@ -1954,7 +1954,7 @@ public class GpadParserTest extends BaseUnitTest {
 	@Test
 	public void testParseFontWithFloatSize() {
 		// Test font with float size
-		String gpad = "@style = { font: size=0.75 italic }\nA @style = (1, 2)";
+		String gpad = "@style = { font: *0.75 italic }\nA @style = (1, 2)";
 		GpadParser parser = new GpadParser(getKernel());
 		
 		try {
@@ -1974,7 +1974,7 @@ public class GpadParserTest extends BaseUnitTest {
 	@Test
 	public void testParseFontWithNegativeSize() {
 		// Test font with negative size
-		String gpad = "@style = { font: size=-0.5 }\nA @style = (1, 2)";
+		String gpad = "@style = { font: *-0.5 }\nA @style = (1, 2)";
 		GpadParser parser = new GpadParser(getKernel());
 		
 		try {
@@ -1993,7 +1993,7 @@ public class GpadParserTest extends BaseUnitTest {
 	@Test
 	public void testParseFontWithInlineStyle() {
 		// Test font with inline style
-		String gpad = "A { font: serif size=1.5 bold } = (1, 2)";
+		String gpad = "A { font: serif *1.5 bold } = (1, 2)";
 		GpadParser parser = new GpadParser(getKernel());
 		
 		try {
