@@ -329,6 +329,40 @@ public class GpadStyleMaps {
 					"4", "nextcell")),
 			Map.entry("verticalAlign", VERTICAL_ALIGN_MAP));
 
+	// ==================== FillType 相关 ====================
+
+	/**
+	 * FillType 枚举值到 Gpad 字符串的映射
+	 * 映射：XML 值（整数） -> Gpad 字符串
+	 */
+	public static final Map<String, String> FILL_TYPE_REVERSE_MAP = Map.ofEntries(
+			Map.entry("0", "standard"),
+			Map.entry("1", "hatch"),
+			Map.entry("2", "crosshatch"),
+			Map.entry("3", "chessboard"),
+			Map.entry("4", "dotted"),
+			Map.entry("5", "honeycomb"),
+			Map.entry("6", "brick"),
+			Map.entry("7", "weaving"),
+			Map.entry("8", "symbols"),
+			Map.entry("9", "image"));
+
+	/**
+	 * Gpad 字符串到 FillType 枚举值的映射
+	 * 映射：Gpad 字符串 -> XML 值（整数）
+	 */
+	public static final Map<String, String> FILL_TYPE_MAP = Map.ofEntries(
+			Map.entry("standard", "0"),
+			Map.entry("hatch", "1"),
+			Map.entry("crosshatch", "2"),
+			Map.entry("chessboard", "3"),
+			Map.entry("dotted", "4"),
+			Map.entry("honeycomb", "5"),
+			Map.entry("brick", "6"),
+			Map.entry("weaving", "7"),
+			Map.entry("symbols", "8"),
+			Map.entry("image", "9"));
+
 	// 私有构造函数，防止实例化
 	private GpadStyleMaps() {
 	}

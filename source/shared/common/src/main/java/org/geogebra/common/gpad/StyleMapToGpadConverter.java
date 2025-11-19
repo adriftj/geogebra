@@ -4,6 +4,8 @@ import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import org.geogebra.common.kernel.parser.Parser;
+import org.geogebra.common.kernel.parser.ParseException;
 
 /**
  * Converts style map (Map<String, LinkedHashMap<String, String>>) to Gpad format.
@@ -84,9 +86,12 @@ public class StyleMapToGpadConverter {
 			convertedValue = convertLineStyle(attrs);
 			break;
 		case "objColor":
+			// objColor: #rrggbbaa | rgb(...) | hsv(...) | hsl(...) [fill=...] [angle=...] [dist=...] [image=...] [symbol=...] [inverse|~inverse]
+			convertedValue = convertObjColor(attrs);
+			break;
 		case "bgColor":
 		case "borderColor":
-			// objColor/bgColor/borderColor: #rrggbb or #rrggbbaa (if alpha is not default)
+			// bgColor/borderColor: #rrggbb or #rrggbbaa (if alpha is not default)
 			convertedValue = convertColorToHex(attrs);
 			break;
 		case "absoluteScreenLocation": // @screen: 100 200
@@ -373,10 +378,324 @@ public class StyleMapToGpadConverter {
 				}
 			}
 
-			return sb.toString();
-		} catch (NumberFormatException e) {
-			return "#000000";
+		return sb.toString();
+	} catch (NumberFormatException e) {
+		return "#000000";
+	}
+}
+
+	/**
+	 * Converts objColor XML attributes to Gpad format.
+	 * Syntax: [#rrggbbaa | rgb(...) | hsv(...) | hsl(...)] [fill=...] [angle=...] [dist=...] [image=...] [symbol=...] [inverse|~inverse]
+	 * 
+	 * @param attrs objColor attributes map
+	 * @return Gpad objColor string (e.g., "#FF0000" or "rgb(x, y, z) fill=hatch angle=45")
+	 */
+	private String convertObjColor(LinkedHashMap<String, String> attrs) {
+		if (attrs == null || attrs.isEmpty()) {
+			return "";
 		}
+
+		StringBuilder sb = new StringBuilder();
+		boolean first = true;
+
+		// Check for dynamic colors
+		String dynamicr = attrs.get("dynamicr");
+		String dynamicg = attrs.get("dynamicg");
+		String dynamicb = attrs.get("dynamicb");
+		String dynamica = attrs.get("dynamica");
+		String colorSpace = attrs.get("colorSpace");
+
+		if (dynamicr != null && dynamicg != null && dynamicb != null) {
+			// Dynamic color
+			// Determine color space (default is RGB = 0)
+			int colorSpaceInt = 0; // COLORSPACE_RGB
+			if (colorSpace != null) {
+				try {
+					colorSpaceInt = Integer.parseInt(colorSpace);
+				} catch (NumberFormatException e) {
+					// Default to RGB
+				}
+			}
+
+			// Determine function name based on color space
+			String funcName;
+			switch (colorSpaceInt) {
+			case 1: // COLORSPACE_HSB
+				funcName = "hsv";
+				break;
+			case 2: // COLORSPACE_HSL
+				funcName = "hsl";
+				break;
+			default: // COLORSPACE_RGB (0)
+				funcName = "rgb";
+				break;
+			}
+
+			// Build function call
+			sb.append(funcName).append("(");
+			
+			// Simplify and add parameters
+			sb.append(simplifyExpression(dynamicr));
+			sb.append(",");
+			sb.append(simplifyExpression(dynamicg));
+			sb.append(",");
+			sb.append(simplifyExpression(dynamicb));
+			
+			// Add alpha if present
+			if (dynamica != null && !dynamica.isEmpty()) {
+				sb.append(",");
+				sb.append(simplifyExpression(dynamica));
+			}
+			
+			sb.append(")");
+			first = false;
+		} else {
+			// Static color - use hex format
+			String rStr = attrs.get("r");
+			String gStr = attrs.get("g");
+			String bStr = attrs.get("b");
+			String alphaStr = attrs.get("alpha");
+
+			try {
+				int r = rStr == null ? 0 : Integer.parseInt(rStr);
+				int g = gStr == null ? 0 : Integer.parseInt(gStr);
+				int b = bStr == null ? 0 : Integer.parseInt(bStr);
+
+				// Clamp values to 0-255
+				r = Math.max(0, Math.min(255, r));
+				g = Math.max(0, Math.min(255, g));
+				b = Math.max(0, Math.min(255, b));
+
+				sb.append("#");
+				sb.append(String.format("%02X", r));
+				sb.append(String.format("%02X", g));
+				sb.append(String.format("%02X", b));
+
+				if (alphaStr != null) {
+					double alpha;
+					try {
+						alpha = Double.parseDouble(alphaStr);
+					} catch (NumberFormatException e) {
+						alpha = 1.0;
+					}
+
+					// Only append alpha if it's not the default value (1.0 = ff)
+					if (Math.abs(alpha - 1.0) > 1e-6) {
+						int alphaInt = (int) Math.round(alpha * 255);
+						alphaInt = Math.max(0, Math.min(255, alphaInt));
+						sb.append(String.format("%02X", alphaInt));
+					}
+				}
+				first = false;
+			} catch (NumberFormatException e) {
+				// If parsing fails, use default black
+				sb.append("#000000");
+				first = false;
+			}
+		}
+
+		// Add fill type (default is STANDARD = 0, so only output if not default)
+		String fillTypeStr = attrs.get("fillType");
+		if (fillTypeStr != null) {
+			try {
+				int fillTypeInt = Integer.parseInt(fillTypeStr);
+				if (fillTypeInt != 0) { // Not STANDARD
+					String fillTypeGpad = GpadStyleMaps.FILL_TYPE_REVERSE_MAP.get(fillTypeStr);
+					if (fillTypeGpad != null) {
+						if (!first)
+							sb.append(" ");
+						sb.append("fill=").append(fillTypeGpad);
+						first = false;
+					}
+				}
+			} catch (NumberFormatException e) {
+				// Ignore invalid fillType
+			}
+		}
+
+		// Add hatch angle (default is 45, so only output if different)
+		String hatchAngleStr = attrs.get("hatchAngle");
+		if (hatchAngleStr != null) {
+			try {
+				int hatchAngle = Integer.parseInt(hatchAngleStr);
+				if (hatchAngle != 45) { // Not default
+					if (!first)
+						sb.append(" ");
+					sb.append("angle=").append(hatchAngle);
+					first = false;
+				}
+			} catch (NumberFormatException e) {
+				// Ignore invalid hatchAngle
+			}
+		}
+
+		// Add hatch distance (default is 10, so only output if different)
+		String hatchDistanceStr = attrs.get("hatchDistance");
+		if (hatchDistanceStr != null) {
+			try {
+				int hatchDistance = Integer.parseInt(hatchDistanceStr);
+				if (hatchDistance != 10) { // Not default
+					if (!first)
+						sb.append(" ");
+					sb.append("dist=").append(hatchDistance);
+					first = false;
+				}
+			} catch (NumberFormatException e) {
+				// Ignore invalid hatchDistance
+			}
+		}
+
+		// Add image (if present)
+		String image = attrs.get("image");
+		if (image != null && !image.isEmpty()) {
+			if (!first)
+				sb.append(" ");
+			sb.append("image=");
+			// Image path may contain special characters, so simplify it
+			sb.append(simplifyExpression(image));
+			first = false;
+		}
+
+		// Add fill symbol (if present)
+		String fillSymbol = attrs.get("fillSymbol");
+		if (fillSymbol != null && !fillSymbol.isEmpty()) {
+			if (!first)
+				sb.append(" ");
+			sb.append("symbol=");
+			// Symbol may contain special characters, so simplify it
+			sb.append(simplifyExpression(fillSymbol));
+			first = false;
+		}
+
+		// Add inverse fill (default is false, so only output if true)
+		// Note: ~inverse is used to clear previous style sheet settings, not for XML conversion
+		String inverseFillStr = attrs.get("inverseFill");
+		if (inverseFillStr != null) {
+			if ("true".equals(inverseFillStr)) {
+				if (!first)
+					sb.append(" ");
+				sb.append("inverse");
+				first = false;
+			}
+			// If false, don't output (default value)
+		}
+
+		return sb.toString();
+	}
+
+	/**
+	 * Simplifies an expression by checking if it's a "simple" expression according to grammar rules.
+	 * If the expression can be parsed by gpadObjColorExpression() without quotes and consumes all input, it's simple.
+	 * Otherwise, it wraps the expression in quotes and escapes special characters.
+	 * 
+	 * @param expr the expression to simplify
+	 * @return simplified expression (either as-is or quoted with escapes)
+	 */
+	private String simplifyExpression(String expr) {
+		if (expr == null || expr.isEmpty()) {
+			return "";
+		}
+
+		// First, check if expression contains special characters that definitely need quotes
+		// These characters cannot appear in unquoted expressions in GK_objColor_BLOCK
+		boolean hasSpecialChars = false;
+		for (int i = 0; i < expr.length(); i++) {
+			char c = expr.charAt(i);
+			if (c == ',' || c == ';' || c == '}' || c == '\r' || c == '\n' || c == ' ' || c == '\t') {
+				hasSpecialChars = true;
+				break;
+			}
+		}
+
+		// If contains special characters, directly quote and escape
+		if (hasSpecialChars) {
+			StringBuilder sb = new StringBuilder("\"");
+			for (int i = 0; i < expr.length(); i++) {
+				char c = expr.charAt(i);
+				switch (c) {
+				case '\\':
+					sb.append("\\\\");
+					break;
+				case '"':
+					sb.append("\\\"");
+					break;
+				case '\n':
+					sb.append("\\n");
+					break;
+				case '\r':
+					sb.append("\\r");
+					break;
+				case '\t':
+					sb.append("\\t");
+					break;
+				default:
+					sb.append(c);
+					break;
+				}
+			}
+			sb.append("\"");
+			return sb.toString();
+		}
+
+		// No obvious special characters, try to parse the expression using the grammar rules
+		// If it parses successfully and consumes all input, it's a "simple" expression and doesn't need quotes
+		boolean needsQuotes = true;
+		try {
+			Parser parser = new Parser();
+			parser.ReInit(new org.geogebra.common.kernel.parser.StringProvider(expr.trim()));
+			parser.token_source.SwitchTo(org.geogebra.common.kernel.parser.ParserConstants.GK_objColor_BLOCK);
+			String parsed = parser.gpadObjColorExpression();
+			// Check if all input was consumed by checking if next token is EOF
+			// getToken(0) returns the current token, getToken(1) returns the next token
+			org.geogebra.common.kernel.parser.Token nextToken = parser.getToken(1);
+			if (nextToken != null && nextToken.kind == org.geogebra.common.kernel.parser.ParserConstants.EOF) {
+				// All input consumed, it's a simple expression
+				needsQuotes = false;
+			} else {
+				// There's remaining input, expression needs quotes
+				needsQuotes = true;
+			}
+		} catch (ParseException e) {
+			// Parsing failed, expression needs quotes
+			needsQuotes = true;
+		} catch (Exception e) {
+			// Any other exception, assume it needs quotes
+			needsQuotes = true;
+		}
+
+		if (!needsQuotes) {
+			// No special characters, return as-is
+			return expr;
+		}
+
+		// Parsing failed or didn't consume all input, wrap in quotes and escape
+		StringBuilder sb = new StringBuilder("\"");
+		for (int i = 0; i < expr.length(); i++) {
+			char c = expr.charAt(i);
+			switch (c) {
+			case '\\':
+				sb.append("\\\\");
+				break;
+			case '"':
+				sb.append("\\\"");
+				break;
+			case '\n':
+				sb.append("\\n");
+				break;
+			case '\r':
+				sb.append("\\r");
+				break;
+			case '\t':
+				sb.append("\\t");
+				break;
+			default:
+				sb.append(c);
+				break;
+			}
+		}
+		sb.append("\"");
+		return sb.toString();
 	}
 
 	/**

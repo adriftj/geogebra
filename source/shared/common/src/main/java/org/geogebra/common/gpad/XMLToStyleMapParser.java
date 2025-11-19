@@ -90,8 +90,3 @@ public class XMLToStyleMapParser implements DocHandler {
 		// Ignore text content
 	}
 }
-
-
-
-
-

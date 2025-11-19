@@ -101,9 +101,3 @@ public class XMLToGpadConverter {
 		return convert(fullXML);
 	}
 }
-
-
-
-
-
-

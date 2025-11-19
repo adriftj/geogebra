@@ -65,8 +65,3 @@ public class GpadStyleXMLApplier {
 		}
 	}
 }
-
-
-
-
-
