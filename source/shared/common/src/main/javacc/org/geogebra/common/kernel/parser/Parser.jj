@@ -429,7 +429,7 @@ PARSER_END(Parser)
 
 
 // Note: includes all Unicode whitespaces (incl. non-breaking), separators and ZWSP
-<DEFAULT, GK_BLOCK, GK_animation_BLOCK, GK_STR_BLOCK, GK_RGBA_BLOCK, GK_lineStyle_BLOCK, GK_boundingBox_BLOCK, GK_contentSize_BLOCK, GK_cropBox_BLOCK, GK_dimensions_BLOCK> SKIP : {
+<DEFAULT, GK_BLOCK, GK_animation_BLOCK, GK_STR_BLOCK, GK_VALUE_BLOCK> SKIP : {
   <(["\u0009" - "\u000E", // ASCII spaces, \u000E added to work around JavaCC bug
   "\u001C" - "\u0020", // separators
   "\u1680",
@@ -601,7 +601,7 @@ TOKEN : {
 |   < LBRACE: "{" >
 }
 
-<DEFAULT, GK_BLOCK, GK_animation_BLOCK, GK_STR_BLOCK, GK_RGBA_BLOCK, GK_lineStyle_BLOCK, GK_boundingBox_BLOCK, GK_contentSize_BLOCK, GK_cropBox_BLOCK, GK_dimensions_BLOCK> TOKEN : {
+<DEFAULT, GK_BLOCK, GK_animation_BLOCK, GK_STR_BLOCK, GK_VALUE_BLOCK> TOKEN : {
    < RBRACE: "}" >
 |   < POLAR_SEPARATOR: ( "\u2221" | ";" ) > // separator used by Giac instead of ;
 }
@@ -620,7 +620,6 @@ TOKEN : {
  < GK_contentSize: "contentSize" > |
  < GK_coords: "coords" > |
  < GK_cropBox: "cropBox" > |
- < GK_curveParam: "curveParam" > |
  < GK_dimensions: "dimensions" > |
  < GK_eigenvectors: "eigenvectors" > |
  < GK_embed: "embed" > |
@@ -680,6 +679,7 @@ TOKEN : {
     "caption" |
     "content" |
     "coordStyle" |
+    "curveParam" |
     "decoration" |
     "dynamicCaption" |
     "endStyle" |
@@ -715,11 +715,8 @@ TOKEN : {
  < GK_STR_UNQUOTED: (~["\"", ";", "}", " ", "\t", "\r", "\n"]) >
 }
 
-<GK_RGBA_BLOCK> TOKEN : {
- < GK_RGBA_HEX_COLOR: "#" (["0"-"9","A"-"F","a"-"f"])+ >
-}
-
-<GK_lineStyle_BLOCK> TOKEN : {
+<GK_VALUE_BLOCK> TOKEN : {
+ < GK_RGBA_HEX_COLOR: "#" (["0"-"9","A"-"F","a"-"f"])+ > |
  < GK_lineStyle_thickness: "thickness" > |
  < GK_lineStyle_hidden: "hidden" > |
  < GK_lineStyle_opacity: "opacity" > |
@@ -733,46 +730,20 @@ TOKEN : {
  < GK_lineStyle_type_dasheddotted: "dasheddotted" > |
  < GK_lineStyle_dashed: "dashed" > |
  < GK_lineStyle_show: "show" > |
- < GK_lineStyle_equal: "=" > |
- < GK_lineStyle_float: (["0"-"9"])+("." (["0"-"9"])+)? >
-}
-
-<GK_boundingBox_BLOCK> TOKEN : {
- < GK_boundingBox_width: "width" > |
- < GK_boundingBox_height: "height" > |
- < GK_boundingBox_equal: "=" > |
- < GK_boundingBox_float: (["0"-"9"])+("." (["0"-"9"])+)? >
-}
-
-<GK_contentSize_BLOCK> TOKEN : {
- < GK_contentSize_width: "width" > |
- < GK_contentSize_height: "height" > |
- < GK_contentSize_equal: "=" > |
- < GK_contentSize_float: (["0"-"9"])+("." (["0"-"9"])+)? >
-}
-
-<GK_cropBox_BLOCK> TOKEN : {
  < GK_cropBox_x: "x" > |
  < GK_cropBox_y: "y" > |
- < GK_cropBox_width: "width" > |
- < GK_cropBox_height: "height" > |
  < GK_cropBox_cropped: "cropped" > |
  < GK_cropBox_tilde_cropped: "~cropped" > |
- < GK_cropBox_equal: "=" > |
- < GK_cropBox_float: (["0"-"9"])+("." (["0"-"9"])+)? >
-}
-
-<GK_dimensions_BLOCK> TOKEN : {
- < GK_dimensions_width: "width" > |
- < GK_dimensions_height: "height" > |
  < GK_dimensions_angle: "angle" > |
  < GK_dimensions_scaled: "scaled" > |
  < GK_dimensions_tilde_scaled: "~scaled" > |
- < GK_dimensions_equal: "=" > |
- < GK_dimensions_float: (["0"-"9"])+("." (["0"-"9"])+)? >
+ < GK_VALUE_width: "width" > |
+ < GK_VALUE_height: "height" > |
+ < GK_VALUE_equal: "=" > |
+ < GK_VALUE_float: ("-")? (["0"-"9"])+("." (["0"-"9"])+)? >
 }
 
-<GK_BLOCK, GK_animation_BLOCK, GK_STR_BLOCK, GK_RGBA_BLOCK, GK_lineStyle_BLOCK, GK_boundingBox_BLOCK, GK_contentSize_BLOCK, GK_cropBox_BLOCK, GK_dimensions_BLOCK> TOKEN : {
+<GK_BLOCK, GK_animation_BLOCK, GK_STR_BLOCK, GK_VALUE_BLOCK> TOKEN : {
  < GK_INVALID: (~[";", "}"]) >
 }
 
@@ -2427,7 +2398,7 @@ void gpadStyleSheetPropertyRGBA(GpadStyleSheet styleSheet) :
     Token colorToken;
 }
 {
-    keyToken = <GK_RGBA> <GK_COLON> { token_source.SwitchTo(GK_RGBA_BLOCK); }
+    keyToken = <GK_RGBA> <GK_COLON> { token_source.SwitchTo(GK_VALUE_BLOCK); }
     colorToken = <GK_RGBA_HEX_COLOR>
     {
         java.util.LinkedHashMap<String, String> attrs = new java.util.LinkedHashMap<>();
@@ -2617,7 +2588,7 @@ void gpadStyleSheetPropertyLineStyle(GpadStyleSheet styleSheet) :
     int dotIndex;
 }
 {
-    keyToken = <GK_lineStyle> <GK_COLON> { token_source.SwitchTo(GK_lineStyle_BLOCK); }
+    keyToken = <GK_lineStyle> <GK_COLON> { token_source.SwitchTo(GK_VALUE_BLOCK); }
     ( (
         // Parse type (no prefix)
         <GK_lineStyle_type_pointwise> { type = "pointwise"; } |
@@ -2628,7 +2599,7 @@ void gpadStyleSheetPropertyLineStyle(GpadStyleSheet styleSheet) :
         <GK_lineStyle_type_dasheddotted> { type = "dasheddotted"; }
     ) | (
         // Parse thickness=value
-        <GK_lineStyle_thickness> <GK_lineStyle_equal> floatToken = <GK_lineStyle_float>
+        <GK_lineStyle_thickness> <GK_VALUE_equal> floatToken = <GK_VALUE_float>
         {
             // Extract integer part (ignore decimal)
             String thicknessStr = floatToken.image;
@@ -2639,7 +2610,7 @@ void gpadStyleSheetPropertyLineStyle(GpadStyleSheet styleSheet) :
         // Parse hidden[=dashed|show]
         <GK_lineStyle_hidden>
         (
-            <GK_lineStyle_equal> (
+            <GK_VALUE_equal> (
                 <GK_lineStyle_dashed> { typeHidden = "dashed"; } |
                 <GK_lineStyle_show> { typeHidden = "show"; }
             )
@@ -2652,7 +2623,7 @@ void gpadStyleSheetPropertyLineStyle(GpadStyleSheet styleSheet) :
         }
     ) | (
         // Parse opacity=value
-        <GK_lineStyle_opacity> <GK_lineStyle_equal> floatToken = <GK_lineStyle_float>
+        <GK_lineStyle_opacity> <GK_VALUE_equal> floatToken = <GK_VALUE_float>
         {
             // Extract integer part (ignore decimal)
             String opacityStr = floatToken.image;
@@ -2722,10 +2693,10 @@ void gpadStyleSheetPropertyBoundingBox(GpadStyleSheet styleSheet) :
     int dotIndex;
 }
 {
-    keyToken = <GK_boundingBox> <GK_COLON> { token_source.SwitchTo(GK_boundingBox_BLOCK); }
+    keyToken = <GK_boundingBox> <GK_COLON> { token_source.SwitchTo(GK_VALUE_BLOCK); }
     ( (
         // Parse width=value
-        <GK_boundingBox_width> <GK_boundingBox_equal> floatToken = <GK_boundingBox_float>
+        <GK_VALUE_width> <GK_VALUE_equal> floatToken = <GK_VALUE_float>
         {
             // Extract integer part (ignore decimal)
             String widthStr = floatToken.image;
@@ -2734,7 +2705,7 @@ void gpadStyleSheetPropertyBoundingBox(GpadStyleSheet styleSheet) :
         }
     ) | (
         // Parse height=value
-        <GK_boundingBox_height> <GK_boundingBox_equal> floatToken = <GK_boundingBox_float>
+        <GK_VALUE_height> <GK_VALUE_equal> floatToken = <GK_VALUE_float>
         {
             // Extract integer part (ignore decimal)
             String heightStr = floatToken.image;
@@ -2766,16 +2737,16 @@ void gpadStyleSheetPropertyContentSize(GpadStyleSheet styleSheet) :
     Token floatToken = null;
 }
 {
-    keyToken = <GK_contentSize> <GK_COLON> { token_source.SwitchTo(GK_contentSize_BLOCK); }
+    keyToken = <GK_contentSize> <GK_COLON> { token_source.SwitchTo(GK_VALUE_BLOCK); }
     ( (
         // Parse width=value
-        <GK_contentSize_width> <GK_contentSize_equal> floatToken = <GK_contentSize_float>
+        <GK_VALUE_width> <GK_VALUE_equal> floatToken = <GK_VALUE_float>
         {
             width = floatToken.image;
         }
     ) | (
         // Parse height=value
-        <GK_contentSize_height> <GK_contentSize_equal> floatToken = <GK_contentSize_float>
+        <GK_VALUE_height> <GK_VALUE_equal> floatToken = <GK_VALUE_float>
         {
             height = floatToken.image;
         }
@@ -2807,28 +2778,28 @@ void gpadStyleSheetPropertyCropBox(GpadStyleSheet styleSheet) :
     Token floatToken = null;
 }
 {
-    keyToken = <GK_cropBox> <GK_COLON> { token_source.SwitchTo(GK_cropBox_BLOCK); }
+    keyToken = <GK_cropBox> <GK_COLON> { token_source.SwitchTo(GK_VALUE_BLOCK); }
     ( (
         // Parse x=value
-        <GK_cropBox_x> <GK_cropBox_equal> floatToken = <GK_cropBox_float>
+        <GK_cropBox_x> <GK_VALUE_equal> floatToken = <GK_VALUE_float>
         {
             x = floatToken.image;
         }
     ) | (
         // Parse y=value
-        <GK_cropBox_y> <GK_cropBox_equal> floatToken = <GK_cropBox_float>
+        <GK_cropBox_y> <GK_VALUE_equal> floatToken = <GK_VALUE_float>
         {
             y = floatToken.image;
         }
     ) | (
         // Parse width=value
-        <GK_cropBox_width> <GK_cropBox_equal> floatToken = <GK_cropBox_float>
+        <GK_VALUE_width> <GK_VALUE_equal> floatToken = <GK_VALUE_float>
         {
             width = floatToken.image;
         }
     ) | (
         // Parse height=value
-        <GK_cropBox_height> <GK_cropBox_equal> floatToken = <GK_cropBox_float>
+        <GK_VALUE_height> <GK_VALUE_equal> floatToken = <GK_VALUE_float>
         {
             height = floatToken.image;
         }
@@ -2870,22 +2841,22 @@ void gpadStyleSheetPropertyDimensions(GpadStyleSheet styleSheet) :
     Token floatToken = null;
 }
 {
-    keyToken = <GK_dimensions> <GK_COLON> { token_source.SwitchTo(GK_dimensions_BLOCK); }
+    keyToken = <GK_dimensions> <GK_COLON> { token_source.SwitchTo(GK_VALUE_BLOCK); }
     ( (
         // Parse width=value
-        <GK_dimensions_width> <GK_dimensions_equal> floatToken = <GK_dimensions_float>
+        <GK_VALUE_width> <GK_VALUE_equal> floatToken = <GK_VALUE_float>
         {
             width = floatToken.image;
         }
     ) | (
         // Parse height=value
-        <GK_dimensions_height> <GK_dimensions_equal> floatToken = <GK_dimensions_float>
+        <GK_VALUE_height> <GK_VALUE_equal> floatToken = <GK_VALUE_float>
         {
             height = floatToken.image;
         }
     ) | (
         // Parse angle=value
-        <GK_dimensions_angle> <GK_dimensions_equal> floatToken = <GK_dimensions_float>
+        <GK_dimensions_angle> <GK_VALUE_equal> floatToken = <GK_VALUE_float>
         {
             angle = floatToken.image;
         }

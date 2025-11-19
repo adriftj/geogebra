@@ -1600,4 +1600,89 @@ public class GpadParserTest extends BaseUnitTest {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
+
+	// ========== Tests for negative values ==========
+
+	@Test
+	public void testParseCropBoxWithNegativeValues() {
+		// Test with negative x, y, width, height
+		String gpad = "@style = { cropBox: x=-10 y=-20 width=-100 height=-200 cropped }\nA @style = (1, 2)";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("cropBox");
+			assertNotNull(attrs);
+			assertEquals("-10", attrs.get("x"));
+			assertEquals("-20", attrs.get("y"));
+			assertEquals("-100", attrs.get("width"));
+			assertEquals("-200", attrs.get("height"));
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testParseDimensionsWithNegativeValues() {
+		// Test with negative width, height, angle
+		String gpad = "@style = { dimensions: width=-100 height=-200 angle=-45 scaled }\nA @style = (1, 2)";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("dimensions");
+			assertNotNull(attrs);
+			assertEquals("-100", attrs.get("width"));
+			assertEquals("-200", attrs.get("height"));
+			assertEquals("-45", attrs.get("angle"));
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testParseContentSizeWithNegativeValues() {
+		// Test with negative width, height
+		String gpad = "@style = { contentSize: width=-100.5 height=-200.3 }\nA @style = (1, 2)";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("contentSize");
+			assertNotNull(attrs);
+			assertEquals("-100.5", attrs.get("width"));
+			assertEquals("-200.3", attrs.get("height"));
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testParseBoundingBoxWithNegativeValues() {
+		// Test with negative width, height (decimal part ignored)
+		String gpad = "@style = { boundingBox: width=-100.5 height=-200.9 }\nA @style = (1, 2)";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("boundingBox");
+			assertNotNull(attrs);
+			assertEquals("-100", attrs.get("width")); // Decimal part ignored
+			assertEquals("-200", attrs.get("height")); // Decimal part ignored
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
 }

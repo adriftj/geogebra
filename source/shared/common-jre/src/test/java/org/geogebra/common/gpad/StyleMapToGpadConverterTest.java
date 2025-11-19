@@ -819,4 +819,84 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		assertTrue("Should not contain scaled", !gpad.contains("scaled"));
 		assertTrue("Should not contain ~scaled", !gpad.contains("~scaled"));
 	}
+
+	// ========== Tests for negative values ==========
+
+	@Test
+	public void testCropBoxWithNegativeValues() {
+		// Test conversion with negative values
+		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
+		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
+		
+		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
+		attrs.put("x", "-10");
+		attrs.put("y", "-20");
+		attrs.put("width", "-100");
+		attrs.put("height", "-200");
+		attrs.put("cropped", "true");
+		styleMap.put("cropBox", attrs);
+		
+		String gpad = converter.convert("test", styleMap);
+		assertNotNull(gpad);
+		assertTrue("Should contain x=-10", gpad.contains("x=-10"));
+		assertTrue("Should contain y=-20", gpad.contains("y=-20"));
+		assertTrue("Should contain width=-100", gpad.contains("width=-100"));
+		assertTrue("Should contain height=-200", gpad.contains("height=-200"));
+	}
+
+	@Test
+	public void testDimensionsWithNegativeValues() {
+		// Test conversion with negative values
+		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
+		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
+		
+		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
+		attrs.put("width", "-100");
+		attrs.put("height", "-200");
+		attrs.put("angle", "-45");
+		attrs.put("unscaled", "false");
+		styleMap.put("dimensions", attrs);
+		
+		String gpad = converter.convert("test", styleMap);
+		assertNotNull(gpad);
+		assertTrue("Should contain width=-100", gpad.contains("width=-100"));
+		assertTrue("Should contain height=-200", gpad.contains("height=-200"));
+		assertTrue("Should contain angle=-45", gpad.contains("angle=-45"));
+	}
+
+	@Test
+	public void testContentSizeWithNegativeValues() {
+		// Test conversion with negative values
+		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
+		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
+		
+		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
+		attrs.put("width", "-100.5");
+		attrs.put("height", "-200.3");
+		styleMap.put("contentSize", attrs);
+		
+		String gpad = converter.convert("test", styleMap);
+		assertNotNull(gpad);
+		assertTrue("Should contain width=-100.5", gpad.contains("width=-100.5"));
+		assertTrue("Should contain height=-200.3", gpad.contains("height=-200.3"));
+	}
+
+	@Test
+	public void testBoundingBoxWithNegativeValues() {
+		// Test conversion with negative values (decimal part ignored)
+		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
+		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
+		
+		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
+		attrs.put("width", "-100.5");
+		attrs.put("height", "-200.9");
+		styleMap.put("boundingBox", attrs);
+		
+		String gpad = converter.convert("test", styleMap);
+		assertNotNull(gpad);
+		assertTrue("Should contain width=-100 (decimal ignored)", gpad.contains("width=-100"));
+		assertTrue("Should contain height=-200 (decimal ignored)", gpad.contains("height=-200"));
+		assertTrue("Should not contain -100.5", !gpad.contains("-100.5"));
+		assertTrue("Should not contain -200.9", !gpad.contains("-200.9"));
+	}
 }
