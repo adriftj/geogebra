@@ -132,6 +132,10 @@ public class StyleMapToGpadConverter {
 			// font: serif size=0.5 plain; or font: ~serif size=2 italic bold;
 			convertedValue = convertFont(attrs);
 			break;
+		case "show":
+			// show: object ~label ev1 ~ev2 plane ~3d;
+			convertedValue = convertShow(attrs);
+			break;
 		}
 
 		// Only add property name prefix if converted value is not null and not empty
@@ -746,6 +750,109 @@ public class StyleMapToGpadConverter {
 				}
 			} catch (NumberFormatException e) {
 				// If not a valid number, ignore style
+			}
+		}
+
+		return sb.toString();
+	}
+
+	/**
+	 * Converts show attributes to Gpad format.
+	 * Syntax: show: [object|~object] [label|~label] [ev1|~ev1] [ev2|~ev2] [3d|~3d] [plane|~plane];
+	 * Default values: object="true", label="true", ev=0 (bit 0=0, bit 1=0)
+	 * Note: ev1 and ~ev2 are no-ops when bit 0=0 and bit 1=0 (default state), so don't output them
+	 * 
+	 * @param attrs show attributes (object, label, ev)
+	 * @return Gpad show string (e.g., "~label ~ev1 ev2 plane ~3d")
+	 */
+	private String convertShow(LinkedHashMap<String, String> attrs) {
+		if (attrs == null || attrs.isEmpty())
+			return "";
+
+		StringBuilder sb = new StringBuilder();
+		boolean first = true;
+
+		// Convert object attribute (default is "true", only output if "false")
+		String object = attrs.get("object");
+		if (object != null && "false".equals(object)) {
+			if (!first)
+				sb.append(" ");
+			sb.append("~object");
+			first = false;
+		}
+
+		// Convert label attribute (default is "true", only output if "false")
+		String label = attrs.get("label");
+		if (label != null && "false".equals(label)) {
+			if (!first)
+				sb.append(" ");
+			sb.append("~label");
+			first = false;
+		}
+
+		// Convert ev attribute (bitmask)
+		// Default ev=0 means: bit 0=0 (visible in EV1), bit 1=0 (hidden in EV2)
+		// ev1 clears bit 0, ~ev2 clears bit 1 - both are no-ops when bits are already 0
+		String evStr = attrs.get("ev");
+		if (evStr != null) {
+			try {
+				int ev = Integer.parseInt(evStr);
+				
+				// Bit 0 (mask=1): if set -> ~ev1, if clear -> don't output ev1 (no-op)
+				if ((ev & 1) != 0) {
+					if (!first)
+						sb.append(" ");
+					sb.append("~ev1");
+					first = false;
+				}
+				// else: bit 0 is clear (default), ev1 would be no-op, so don't output
+
+				// Bit 1 (mask=2): if set -> ev2, if clear -> don't output ~ev2 (no-op)
+				if ((ev & 2) != 0) {
+					if (!first)
+						sb.append(" ");
+					sb.append("ev2");
+					first = false;
+				}
+				// else: bit 1 is clear (default), ~ev2 would be no-op, so don't output
+
+				// Bits 2 (mask=4) and 3 (mask=8): 3d handling
+				boolean bit2 = (ev & 4) != 0;
+				boolean bit3 = (ev & 8) != 0;
+				if (bit2 && !bit3) {
+					// Bit 2 set, bit 3 clear -> 3d
+					if (!first)
+						sb.append(" ");
+					sb.append("3d");
+					first = false;
+				} else if (!bit2 && bit3) {
+					// Bit 2 clear, bit 3 set -> ~3d
+					if (!first)
+						sb.append(" ");
+					sb.append("~3d");
+					first = false;
+				}
+				// else: both bits are 0 (default) or both are set (invalid state), don't output
+
+				// Bits 4 (mask=16) and 5 (mask=32): plane handling
+				boolean bit4 = (ev & 16) != 0;
+				boolean bit5 = (ev & 32) != 0;
+				if (bit4 && !bit5) {
+					// Bit 4 set, bit 5 clear -> plane
+					if (!first)
+						sb.append(" ");
+					sb.append("plane");
+					first = false;
+				} else if (!bit4 && bit5) {
+					// Bit 4 clear, bit 5 set -> ~plane
+					if (!first)
+						sb.append(" ");
+					sb.append("~plane");
+					first = false;
+				}
+				// else: both bits are 0 (default) or both are set (invalid state), don't output
+			} catch (NumberFormatException e) {
+				// If ev is not a valid number, ignore it
 			}
 		}
 

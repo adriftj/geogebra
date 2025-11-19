@@ -742,6 +742,18 @@ TOKEN : {
  < GK_font_plain: "plain" > |
  < GK_font_bold: "bold" > |
  < GK_font_italic: "italic" > |
+ < GK_show_object: "object" > |
+ < GK_show_tilde_object: "~object" > |
+ < GK_show_label: "label" > |
+ < GK_show_tilde_label: "~label" > |
+ < GK_show_ev1: "ev1" > |
+ < GK_show_tilde_ev1: "~ev1" > |
+ < GK_show_ev2: "ev2" > |
+ < GK_show_tilde_ev2: "~ev2" > |
+ < GK_show_3d: "3d" > |
+ < GK_show_tilde_3d: "~3d" > |
+ < GK_show_plane: "plane" > |
+ < GK_show_tilde_plane: "~plane" > |
  < GK_VALUE_width: "width" > |
  < GK_VALUE_height: "height" > |
  < GK_VALUE_equal: "=" > |
@@ -2243,7 +2255,8 @@ void gpadStyleSheetKeyValue(GpadStyleSheet styleSheet) :
         gpadStyleSheetPropertyContentSize(styleSheet) | // contentSize key
         gpadStyleSheetPropertyCropBox(styleSheet) | // cropBox key
         gpadStyleSheetPropertyDimensions(styleSheet) | // dimensions key
-        gpadStyleSheetPropertyFont(styleSheet) // font key
+        gpadStyleSheetPropertyFont(styleSheet) | // font key
+        gpadStyleSheetPropertyShow(styleSheet) // show key
         )
         { token_source.SwitchTo(DEFAULT); }
     }
@@ -2930,6 +2943,66 @@ void gpadStyleSheetPropertyFont(GpadStyleSheet styleSheet) :
             attrs.put("sizeM", sizeM);
         if (plain || bold || italic) // style = bit-OR of bold(1) and italic(2)
             attrs.put("style", bold? (italic? "3": "1"): (italic? "2": "0"));
+        
+        if (!attrs.isEmpty())
+            styleSheet.setProperty(keyToken.image, attrs);
+    }
+}
+
+/**
+ * Parses show property
+ * Syntax: show: [object|~object] [label|~label] [ev1|~ev1] [ev2|~ev2] [3d|~3d] [plane|~plane];
+ * object: object (true) or ~object (false), default is true
+ * label: label (true) or ~label (false), default is true
+ * ev1: clear bit 0 (mask=1), ~ev1: set bit 0
+ * ev2: set bit 1 (mask=2), ~ev2: clear bit 1
+ * 3d: set bit 2 (mask=4) and clear bit 3 (mask=8), ~3d: clear bit 2 and set bit 3
+ * plane: set bit 4 (mask=16) and clear bit 5 (mask=32), ~plane: clear bit 4 and set bit 5
+ * ev attribute is calculated as OR of all bitmasks, only set if at least one ev-related flag is present
+ */
+void gpadStyleSheetPropertyShow(GpadStyleSheet styleSheet) :
+{
+    Token keyToken;
+    String object = null;
+    String label = null;
+    int ev = 0;
+    boolean hasEvFlags = false;
+}
+{
+    keyToken = <GK_show> <GK_COLON> { token_source.SwitchTo(GK_VALUE_BLOCK); }
+    ( (
+        // Parse object or ~object
+        <GK_show_object> { object = "true"; } |
+        <GK_show_tilde_object> { object = "false"; }
+    ) | (
+        // Parse label or ~label
+        <GK_show_label> { label = "true"; } |
+        <GK_show_tilde_label> { label = "false"; }
+    ) | (
+        // Parse ev1 or ~ev1 (bit 0, mask=1)
+        <GK_show_ev1> { ev &= ~1; hasEvFlags = true; } |
+        <GK_show_tilde_ev1> { ev |= 1; hasEvFlags = true; }
+    ) | (
+        // Parse ev2 or ~ev2 (bit 1, mask=2)
+        <GK_show_ev2> { ev |= 2; hasEvFlags = true; } |
+        <GK_show_tilde_ev2> { ev &= ~2; hasEvFlags = true; }
+    ) | (
+        // Parse 3d or ~3d (bit 2=4, bit 3=8)
+        <GK_show_3d> { ev |= 4; ev &= ~8; hasEvFlags = true; } |
+        <GK_show_tilde_3d> { ev &= ~4; ev |= 8; hasEvFlags = true; }
+    ) | (
+        // Parse plane or ~plane (bit 4=16, bit 5=32)
+        <GK_show_plane> { ev |= 16; ev &= ~32; hasEvFlags = true; } |
+        <GK_show_tilde_plane> { ev &= ~16; ev |= 32; hasEvFlags = true; }
+    ) )*
+    {
+        java.util.LinkedHashMap<String, String> attrs = new java.util.LinkedHashMap<>();
+        if (object != null)
+            attrs.put("object", object);
+        if (label != null)
+            attrs.put("label", label);
+        if (hasEvFlags)
+            attrs.put("ev", String.valueOf(ev));
         
         if (!attrs.isEmpty())
             styleSheet.setProperty(keyToken.image, attrs);
