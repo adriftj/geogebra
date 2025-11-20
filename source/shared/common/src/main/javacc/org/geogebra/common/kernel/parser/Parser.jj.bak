@@ -2398,11 +2398,7 @@ void gpadStyleSheetPropertyDelete(GpadStyleSheet styleSheet) :
         String originalKey = keyToken.image.substring(1);
         propertyName = gkNameMaps.getOrDefault(originalKey, originalKey);
         styleSheet.removeProperty(propertyName);
-        if ("fixed".equals(originalKey)) {
-            java.util.LinkedHashMap<String, String> attrsCheckbox = styleSheet.getProperty("checkbox");
-            if(attrsCheckbox != null)
-                attrsCheckbox.put("fixed", "false");
-        }
+        // Note: slider's @screen and fixed are independent, no sync needed
     }
 }
 
@@ -2420,11 +2416,7 @@ void gpadStyleSheetPropertyBoolean(GpadStyleSheet styleSheet) :
     {
         String key = keyToken.image;
         setPropertyWithValueConversion(styleSheet, key, "true");
-        if ("fixed".equals(key)) {
-            java.util.LinkedHashMap<String, String> attrsCheckbox = styleSheet.getProperty("checkbox");
-            if(attrsCheckbox != null)
-                attrsCheckbox.put("fixed", "true");
-        }
+        // Note: slider's @screen and fixed are independent, no sync needed
     }
 }
 
@@ -2518,6 +2510,7 @@ void gpadStyleSheetPropertyXYCoords(GpadStyleSheet styleSheet) :
         attrs.put("x", xToken.image);
         attrs.put("y", yToken.image);
         styleSheet.setProperty(converted[0], attrs);
+        // Note: slider's @screen and x/y coordinates are independent, no sync needed
     }
 }
 

@@ -49,6 +49,7 @@ public class GpadStyleXMLApplier {
 		// We can access startGeoElement because we're in the same package
 		ArrayList<String> errors = new ArrayList<>();
 		Map<String, LinkedHashMap<String, String>> properties = styleSheet.getProperties();
+		
 		for (Map.Entry<String, LinkedHashMap<String, String>> entry : properties.entrySet()) {
 			String tagName = entry.getKey();
 			LinkedHashMap<String, String> attrs = entry.getValue();
@@ -57,6 +58,9 @@ public class GpadStyleXMLApplier {
 			}
 		}
 
+		// Process deferred lists (e.g., minMaxList for slider min/max)
+		xmlHandler.processLists();
+		
 		// Finish processing
 		xmlHandler.finish();
 

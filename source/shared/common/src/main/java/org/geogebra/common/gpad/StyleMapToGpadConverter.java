@@ -44,6 +44,20 @@ public class StyleMapToGpadConverter {
 				continue;
 			}
 
+			// Special handling for slider: output slider with its attributes
+			// Note: slider's @screen, fixed, x, y are independent properties
+			if ("slider".equals(tagName)) {
+				String gpadProperty = convertSlider(attrs);
+				if (gpadProperty != null && !gpadProperty.isEmpty()) {
+					if (!first)
+						sb.append(";");
+					sb.append(" ");
+					sb.append(gpadProperty);
+					first = false;
+				}
+				continue;
+			}
+
 			// Convert XML tag name and attributes to Gpad format
 			String gpadProperty = convertPropertyToGpad(tagName, attrs);
 			if (gpadProperty != null && !gpadProperty.isEmpty()) {
@@ -1093,6 +1107,137 @@ public class StyleMapToGpadConverter {
 			} catch (NumberFormatException e) {
 				// If ev is not a valid number, ignore it
 			}
+		}
+
+		return sb.toString();
+	}
+
+	/**
+	 * Converts slider attributes to Gpad format.
+	 * Syntax: slider: [min=<表达式>] [max=<表达式>] [width=<浮点数>] [x=<浮点数>] [y=<浮点数>] [vertical|~vertical] [algebra|~algebra] [constant|~constant] [@screen|~@screen] [fixed|~fixed];
+	 * Note: @screen, fixed, x, y are independent properties for the slider
+	 * 
+	 * @param attrs slider attributes
+	 * @return Gpad slider string (e.g., "slider: min=0 max=10 width=200 x=100 y=200 vertical algebra @screen fixed")
+	 */
+	private String convertSlider(LinkedHashMap<String, String> attrs) {
+		if (attrs == null || attrs.isEmpty())
+			return null;
+
+		StringBuilder sb = new StringBuilder();
+		sb.append("slider:");
+		boolean first = true;
+
+		// Convert min (expression)
+		String min = attrs.get("min");
+		if (min != null && !min.isEmpty()) {
+			if (!first)
+				sb.append(" ");
+			sb.append("min=");
+			sb.append(simplifyExpression(min));
+			first = false;
+		}
+
+		// Convert max (expression)
+		String max = attrs.get("max");
+		if (max != null && !max.isEmpty()) {
+			if (!first)
+				sb.append(" ");
+			sb.append("max=");
+			sb.append(simplifyExpression(max));
+			first = false;
+		}
+
+		// Convert width (float)
+		String width = attrs.get("width");
+		if (width != null && !width.isEmpty()) {
+			if (!first)
+				sb.append(" ");
+			sb.append("width=");
+			sb.append(width);
+			first = false;
+		}
+
+		// Convert x/y coordinates: always output if present
+		String x = attrs.get("x");
+		if (x != null && !x.isEmpty()) {
+			if (!first)
+				sb.append(" ");
+			sb.append("x=");
+			sb.append(x);
+			first = false;
+		}
+
+		String y = attrs.get("y");
+		if (y != null && !y.isEmpty()) {
+			if (!first)
+				sb.append(" ");
+			sb.append("y=");
+			sb.append(y);
+			first = false;
+		}
+
+		// Convert absoluteScreenLocation to @screen
+		// Default is false, so only output @screen if true
+		String absoluteScreenLocation = attrs.get("absoluteScreenLocation");
+		if (absoluteScreenLocation != null && "true".equals(absoluteScreenLocation)) {
+			if (!first)
+				sb.append(" ");
+			sb.append("@screen");
+			first = false;
+		}
+		// If absoluteScreenLocation=false (default), don't output anything
+
+		// Convert fixed
+		// Default is false, so only output fixed if true
+		String fixed = attrs.get("fixed");
+		if (fixed != null && "true".equals(fixed)) {
+			if (!first)
+				sb.append(" ");
+			sb.append("fixed");
+			first = false;
+		}
+		// If fixed=false (default), don't output anything
+
+		// Convert horizontal to vertical (inverse)
+		// Default is horizontal (vertical=false), so only output vertical if true
+		String horizontal = attrs.get("horizontal");
+		if (horizontal != null) {
+			boolean isHorizontal = "true".equals(horizontal);
+			if (!isHorizontal) { // vertical = true
+				if (!first)
+					sb.append(" ");
+				sb.append("vertical");
+				first = false;
+			}
+			// If horizontal=true (default), don't output anything
+		}
+
+		// Convert showAlgebra to algebra
+		// Default is false, so only output algebra if true
+		String showAlgebra = attrs.get("showAlgebra");
+		if (showAlgebra != null && "true".equals(showAlgebra)) {
+			if (!first)
+				sb.append(" ");
+			sb.append("algebra");
+			first = false;
+		}
+		// If showAlgebra=false (default), don't output anything
+
+		// Convert arbitraryConstant to constant
+		// Default is false, so only output constant if true
+		String arbitraryConstant = attrs.get("arbitraryConstant");
+		if (arbitraryConstant != null && "true".equals(arbitraryConstant)) {
+			if (!first)
+				sb.append(" ");
+			sb.append("constant");
+			first = false;
+		}
+		// If arbitraryConstant=false (default), don't output anything
+
+		// If no attributes were output, return null (omit the property)
+		if (first) {
+			return null;
 		}
 
 		return sb.toString();
