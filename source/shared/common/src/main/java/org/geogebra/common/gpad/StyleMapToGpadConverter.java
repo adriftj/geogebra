@@ -598,7 +598,7 @@ public class StyleMapToGpadConverter {
 
 	/**
 	 * Simplifies an expression by checking if it's a "simple" expression according to grammar rules.
-	 * If the expression can be parsed by gpadObjColorExpression() without quotes and consumes all input, it's simple.
+	 * If the expression can be parsed by gpadExpr() without quotes and consumes all input, it's simple.
 	 * Otherwise, it wraps the expression in quotes and escapes special characters.
 	 * 
 	 * @param expr the expression to simplify
@@ -609,7 +609,7 @@ public class StyleMapToGpadConverter {
 			return "";
 
 		// First, check if expression contains special characters that definitely need quotes
-		// These characters cannot appear in unquoted expressions in GK_objColor_BLOCK
+		// These characters cannot appear in unquoted expressions in GK_EXPR_BLOCK
 		if (containsSpecialChars(expr))
 			return "\"" + escapeString(expr) + "\"";
 
@@ -619,8 +619,8 @@ public class StyleMapToGpadConverter {
 		try {
 			Parser parser = new Parser();
 			parser.ReInit(new org.geogebra.common.kernel.parser.StringProvider(expr.trim()));
-			parser.token_source.SwitchTo(org.geogebra.common.kernel.parser.ParserConstants.GK_objColor_BLOCK);
-			parser.gpadObjColorExpression();
+			parser.token_source.SwitchTo(org.geogebra.common.kernel.parser.ParserConstants.GK_EXPR_BLOCK);
+			parser.gpadExpr();
 			// Check if all input was consumed by checking if next token is EOF
 			// getToken(0) returns the current token, getToken(1) returns the next token
 			org.geogebra.common.kernel.parser.Token nextToken = parser.getToken(1);

@@ -673,7 +673,7 @@ TOKEN : {
 |   < POLAR_SEPARATOR: ( "\u2221" | ";" ) > // separator used by Giac instead of ;
 }
 
-<DEFAULT, GK_STR_BLOCK, GK_animation_BLOCK, GK_objColor_BLOCK> TOKEN : {
+<DEFAULT, GK_STR_BLOCK, GK_animation_BLOCK, GK_EXPR_BLOCK> TOKEN : {
  < TEXT: "\""  (<CHAR>)* "\"" >
 }
 
@@ -778,22 +778,22 @@ TOKEN : {
  < GK_number: (["0"-"9"])+("." (["0"-"9"])+)? >
 }
 
-<GK_objColor_BLOCK> TOKEN : {
+<GK_EXPR_BLOCK> TOKEN : {
  < GK_objColor_rgb: "rgb" > |
  < GK_objColor_hsv: "hsv" > |
  < GK_objColor_hsl: "hsl" > |
  < GK_objColor_inverse: "inverse" > |
  < GK_objColor_tilde_inverse: "~inverse" > |
- < GK_objColor_comma: "," > |
- < GK_objColor_lparen: "(" > |
- < GK_objColor_rparen: ")" > |
- < GK_objColor_plus: "+" > |
- < GK_objColor_minus: "-" > |
- < GK_objColor_multiply: "*" > |
- < GK_objColor_divide: "/" > |
- < GK_objColor_power: "^" > |
+ < GK_EXPR_comma: "," > |
+ < GK_EXPR_lparen: "(" > |
+ < GK_EXPR_rparen: ")" > |
+ < GK_EXPR_plus: "+" > |
+ < GK_EXPR_minus: "-" > |
+ < GK_EXPR_multiply: "*" > |
+ < GK_EXPR_divide: "/" > |
+ < GK_EXPR_power: "^" > |
  < GK_objColor_RGBA_HEX_COLOR: <RGBA_HEX_COLOR> > |
- // slider attribute names (must come before GK_objColor_LABEL to avoid conflicts)
+ // slider attribute names (must come before GK_EXPR_LABEL to avoid conflicts)
  < GK_slider_min: "min" > |
  < GK_slider_max: "max" > |
  < GK_slider_width: "width" > |
@@ -811,9 +811,8 @@ TOKEN : {
  < GK_slider_tilde_screen: "~@screen" > |
  < GK_slider_fixed: "fixed" > |
  < GK_slider_tilde_fixed: "~fixed" > |
- < GK_objColor_LABEL: <GLABEL> > |
- < GK_objColor_INTEGER: <GINTEGER> > |
- < GK_objColor_FLOAT: <GINTEGER> "." <GINTEGER> > |
+ < GK_EXPR_LABEL: <GLABEL> > |
+ < GK_EXPR_FLOAT: <GINTEGER> ("." <GINTEGER>)? > |
  < GK_objColor_fill_equals_value: "fill" ([" ", "\t"])* "=" ([" ", "\t"])* (["a"-"z"])+ > |
  < GK_objColor_angle_equals_value: "angle" ([" ", "\t"])* "=" ([" ", "\t"])* (["0"-"9"])+ > |
  < GK_objColor_dist_equals_value: "dist" ([" ", "\t"])* "=" ([" ", "\t"])* (["0"-"9"])+ > |
@@ -873,7 +872,7 @@ TOKEN : {
  < GK_VALUE_float: ("-")? (["0"-"9"])+("." (["0"-"9"])+)? >
 }
 
-<GK_BLOCK, GK_animation_BLOCK, GK_STR_BLOCK, GK_VALUE_BLOCK, GK_objColor_BLOCK> TOKEN : {
+<GK_BLOCK, GK_animation_BLOCK, GK_STR_BLOCK, GK_VALUE_BLOCK, GK_EXPR_BLOCK> TOKEN : {
  < GK_INVALID: (~[";", "}"]) >
 }
 
@@ -2640,40 +2639,22 @@ void gpadStyleSheetPropertySlider(GpadStyleSheet styleSheet) :
     boolean hasFixed = false;
 }
 {
-    keyToken = <GK_slider> <GK_COLON> { token_source.SwitchTo(GK_objColor_BLOCK); }
+    keyToken = <GK_slider> <GK_COLON> { token_source.SwitchTo(GK_EXPR_BLOCK); }
     (
         // Parse min=<表达式>
-        <GK_slider_min> <GK_slider_equal>
-        {
-            minValue = gpadObjColorExpression();
-        }
+        <GK_slider_min> <GK_slider_equal> { minValue = gpadExpr(); }
     |
         // Parse max=<表达式>
-        <GK_slider_max> <GK_slider_equal>
-        {
-            maxValue = gpadObjColorExpression();
-        }
+        <GK_slider_max> <GK_slider_equal> { maxValue = gpadExpr(); }
     |
         // Parse width=<浮点数>
-        <GK_slider_width> <GK_slider_equal>
-        (
-            widthToken = <GK_objColor_FLOAT> { widthValue = widthToken.image; } |
-            widthToken = <GK_objColor_INTEGER> { widthValue = widthToken.image; }
-        )
+        <GK_slider_width> <GK_slider_equal> widthToken = <GK_EXPR_FLOAT> { widthValue = widthToken.image; }
     |
         // Parse x=<浮点数>
-        <GK_slider_x> <GK_slider_equal>
-        (
-            xToken = <GK_objColor_FLOAT> { xValue = xToken.image; } |
-            xToken = <GK_objColor_INTEGER> { xValue = xToken.image; }
-        )
+        <GK_slider_x> <GK_slider_equal> xToken = <GK_EXPR_FLOAT> { xValue = xToken.image; }
     |
         // Parse y=<浮点数>
-        <GK_slider_y> <GK_slider_equal>
-        (
-            yToken = <GK_objColor_FLOAT> { yValue = yToken.image; } |
-            yToken = <GK_objColor_INTEGER> { yValue = yToken.image; }
-        )
+        <GK_slider_y> <GK_slider_equal> yToken = <GK_EXPR_FLOAT> { yValue = yToken.image; }
     |
         // Parse vertical flag
         <GK_slider_vertical>
@@ -3267,9 +3248,9 @@ void gpadStyleSheetPropertyShow(GpadStyleSheet styleSheet) :
 /**
  * Helper rule to parse an expression (either TEXT or full expression)
  * Returns the parsed string value with escape sequences processed
- * Supports GLABEL, numbers, four arithmetic operations, and function calls
+ * Supports GLABEL, numbers, some operations, and function calls
  */
-String gpadObjColorExpression() :
+String gpadExpr() :
 {
     Token textToken = null;
     StringBuilder sb = new StringBuilder();
@@ -3289,28 +3270,57 @@ String gpadObjColorExpression() :
         }
     |
         { sb = new StringBuilder(); }
-        gpadObjColorExpressionTerm(sb)
+        gpadExprTerm(sb)
         { exprValue = sb.toString(); }
     )
     { return exprValue; }
 }
 
 /**
+ * Parse a label that can be either a keyword (such as rgb...) or a regular label
+ * This allows these keywords to be used as variable names in expressions
+ * Note: @screen is not included as it contains @ symbol and is not a valid identifier
+ */
+Token gpadExprLabel() :
+{
+    Token labelToken = null;
+}
+{
+    (
+        labelToken = <GK_objColor_rgb> |
+        labelToken = <GK_objColor_hsv> |
+        labelToken = <GK_objColor_hsl> |
+        labelToken = <GK_objColor_inverse> |
+        labelToken = <GK_slider_min> |
+        labelToken = <GK_slider_max> |
+        labelToken = <GK_slider_width> |
+        labelToken = <GK_slider_x> |
+        labelToken = <GK_slider_y> |
+        labelToken = <GK_slider_vertical> |
+        labelToken = <GK_slider_algebra> |
+        labelToken = <GK_slider_constant> |
+        labelToken = <GK_slider_fixed> |
+        labelToken = <GK_EXPR_LABEL>
+    )
+    { return labelToken; }
+}
+
+/**
  * Parse expression term (handles + and - operations, lowest priority)
  * term = factor (("+" | "-") factor)*
  */
-void gpadObjColorExpressionTerm(StringBuilder sb) :
+void gpadExprTerm(StringBuilder sb) :
 {
     Token opToken = null;
 }
 {
-    gpadObjColorExpressionFactor(sb)
+    gpadExprFactor(sb)
     (
-        (opToken = <GK_objColor_plus> | opToken = <GK_objColor_minus>)
+        (opToken = <GK_EXPR_plus> | opToken = <GK_EXPR_minus>)
         {
             sb.append(opToken.image);
         }
-        gpadObjColorExpressionFactor(sb)
+        gpadExprFactor(sb)
     )*
 }
 
@@ -3318,18 +3328,18 @@ void gpadObjColorExpressionTerm(StringBuilder sb) :
  * Parse expression factor (handles * and / operations, higher priority)
  * factor = power (("*" | "/") power)*
  */
-void gpadObjColorExpressionFactor(StringBuilder sb) :
+void gpadExprFactor(StringBuilder sb) :
 {
     Token opToken = null;
 }
 {
-    gpadObjColorExpressionPower(sb)
+    gpadExprPower(sb)
     (
-        (opToken = <GK_objColor_multiply> | opToken = <GK_objColor_divide>)
+        (opToken = <GK_EXPR_multiply> | opToken = <GK_EXPR_divide>)
         {
             sb.append(opToken.image);
         }
-        gpadObjColorExpressionPower(sb)
+        gpadExprPower(sb)
     )*
 }
 
@@ -3337,18 +3347,18 @@ void gpadObjColorExpressionFactor(StringBuilder sb) :
  * Parse expression power (handles ^ operation, highest priority, right-associative)
  * power = atom ("^" power)?
  */
-void gpadObjColorExpressionPower(StringBuilder sb) :
+void gpadExprPower(StringBuilder sb) :
 {
     Token opToken = null;
 }
 {
-    gpadObjColorExpressionAtom(sb)
+    gpadExprAtom(sb)
     (
-        opToken = <GK_objColor_power>
+        opToken = <GK_EXPR_power>
         {
             sb.append(opToken.image);
         }
-        gpadObjColorExpressionPower(sb)
+        gpadExprPower(sb)
     )?
 }
 
@@ -3356,7 +3366,7 @@ void gpadObjColorExpressionPower(StringBuilder sb) :
  * Parse expression atom (highest priority, handles labels, numbers, function calls, parentheses, unary minus)
  * atom = GLABEL | INTEGER | FLOAT | functionCall | "(" term ")" | "-" atom
  */
-void gpadObjColorExpressionAtom(StringBuilder sb) :
+void gpadExprAtom(StringBuilder sb) :
 {
     Token labelToken = null;
     Token intToken = null;
@@ -3368,65 +3378,38 @@ void gpadObjColorExpressionAtom(StringBuilder sb) :
 }
 {
     (
-        // Function call: GK_objColor_LABEL "(" [arg1] ["," arg2] ... ")"
+        // Function call: gpadExprLabel "(" [arg1] ["," arg2] ... ")"
         // Use LOOKAHEAD to distinguish function call from plain label
-        LOOKAHEAD(<GK_objColor_LABEL> <GK_objColor_lparen>)
-        funcNameToken = <GK_objColor_LABEL>
-        lparenToken = <GK_objColor_lparen>
+        LOOKAHEAD(gpadExprLabel() <GK_EXPR_lparen>)
+        funcNameToken = gpadExprLabel()
+        lparenToken = <GK_EXPR_lparen>
         {
             sb.append(funcNameToken.image);
             sb.append(lparenToken.image);
         }
         (
-            gpadObjColorExpressionTerm(sb)
+            gpadExprTerm(sb)
             (
-                <GK_objColor_comma>
-                {
-                    sb.append(",");
-                }
-                gpadObjColorExpressionTerm(sb)
+                <GK_EXPR_comma> { sb.append(","); }
+                gpadExprTerm(sb)
             )*
         )?
-        rparenToken = <GK_objColor_rparen>
-        {
-            sb.append(rparenToken.image);
-        }
+        rparenToken = <GK_EXPR_rparen> { sb.append(rparenToken.image); }
     |
-        // GK_objColor_LABEL (label, not a function call, includes x, y, z)
-        labelToken = <GK_objColor_LABEL>
-        {
-            sb.append(labelToken.image);
-        }
+        // gpadExprLabel (label, not a function call, includes x, y, z, rgb, min, max, etc.)
+        labelToken = gpadExprLabel() { sb.append(labelToken.image); }
     |
-        // INTEGER
-        intToken = <GK_objColor_INTEGER>
-        {
-            sb.append(intToken.image);
-        }
-    |
-        // FLOAT
-        floatToken = <GK_objColor_FLOAT>
-        {
-            sb.append(floatToken.image);
-        }
+        // NUMBER (integer or float)
+        floatToken = <GK_EXPR_FLOAT> { sb.append(floatToken.image); }
     |
         // Parenthesized expression: "(" term ")"
-        lparenToken = <GK_objColor_lparen>
-        {
-            sb.append(lparenToken.image);
-        }
-        gpadObjColorExpressionTerm(sb)
-        rparenToken = <GK_objColor_rparen>
-        {
-            sb.append(rparenToken.image);
-        }
+        lparenToken = <GK_EXPR_lparen> { sb.append(lparenToken.image); }
+        gpadExprTerm(sb)
+        rparenToken = <GK_EXPR_rparen> { sb.append(rparenToken.image); }
     |
         // Unary minus: "-" atom
-        opToken = <GK_objColor_minus>
-        {
-            sb.append(opToken.image);
-        }
-        gpadObjColorExpressionAtom(sb)
+        opToken = <GK_EXPR_minus> { sb.append(opToken.image); }
+        gpadExprAtom(sb)
     )
 }
 
@@ -3454,7 +3437,7 @@ void gpadStyleSheetPropertyObjColor(GpadStyleSheet styleSheet) :
     String value = null;
 }
 {
-    keyToken = <GK_objColor> <GK_COLON> { token_source.SwitchTo(GK_objColor_BLOCK); }
+    keyToken = <GK_objColor> <GK_COLON> { token_source.SwitchTo(GK_EXPR_BLOCK); }
     (
         // Parse static color: #rrggbb or #rrggbbaa
         colorToken = <GK_objColor_RGBA_HEX_COLOR>
@@ -3466,21 +3449,21 @@ void gpadStyleSheetPropertyObjColor(GpadStyleSheet styleSheet) :
             <GK_objColor_hsv> { colorSpace = "1"; } |
             <GK_objColor_hsl> { colorSpace = "2"; }
         )
-        <GK_objColor_lparen>
+        <GK_EXPR_lparen>
         // First parameter (r/h/s)
-        dynamicr = gpadObjColorExpression()
-        <GK_objColor_comma>
+        dynamicr = gpadExpr()
+        <GK_EXPR_comma>
         // Second parameter (g/s/s)
-        dynamicg = gpadObjColorExpression()
-        <GK_objColor_comma>
+        dynamicg = gpadExpr()
+        <GK_EXPR_comma>
         // Third parameter (b/v/l)
-        dynamicb = gpadObjColorExpression()
+        dynamicb = gpadExpr()
         [
-            <GK_objColor_comma>
+            <GK_EXPR_comma>
             // Fourth parameter (alpha, optional)
-            dynamica = gpadObjColorExpression()
+            dynamica = gpadExpr()
         ]
-        <GK_objColor_rparen>
+        <GK_EXPR_rparen>
     )?
     (
         // Parse fill=xxx (fillType is lowercase letters only)
