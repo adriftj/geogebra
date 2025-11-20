@@ -36,6 +36,7 @@ public class GpadStyleMaps {
 	public static final Map<String, String> GPAD_TO_XML_ATTR_NAME_MAP = Map.of(
 			"audio", "src",
 			"curveParam", "t",
+			"decoration", "type",
 			"filename", "name",
 			"hideLabelInAlgebra", "labelVisible",
 			"linkedGeo", "exp",

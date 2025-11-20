@@ -1038,7 +1038,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 	}
 
 	@Test
-	public void testConvertObjColorWithFillSymbolNeedingQuotes() {
+	public void testConvertObjColorWithSpecialFillSymbol() {
 		// Test objColor with fill symbol containing special characters (should be quoted)
 		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
@@ -1048,14 +1048,13 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("g", "0");
 		attrs.put("b", "0");
 		attrs.put("fillType", "8");
-		attrs.put("fillSymbol", "symbol, with; special}");
+		attrs.put("fillSymbol", "\r");
 		styleMap.put("objColor", attrs);
 		
 		String gpad = converter.convert("test", styleMap);
 		assertNotNull(gpad);
-		assertTrue("Should contain symbol=", gpad.contains("symbol="));
-		// Symbol with special chars should be quoted
-		assertTrue("Should contain quoted symbol", gpad.contains("\"symbol, with; special}\""));
+		// Symbol with special chars should be skipped
+		assertTrue("Should not contain special symbol", !gpad.contains("symbol="));
 	}
 
 	@Test
@@ -1583,8 +1582,8 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		
 		String gpad = converter.convert("test", styleMap);
 		assertNotNull(gpad);
-		// Expressions with tab should be quoted and escaped
-		assertTrue("Should contain quoted expression with \\t", gpad.contains("\"x\\ty\""));
+		// Expressions with tab should be quoted but not escaped
+		assertTrue("Should contain quoted but not escaped expression with <tab>", gpad.contains("\"x\ty\""));
 	}
 
 	@Test
@@ -1661,7 +1660,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		assertNotNull(gpad);
 		// All special characters should be properly escaped
 		assertTrue("Should contain quoted expression", gpad.contains("\"x, y; z } w\""));
-		assertTrue("Should contain escaped newline and tab", gpad.contains("\"a\\nb\\tc\""));
+		assertTrue("Should contain escaped newline", gpad.contains("\"a\\nb\tc\""));
 		assertTrue("Should contain escaped quote and backslash", gpad.contains("\"d\\\"e\\\\f\""));
 	}
 

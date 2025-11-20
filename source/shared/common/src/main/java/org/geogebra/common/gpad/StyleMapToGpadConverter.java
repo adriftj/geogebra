@@ -1,11 +1,9 @@
 package org.geogebra.common.gpad;
 
 import java.util.regex.Pattern;
-import java.util.regex.Matcher;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.geogebra.common.kernel.parser.Parser;
-import org.geogebra.common.kernel.parser.ParseException;
 
 /**
  * Converts style map (Map<String, LinkedHashMap<String, String>>) to Gpad format.
@@ -209,7 +207,7 @@ public class StyleMapToGpadConverter {
 			if (hasAny && prefix==null)
 				sb.append(" ");
 			// If step is an expression (not a plain number), wrap it in quotes
-			if (isExpression(step))
+			if (isNotSimpleNumber(step))
 				sb.append("\"").append(step).append("\"");
 			else
 				sb.append(step);
@@ -223,7 +221,7 @@ public class StyleMapToGpadConverter {
 				sb.append(" ");
 			sb.append("speed=");
 			// If speed is an expression (not a plain number), wrap it in quotes
-			if (isExpression(speed))
+			if (isNotSimpleNumber(speed))
 				sb.append("\"").append(speed).append("\"");
 			else
 				sb.append(speed);
@@ -239,7 +237,7 @@ public class StyleMapToGpadConverter {
 	 * @param value the string to check
 	 * @return true if the string is an expression, false if it's a plain number
 	 */
-	private boolean isExpression(String value) {
+	private boolean isNotSimpleNumber(String value) {
 		if (value == null || value.isEmpty())
 			return false;
 		
@@ -325,29 +323,21 @@ public class StyleMapToGpadConverter {
 	}
 
 	/**
-	 * Converts color attributes (r, g, b, alpha) to hex format.
-	 * Outputs #rrggbb if alpha is default (1.0 or "ff"), otherwise #rrggbbaa.
+	 * Converts RGB color values to hex format.
+	 * Outputs #rrggbb if alpha is default (1.0), otherwise #rrggbbaa.
 	 * 
-	 * @param attrs
-	 *            color attributes map
-	 * @return hex color string (e.g., "#FF0000" or "#FF0000FF")
+	 * @param rStr red value as string (0-255)
+	 * @param gStr green value as string (0-255)
+	 * @param bStr blue value as string (0-255)
+	 * @param alphaStr alpha value as string (0.0-1.0), can be null
+	 * @return hex color string (e.g., "#FF0000" or "#FF0000FF"), or "#000000" on parse error
 	 */
-	private String convertColorToHex(LinkedHashMap<String, String> attrs) {
-		if (attrs == null || attrs.isEmpty()) {
-			return "";
-		}
-
-		// Check if we have r, g, b values
-		String rStr = attrs.get("r");
-		String gStr = attrs.get("g");
-		String bStr = attrs.get("b");
-		String alphaStr = attrs.get("alpha");
-
+	private String convertRgbToHex(String rStr, String gStr, String bStr, String alphaStr) {
 		try {
 			// Convert r, g, b to hex
-			int r = rStr==null? 0: Integer.parseInt(rStr);
-			int g = gStr==null? 0: Integer.parseInt(gStr);
-			int b = bStr==null? 0: Integer.parseInt(bStr);
+			int r = rStr == null ? 0 : Integer.parseInt(rStr);
+			int g = gStr == null ? 0 : Integer.parseInt(gStr);
+			int b = bStr == null ? 0 : Integer.parseInt(bStr);
 
 			// Clamp values to 0-255
 			r = Math.max(0, Math.min(255, r));
@@ -378,11 +368,34 @@ public class StyleMapToGpadConverter {
 				}
 			}
 
-		return sb.toString();
-	} catch (NumberFormatException e) {
-		return "#000000";
+			return sb.toString();
+		} catch (NumberFormatException e) {
+			return "#000000";
+		}
 	}
-}
+
+	/**
+	 * Converts color attributes (r, g, b, alpha) to hex format.
+	 * Outputs #rrggbb if alpha is default (1.0 or "ff"), otherwise #rrggbbaa.
+	 * 
+	 * @param attrs
+	 *            color attributes map
+	 * @return hex color string (e.g., "#FF0000" or "#FF0000FF")
+	 */
+	private String convertColorToHex(LinkedHashMap<String, String> attrs) {
+		if (attrs == null || attrs.isEmpty())
+			return "";
+
+		String rStr = attrs.get("r");
+		String gStr = attrs.get("g");
+		String bStr = attrs.get("b");
+		String alphaStr = attrs.get("alpha");
+
+		if (rStr == null && gStr == null && bStr == null && alphaStr == null)
+			return "";
+
+		return convertRgbToHex(rStr, gStr, bStr, alphaStr);
+	}
 
 	/**
 	 * Converts objColor XML attributes to Gpad format.
@@ -392,9 +405,8 @@ public class StyleMapToGpadConverter {
 	 * @return Gpad objColor string (e.g., "#FF0000" or "rgb(x, y, z) fill=hatch angle=45")
 	 */
 	private String convertObjColor(LinkedHashMap<String, String> attrs) {
-		if (attrs == null || attrs.isEmpty()) {
+		if (attrs == null || attrs.isEmpty())
 			return "";
-		}
 
 		StringBuilder sb = new StringBuilder();
 		boolean first = true;
@@ -452,45 +464,9 @@ public class StyleMapToGpadConverter {
 			first = false;
 		} else {
 			// Static color - use hex format
-			String rStr = attrs.get("r");
-			String gStr = attrs.get("g");
-			String bStr = attrs.get("b");
-			String alphaStr = attrs.get("alpha");
-
-			try {
-				int r = rStr == null ? 0 : Integer.parseInt(rStr);
-				int g = gStr == null ? 0 : Integer.parseInt(gStr);
-				int b = bStr == null ? 0 : Integer.parseInt(bStr);
-
-				// Clamp values to 0-255
-				r = Math.max(0, Math.min(255, r));
-				g = Math.max(0, Math.min(255, g));
-				b = Math.max(0, Math.min(255, b));
-
-				sb.append("#");
-				sb.append(String.format("%02X", r));
-				sb.append(String.format("%02X", g));
-				sb.append(String.format("%02X", b));
-
-				if (alphaStr != null) {
-					double alpha;
-					try {
-						alpha = Double.parseDouble(alphaStr);
-					} catch (NumberFormatException e) {
-						alpha = 1.0;
-					}
-
-					// Only append alpha if it's not the default value (1.0 = ff)
-					if (Math.abs(alpha - 1.0) > 1e-6) {
-						int alphaInt = (int) Math.round(alpha * 255);
-						alphaInt = Math.max(0, Math.min(255, alphaInt));
-						sb.append(String.format("%02X", alphaInt));
-					}
-				}
-				first = false;
-			} catch (NumberFormatException e) {
-				// If parsing fails, use default black
-				sb.append("#000000");
+			String s = convertColorToHex(attrs);
+			if (s != null && !s.isEmpty()) {
+				sb.append(s);
 				first = false;
 			}
 		}
@@ -552,20 +528,27 @@ public class StyleMapToGpadConverter {
 			if (!first)
 				sb.append(" ");
 			sb.append("image=");
-			// Image path may contain special characters, so simplify it
-			sb.append(simplifyExpression(image));
+			// Image path may contain special characters, so escape if needed
+			if (containsSpecialChars(image))
+				sb.append("\"").append(escapeString(image)).append("\"");
+			else
+				sb.append(image);
 			first = false;
 		}
 
 		// Add fill symbol (if present)
 		String fillSymbol = attrs.get("fillSymbol");
 		if (fillSymbol != null && !fillSymbol.isEmpty()) {
-			if (!first)
-				sb.append(" ");
-			sb.append("symbol=");
-			// Symbol may contain special characters, so simplify it
-			sb.append(simplifyExpression(fillSymbol));
-			first = false;
+			// Only use the first character
+			char firstChar = fillSymbol.charAt(0);
+			// Check if it's a printable Unicode character (>= 0x20 and not 0x7F)
+			if (firstChar >= 0x20 && firstChar != 0x7F) {
+				if (!first)
+					sb.append(" ");
+				sb.append("symbol=").append(firstChar);
+				first = false;
+			}
+			// If not printable, omit it (equivalent to no fillSymbol attribute)
 		}
 
 		// Add inverse fill (default is false, so only output if true)
@@ -585,6 +568,21 @@ public class StyleMapToGpadConverter {
 	}
 
 	/**
+	 * Escapes special characters in a string for use in quoted Gpad strings.
+	 * Escapes: backslash, double quote, newline, carriage return.
+	 * Note: tab character (\t) does not need escaping in quoted strings.
+	 * 
+	 * @param str the string to escape
+	 * @return the escaped string
+	 */
+	private String escapeString(String str) {
+		return str.replace("\\", "\\\\")
+				  .replace("\"", "\\\"")
+				  .replace("\n", "\\n")
+				  .replace("\r", "\\r");
+	}
+
+	/**
 	 * Simplifies an expression by checking if it's a "simple" expression according to grammar rules.
 	 * If the expression can be parsed by gpadObjColorExpression() without quotes and consumes all input, it's simple.
 	 * Otherwise, it wraps the expression in quotes and escapes special characters.
@@ -593,50 +591,13 @@ public class StyleMapToGpadConverter {
 	 * @return simplified expression (either as-is or quoted with escapes)
 	 */
 	private String simplifyExpression(String expr) {
-		if (expr == null || expr.isEmpty()) {
+		if (expr == null || expr.isEmpty())
 			return "";
-		}
 
 		// First, check if expression contains special characters that definitely need quotes
 		// These characters cannot appear in unquoted expressions in GK_objColor_BLOCK
-		boolean hasSpecialChars = false;
-		for (int i = 0; i < expr.length(); i++) {
-			char c = expr.charAt(i);
-			if (c == ',' || c == ';' || c == '}' || c == '\r' || c == '\n' || c == ' ' || c == '\t') {
-				hasSpecialChars = true;
-				break;
-			}
-		}
-
-		// If contains special characters, directly quote and escape
-		if (hasSpecialChars) {
-			StringBuilder sb = new StringBuilder("\"");
-			for (int i = 0; i < expr.length(); i++) {
-				char c = expr.charAt(i);
-				switch (c) {
-				case '\\':
-					sb.append("\\\\");
-					break;
-				case '"':
-					sb.append("\\\"");
-					break;
-				case '\n':
-					sb.append("\\n");
-					break;
-				case '\r':
-					sb.append("\\r");
-					break;
-				case '\t':
-					sb.append("\\t");
-					break;
-				default:
-					sb.append(c);
-					break;
-				}
-			}
-			sb.append("\"");
-			return sb.toString();
-		}
+		if (containsSpecialChars(expr))
+			return "\"" + escapeString(expr) + "\"";
 
 		// No obvious special characters, try to parse the expression using the grammar rules
 		// If it parses successfully and consumes all input, it's a "simple" expression and doesn't need quotes
@@ -649,53 +610,18 @@ public class StyleMapToGpadConverter {
 			// Check if all input was consumed by checking if next token is EOF
 			// getToken(0) returns the current token, getToken(1) returns the next token
 			org.geogebra.common.kernel.parser.Token nextToken = parser.getToken(1);
-			if (nextToken != null && nextToken.kind == org.geogebra.common.kernel.parser.ParserConstants.EOF) {
-				// All input consumed, it's a simple expression
-				needsQuotes = false;
-			} else {
-				// There's remaining input, expression needs quotes
-				needsQuotes = true;
-			}
-		} catch (ParseException e) {
-			// Parsing failed, expression needs quotes
-			needsQuotes = true;
+			needsQuotes = !(nextToken != null && nextToken.kind == org.geogebra.common.kernel.parser.ParserConstants.EOF);
+			// if all input consumed, it's a simple expression
 		} catch (Exception e) {
-			// Any other exception, assume it needs quotes
-			needsQuotes = true;
+			// Parsing failed or other exception, expression needs quotes
+			// needsQuotes is already true, no need to set it again
 		}
 
-		if (!needsQuotes) {
-			// No special characters, return as-is
+		if (!needsQuotes) // No special characters, return as-is
 			return expr;
-		}
 
 		// Parsing failed or didn't consume all input, wrap in quotes and escape
-		StringBuilder sb = new StringBuilder("\"");
-		for (int i = 0; i < expr.length(); i++) {
-			char c = expr.charAt(i);
-			switch (c) {
-			case '\\':
-				sb.append("\\\\");
-				break;
-			case '"':
-				sb.append("\\\"");
-				break;
-			case '\n':
-				sb.append("\\n");
-				break;
-			case '\r':
-				sb.append("\\r");
-				break;
-			case '\t':
-				sb.append("\\t");
-				break;
-			default:
-				sb.append(c);
-				break;
-			}
-		}
-		sb.append("\"");
-		return sb.toString();
+		return "\"" + escapeString(expr) + "\"";
 	}
 
 	/**
@@ -777,15 +703,13 @@ public class StyleMapToGpadConverter {
 
 		// 现在只能是字符串值，转换为 Gpad 格式（如果有特殊字符，需要用引号括起来并转义）
 		if (containsSpecialChars(value)) // 注意：这里的顺序很重要
-			value = "\"" + value.replace("\\", "\\\\")
-						 .replace("\"", "\\\"")
-						 .replace("\n", "\\n")
-						 .replace("\r", "\\r") + "\"";
+			value = "\"" + escapeString(value) + "\"";
 		return gpadName + ": " + value;
 	}
 
-    // 特殊字符：双引号、分号、右大括号、空格、制表符、回车、换行
-    // 这些字符在 GK_STR 值中必须用引号括起来
+    // 特殊字符：分号、双引号、右大括号、空格、制表符、回车、换行
+    // 这些字符在 GK_STR 值和 objColor 表达式中必须用引号括起来
+    // 注意：逗号不需要在此检测，因为语法分析可以处理包含逗号的合法表达式（如函数参数）
     private static final Pattern SPECIAL_CHARS_PATTERN = Pattern.compile("[;\"}\t \r\n]");
 
 	private static boolean containsSpecialChars(String text) {
