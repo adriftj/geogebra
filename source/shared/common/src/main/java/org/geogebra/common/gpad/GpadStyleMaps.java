@@ -39,7 +39,8 @@ public class GpadStyleMaps {
 			"filename", "name",
 			"hideLabelInAlgebra", "labelVisible",
 			"linkedGeo", "exp",
-			"showIf", "showObject");
+			"showIf", "showObject",
+			"video", "src");
 
 	/**
 	 * 布尔值反转取值表
@@ -119,6 +120,7 @@ public class GpadStyleMaps {
 			// GK_STR 类型（存储 XML 格式的默认值）
 			// 对于有值映射的属性，这里存储的是 XML 值（如 "0"），而不是 Gpad 值（如 "0-360"）
 			Map.entry("angleStyle", new PropertyInfo(GK_STR, "0")), // XML 中 "0" 对应 Gpad 的 "0-360"
+			Map.entry("audio", new PropertyInfo(GK_STR, "")), // XML 属性名是 "src"
 			Map.entry("caption", new PropertyInfo(GK_STR, "")),
 			Map.entry("content", new PropertyInfo(GK_STR, "")),
 			Map.entry("coordStyle", new PropertyInfo(GK_STR, "cartesian")),
@@ -137,7 +139,8 @@ public class GpadStyleMaps {
 			Map.entry("startStyle", new PropertyInfo(GK_STR, "default")),
 			Map.entry("textAlign", new PropertyInfo(GK_STR, "left")),
 			Map.entry("tooltipMode", new PropertyInfo(GK_STR, "0")), // XML 中 "0" 对应 Gpad 的 "algebraview"
-			Map.entry("verticalAlign", new PropertyInfo(GK_STR, "top")));
+			Map.entry("verticalAlign", new PropertyInfo(GK_STR, "top")),
+			Map.entry("video", new PropertyInfo(GK_STR, ""))); // XML 属性名是 "src"
 
 	// ==================== lineStyle 相关 ====================
 

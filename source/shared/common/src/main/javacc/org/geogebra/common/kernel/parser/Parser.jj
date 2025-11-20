@@ -709,7 +709,6 @@ TOKEN : {
  < GK_userinput: "userinput" > |
  < GK_value: "value" > |
  < GK_variables: "variables" > |
- < GK_video: "video" > |
  < GK_BOOL: "autocolor" |
     "auxiliary" |
     "breakpoint" |
@@ -742,6 +741,7 @@ TOKEN : {
     "ordering" |
     "pointSize" > |
  < GK_STR: "angleStyle" |
+    "audio" |
     "caption" |
     "content" |
     "coordStyle" |
@@ -760,7 +760,8 @@ TOKEN : {
     "startStyle" |
     "textAlign" |
     "tooltipMode" |
-    "verticalAlign" > |
+    "verticalAlign" |
+    "video" > |
  < GK_XYCOORDS: "@screen" | "labelOffset" > |
  < GK_RGBA: "bgColor" | "borderColor" > |
  < GK_DELETE: "~"((["A"-"Z"]|["a"-"z"]|"@")+) > |

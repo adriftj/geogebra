@@ -645,7 +645,7 @@ public class StyleMapToGpadConverter {
 			Parser parser = new Parser();
 			parser.ReInit(new org.geogebra.common.kernel.parser.StringProvider(expr.trim()));
 			parser.token_source.SwitchTo(org.geogebra.common.kernel.parser.ParserConstants.GK_objColor_BLOCK);
-			String parsed = parser.gpadObjColorExpression();
+			parser.gpadObjColorExpression();
 			// Check if all input was consumed by checking if next token is EOF
 			// getToken(0) returns the current token, getToken(1) returns the next token
 			org.geogebra.common.kernel.parser.Token nextToken = parser.getToken(1);
@@ -722,12 +722,8 @@ public class StyleMapToGpadConverter {
 
 		// 获取属性值
 		String value = attrs != null ? attrs.get(attrName) : null;
-		if (value == null && attrs != null && attrs.size() == 1) {
-			// 如果没有找到特殊属性名，尝试使用唯一的属性值
-			value = attrs.values().iterator().next();
-			if (value == null)
-				return null; // 找不到值，省略
-		}
+		if (value == null)
+			return null; // 找不到值，省略
 
 		// 检查是否是默认值，如果是则返回 null 表示省略
 		String defaultValue = propInfo.defaultValue;
