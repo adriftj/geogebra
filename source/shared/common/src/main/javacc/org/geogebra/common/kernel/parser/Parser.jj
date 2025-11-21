@@ -47,8 +47,8 @@ options {
    STATIC = false;
    JAVA_TEMPLATE_TYPE = "modern";
    DEBUG_PARSER = true;
-   DEBUG_LOOKAHEAD = true;
-   DEBUG_TOKEN_MANAGER = true;
+   //DEBUG_LOOKAHEAD = true;
+   //DEBUG_TOKEN_MANAGER = true;
 }
 
 PARSER_BEGIN(Parser)
@@ -868,6 +868,9 @@ TOKEN : {
  < GK_show_tilde_3d: "~3d" > |
  < GK_show_plane: "plane" > |
  < GK_show_tilde_plane: "~plane" > |
+ // tableview boolean flags
+ < GK_tableview_points: "points" > |
+ < GK_tableview_tilde_points: "~points" > |
  < GK_VALUE_width: "width" > |
  < GK_VALUE_height: "height" > |
  < GK_VALUE_equal: "=" > |
@@ -2372,7 +2375,8 @@ void gpadStyleSheetKeyValue(GpadStyleSheet styleSheet) :
         gpadStyleSheetPropertyFont(styleSheet) | // font key
         gpadStyleSheetPropertyShow(styleSheet) | // show key
         gpadStyleSheetPropertyObjColor(styleSheet) | // objColor key
-        gpadStyleSheetPropertySlider(styleSheet) // slider key
+        gpadStyleSheetPropertySlider(styleSheet) | // slider key
+        gpadStyleSheetPropertyTableView(styleSheet) // tableview key
         )
         { token_source.SwitchTo(DEFAULT); }
     }
@@ -2768,6 +2772,68 @@ void gpadStyleSheetPropertySlider(GpadStyleSheet styleSheet) :
         if (hasConstant)
             attrs.put("arbitraryConstant", String.valueOf(constant));
 
+        styleSheet.setProperty(keyToken.image, attrs);
+    }
+}
+
+/**
+ * Parses tableview property
+ * Syntax: tableview: [<整数>] [points|~points];
+ * Examples:
+ *   tableview: 2 points;     // column=2, points=true
+ *   tableview: 1 ~points;    // column=1, points=false
+ *   tableview: points;       // no column, points=true
+ *   tableview: 3;            // column=3, no points
+ *   tableview: ~points;      // no column, points=false
+ */
+void gpadStyleSheetPropertyTableView(GpadStyleSheet styleSheet) :
+{
+    Token keyToken;
+    Token columnToken = null;
+    String columnValue = null;
+    boolean points = true;
+    boolean hasPoints = false;
+    int dotIndex;
+}
+{
+    keyToken = <GK_tableview> <GK_COLON> { token_source.SwitchTo(GK_VALUE_BLOCK); }
+    (
+        // Parse column number (integer)
+        columnToken = <GK_VALUE_float>
+        {
+            // Extract integer part (ignore decimal if present)
+            String columnStr = columnToken.image;
+            dotIndex = columnStr.indexOf('.');
+            if (dotIndex >= 0)
+                columnStr = columnStr.substring(0, dotIndex);
+            columnValue = columnStr;
+        }
+    |
+        // Parse points flag
+        <GK_tableview_points>
+        {
+            points = true;
+            hasPoints = true;
+        }
+    |
+        // Parse ~points flag
+        <GK_tableview_tilde_points>
+        {
+            points = false;
+            hasPoints = true;
+        }
+    )*
+    {
+        java.util.LinkedHashMap<String, String> attrs = new java.util.LinkedHashMap<>();
+        
+        // Set column if provided
+        if (columnValue != null)
+            attrs.put("column", columnValue);
+        
+        // Set points if provided (default is true, so only set if explicitly false)
+        if (hasPoints)
+            attrs.put("points", String.valueOf(points));
+        
         styleSheet.setProperty(keyToken.image, attrs);
     }
 }

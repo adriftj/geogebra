@@ -50,7 +50,7 @@ public class GpadStyleXMLApplier {
 	 */
 	private static final Map<String, Set<String>> REQUIRED_ATTRIBUTE_NAMES = Map.ofEntries(
 			// value element: val attribute is required (throws exception when parsing)
-			Map.entry("value", java.util.Set.of("val")),
+			Map.entry("value", java.util.Set.of("val")), // gpad style "random" require this default value
 			
 			// slider element: width is required (throws exception in setSliderWidth)
 			Map.entry("slider", java.util.Set.of("width")),
@@ -80,7 +80,11 @@ public class GpadStyleXMLApplier {
 			Map.entry("tag", java.util.Set.of("key", "value", "barNumber")),
 			
 			// contentSize element: width and height are required
-			Map.entry("contentSize", java.util.Set.of("width", "height"))
+			Map.entry("contentSize", java.util.Set.of("width", "height")),
+			
+			// tableview element: column is required (to avoid null pointer exception in parseDoubleNaN)
+			// points is optional (default is true, but if not provided, parseBoolean(null) returns false)
+			Map.entry("tableview", java.util.Set.of("column", "points"))
 	);
 	
 	/**
@@ -100,9 +104,8 @@ public class GpadStyleXMLApplier {
 		Set<String> requiredAttrNames = REQUIRED_ATTRIBUTE_NAMES.get(tagName);
 		
 		// If this tag has no required attributes (like "show"), skip filling
-		if (requiredAttrNames == null || requiredAttrNames.isEmpty()) {
+		if (requiredAttrNames == null || requiredAttrNames.isEmpty())
 			return;
-		}
 		
 		// Get default attributes for this tag from the default geo
 		LinkedHashMap<String, String> defaultAttrs = getDefaultAttrsForTag(geo, tagName);
@@ -111,27 +114,21 @@ public class GpadStyleXMLApplier {
 		for (String attrName : requiredAttrNames) {
 			if (!attrs.containsKey(attrName) || attrs.get(attrName) == null) {
 				String defaultValue = null;
-				
-				// Try to get default value from default geo
-				if (defaultAttrs != null && defaultAttrs.containsKey(attrName)) {
-					defaultValue = defaultAttrs.get(attrName);
-				}
-				
+
 				// Special handling for value element's val attribute:
-				// If default geo doesn't have value element, use current geo's value
-				if ("value".equals(tagName) && "val".equals(attrName) && defaultValue == null) {
+				// Use current geo's value
+				if ("value".equals(tagName) && "val".equals(attrName))
 					defaultValue = getDefaultValueForValueElement(geo);
+				else if ("javascript".equals(tagName) && "val".equals(attrName))
+					defaultValue = ""; // for javascript element's val, use ""
+				else {
+					// Try to get default value from default geo
+					if (defaultAttrs != null && defaultAttrs.containsKey(attrName))
+						defaultValue = defaultAttrs.get(attrName);
 				}
-				
-				// Special handling for javascript element's val attribute:
-				// Default to empty string if not found
-				if ("javascript".equals(tagName) && "val".equals(attrName) && defaultValue == null) {
-					defaultValue = "";
-				}
-				
-				if (defaultValue != null) {
+
+				if (defaultValue != null)
 					attrs.put(attrName, defaultValue);
-				}
 			}
 		}
 	}
@@ -267,6 +264,19 @@ public class GpadStyleXMLApplier {
 		if ("dynamicCaption".equals(tagName)) {
 			LinkedHashMap<String, String> clearAttrs = new LinkedHashMap<>();
 			clearAttrs.put("val", "");  // Empty string (may not fully clear via XML)
+			return clearAttrs;
+		}
+		
+		// tableview - provide default value for column only
+		// Default: column=-1 (not in table)
+		// points is optional: if not provided, parseBoolean(null) returns false, but we want default true
+		// So we also provide points default value to ensure correct behavior
+		if ("tableview".equals(tagName)) {
+			LinkedHashMap<String, String> clearAttrs = new LinkedHashMap<>();
+			clearAttrs.put("column", "-1");
+			// Note: points default is true, but if not in attrs, parseBoolean(null) returns false
+			// So we provide default to ensure correct behavior when points is not specified
+			clearAttrs.put("points", "true");
 			return clearAttrs;
 		}
 		

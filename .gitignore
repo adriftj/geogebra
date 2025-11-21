@@ -6,3 +6,6 @@ build/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Backup files
+*.bak

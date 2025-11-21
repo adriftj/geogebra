@@ -36,19 +36,6 @@ public class StyleMapToGpadConverter {
 			String tagName = entry.getKey();
 			LinkedHashMap<String, String> attrs = entry.getValue();
 
-			// Special handling for value element: convert based on object type
-			if ("value".equals(tagName)) {
-				String gpadProperty = convertValueElement(attrs, objectType);
-				if (gpadProperty != null && !gpadProperty.isEmpty()) {
-					if (!first)
-						sb.append(";");
-					sb.append(" ");
-					sb.append(gpadProperty);
-					first = false;
-				}
-				continue;
-			}
-
 			// Special handling for checkbox: if fixed="true", output both "checkbox;" and "fixed;"
 			if ("checkbox".equals(tagName)) {
 				String fixed = attrs != null ? attrs.get("fixed") : null;
@@ -62,22 +49,8 @@ public class StyleMapToGpadConverter {
 				continue;
 			}
 
-			// Special handling for slider: output slider with its attributes
-			// Note: slider's @screen, fixed, x, y are independent properties
-			if ("slider".equals(tagName)) {
-				String gpadProperty = convertSlider(attrs);
-				if (gpadProperty != null && !gpadProperty.isEmpty()) {
-					if (!first)
-						sb.append(";");
-					sb.append(" ");
-					sb.append(gpadProperty);
-					first = false;
-				}
-				continue;
-			}
-
 			// Convert XML tag name and attributes to Gpad format
-			String gpadProperty = convertPropertyToGpad(tagName, attrs);
+			String gpadProperty = convertPropertyToGpad(tagName, attrs, objectType);
 			if (gpadProperty != null && !gpadProperty.isEmpty()) {
 				if (!first)
 					sb.append(";");
@@ -96,8 +69,6 @@ public class StyleMapToGpadConverter {
 	 * - For Numeric type: converts random attribute to random style (if random="true")
 	 * - Otherwise: ignores
 	 * 
-	 * Note: Button's script is now handled by javascript element via convertSimplePropertyToGpad
-	 * 
 	 * @param attrs value element attributes
 	 * @param objectType object type name (e.g., "Button", "Numeric")
 	 * @return Gpad property string, or null if should be omitted
@@ -108,13 +79,8 @@ public class StyleMapToGpadConverter {
 
 		// For Numeric type: convert random attribute to random style
 		if ("Numeric".equals(objectType)) {
-			// Check random attribute
-			String random = attrs.get("random");
-			if ("true".equals(random)) {
-				// Convert to random style (GK_BOOL)
+			if ("true".equals(attrs.get("random")))
 				return "random";
-			}
-			return null;
 		}
 
 		// For other types: ignore
@@ -126,9 +92,10 @@ public class StyleMapToGpadConverter {
 	 * 
 	 * @param tagName XML tag name (e.g., "lineStyle", "objColor")
 	 * @param attrs attribute map
+	 * @param objectType object type name (e.g., "Button", "Numeric"), can be null
 	 * @return Gpad property string (e.g., "lineStyle: thickness=4 opacity=178")
 	 */
-	private String convertPropertyToGpad(String tagName, LinkedHashMap<String, String> attrs) {
+	private String convertPropertyToGpad(String tagName, LinkedHashMap<String, String> attrs, String objectType) {
 		String prop = convertSimplePropertyToGpad(tagName, attrs);
 		if (prop == null)
 			return null;
@@ -141,6 +108,16 @@ public class StyleMapToGpadConverter {
 		String convertedValue = null;
 
 		switch (tagName) {
+		case "value":
+			// value: convert based on object type (e.g., "random" for Numeric)
+			// It is a special boolean property but won't be processed by convertSimplePropertyToGpad
+			return convertValueElement(attrs, objectType);
+		case "slider":
+			convertedValue = convertSlider(attrs);
+			break;
+		case "tableview":
+			convertedValue = convertTableView(attrs);
+			break;
 		case "lineStyle":
 			// lineStyle: dashedlong thickness=5 hidden opacity=128 ~arrow
 			convertedValue = convertLineStyle(attrs);
@@ -1172,14 +1149,13 @@ public class StyleMapToGpadConverter {
 	 * Note: @screen, fixed, x, y are independent properties for the slider
 	 * 
 	 * @param attrs slider attributes
-	 * @return Gpad slider string (e.g., "slider: min=0 max=10 width=200 x=100 y=200 vertical algebra @screen fixed")
+	 * @return Gpad slider string (e.g., "min=0 max=10 width=200 x=100 y=200 vertical algebra @screen fixed")
 	 */
 	private String convertSlider(LinkedHashMap<String, String> attrs) {
 		if (attrs == null || attrs.isEmpty())
 			return null;
 
 		StringBuilder sb = new StringBuilder();
-		sb.append("slider:");
 		boolean first = true;
 
 		// Convert min (expression)
@@ -1290,9 +1266,79 @@ public class StyleMapToGpadConverter {
 		// If arbitraryConstant=false (default), don't output anything
 
 		// If no attributes were output, return null (omit the property)
-		if (first) {
+		if (first)
 			return null;
+
+		return sb.toString();
+	}
+
+	/**
+	 * Converts tableview attributes to Gpad format.
+	 * Syntax: tableview: [<整数>] [points|~points];
+	 * Examples:
+	 *   tableview: 2 points;     // column=2, points=true
+	 *   tableview: 1 ~points;    // column=1, points=false
+	 *   tableview: points;       // no column, points=true
+	 *   tableview: 3;            // column=3, no points
+	 *   tableview: ~points;      // no column, points=false
+	 * 
+	 * @param attrs tableview attributes
+	 * @return Gpad tableview string (e.g., "2 points" or "~points")
+	 */
+	private String convertTableView(LinkedHashMap<String, String> attrs) {
+		if (attrs == null || attrs.isEmpty())
+			return null;
+
+		StringBuilder sb = new StringBuilder();
+		boolean first = true;
+
+		// Convert column (integer)
+		String column = attrs.get("column");
+		if (column != null && !column.isEmpty()) {
+			// Extract integer part (ignore decimal if present)
+			int dotIndex = column.indexOf('.');
+			String columnStr = dotIndex >= 0 ? column.substring(0, dotIndex) : column;
+			// Only output if column is not -1 (default value meaning not in table)
+			try {
+				int columnInt = Integer.parseInt(columnStr);
+				if (columnInt != -1) {
+					if (!first)
+						sb.append(" ");
+					sb.append(columnStr);
+					first = false;
+				}
+			} catch (NumberFormatException e) {
+				// If not a valid number, ignore
+			}
 		}
+
+		// Convert points (boolean)
+		// Default is true, so:
+		// - If points=false, output "~points" (always)
+		// - If points=true, output "points" (always, regardless of column)
+		// Note: When converting from XML, points is always present in attrs
+		// (XMLBuilder always outputs it), so we always output it when present
+		String points = attrs.get("points");
+		if (points != null) {
+			if ("false".equals(points)) {
+				if (!first)
+					sb.append(" ");
+				sb.append("~points");
+				first = false;
+			} else if ("true".equals(points)) {
+				// Always output points when explicitly set to true
+				// (matches examples: "2 points" and "points")
+				if (!first)
+					sb.append(" ");
+				sb.append("points");
+				first = false;
+			}
+		}
+
+		// If no attributes were output, return null (omit the property)
+		// This should only happen if column is -1 and points is not present
+		if (first)
+			return null;
 
 		return sb.toString();
 	}

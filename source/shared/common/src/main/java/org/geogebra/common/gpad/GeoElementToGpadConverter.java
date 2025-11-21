@@ -8,8 +8,8 @@ import java.util.Map;
 import org.geogebra.common.kernel.StringTemplate;
 import org.geogebra.common.kernel.geos.GeoButton;
 import org.geogebra.common.kernel.geos.GeoElement;
+import org.geogebra.common.kernel.geos.GeoFunction;
 import org.geogebra.common.kernel.geos.GeoNumeric;
-import org.geogebra.common.util.debug.Log;
 
 /**
  * Converts GeoElement objects to Gpad format.
@@ -50,7 +50,6 @@ public class GeoElementToGpadConverter {
 				styleMap = xmlParser.parse(styleXML);
 			} catch (GpadParseException e) {
 				// If parsing fails, continue without styles
-				Log.debug("Failed to parse style XML: " + e.getMessage());
 			}
 		}
 
@@ -145,6 +144,24 @@ public class GeoElementToGpadConverter {
 				double min = num.getIntervalMin();
 				double max = num.getIntervalMax();
 				return "Slider(" + min + ", " + max + ")";
+			}
+		}
+
+		// Special handling for GeoFunction: extract expression from function
+		if (geo instanceof GeoFunction) {
+			GeoFunction func = (GeoFunction) geo;
+			if (func.isDefined()) {
+				// Try to get expression from function
+				org.geogebra.common.kernel.arithmetic.ExpressionNode exprNode = func.getFunctionExpression();
+				if (exprNode != null) {
+					String expr = exprNode.toString(myTPL);
+					if (expr != null && !expr.isEmpty())
+						return expr;
+				}
+				// Fallback to toValueString
+				String expr = func.toValueString(myTPL);
+				if (expr != null && !expr.isEmpty() && !"?".equals(expr))
+					return expr;
 			}
 		}
 
