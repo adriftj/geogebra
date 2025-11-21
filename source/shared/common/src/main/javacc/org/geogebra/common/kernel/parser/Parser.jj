@@ -2382,11 +2382,10 @@ void gpadStyleSheetKeyValue(GpadStyleSheet styleSheet) :
 }
 
 /**
- * Unified handler for ~key (delete operation)
+ * Unified handler for ~key (reset operation)
  * Syntax: ~key;
- * Works for both boolean and non-boolean keys
- * For boolean keys: deletion means false (key doesn't exist = false)
- * For non-boolean keys: deletion means remove the property
+ * Sets a reset marker on the property, indicating it should be cleared first.
+ * The reset marker can coexist with normal attributes, allowing "clear then set" semantics.
  */
 void gpadStyleSheetPropertyDelete(GpadStyleSheet styleSheet) :
 {
@@ -2399,7 +2398,7 @@ void gpadStyleSheetPropertyDelete(GpadStyleSheet styleSheet) :
         // Convert the property name (check gkNameMaps), but no attribute conversion needed
         String originalKey = keyToken.image.substring(1);
         propertyName = gkNameMaps.getOrDefault(originalKey, originalKey);
-        styleSheet.removeProperty(propertyName);
+        styleSheet.resetProperty(propertyName);
         if ("fixed".equals(originalKey)) {
             java.util.LinkedHashMap<String, String> attrsCheckbox = styleSheet.getProperty("checkbox");
             if(attrsCheckbox != null)

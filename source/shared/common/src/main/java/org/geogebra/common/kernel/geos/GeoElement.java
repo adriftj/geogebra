@@ -5658,7 +5658,10 @@ public abstract class GeoElement extends ConstructionElement implements GeoEleme
 			oldScript.unbind(this, evt);
 		}
 		scripts[evt.ordinal()] = script;
-		script.bind(this, evt);
+		// Only bind if script is not null (null means clear the script)
+		if (script != null) {
+			script.bind(this, evt);
+		}
 	}
 
 	/**

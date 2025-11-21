@@ -2,14 +2,21 @@ package org.geogebra.common.io;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.geogebra.common.gpad.GpadParseException;
 import org.geogebra.common.gpad.GpadStyleSheet;
+import org.geogebra.common.gpad.XMLToStyleMapParser;
+import org.geogebra.common.kernel.ConstructionDefaults;
 import org.geogebra.common.kernel.Kernel;
 import org.geogebra.common.kernel.geos.GeoBoolean;
 import org.geogebra.common.kernel.geos.GeoButton;
 import org.geogebra.common.kernel.geos.GeoElement;
 import org.geogebra.common.kernel.geos.GeoNumeric;
+import org.geogebra.common.kernel.geos.Traceable;
+import org.geogebra.common.plugin.EventType;
+import org.geogebra.common.plugin.ScriptManager;
+import org.geogebra.common.util.debug.Log;
 
 /**
  * Helper class to apply Gpad style sheets to GeoElements using ConsElementXMLHandler.
@@ -17,6 +24,19 @@ import org.geogebra.common.kernel.geos.GeoNumeric;
  * the protected startGeoElement method.
  */
 public class GpadStyleXMLApplier {
+	/**
+	 * Reset marker key used in attribute maps to indicate that a property should be reset to its default value.
+	 * The value "~" is chosen because it cannot appear as a valid attribute name.
+	 */
+	private static final String RESET_MARKER = "~";
+	
+	/**
+	 * Cache for default style maps by default type.
+	 * Key: default type (Integer)
+	 * Value: Map from tag names to default attribute maps
+	 */
+	private static final Map<Integer, Map<String, LinkedHashMap<String, String>>> DEFAULT_STYLE_MAP_CACHE = 
+			new ConcurrentHashMap<>();
 	/**
 	 * Map of required attributes for each XML element.
 	 * Key: element name (e.g., "value", "slider")
@@ -202,6 +222,119 @@ public class GpadStyleXMLApplier {
 	}
 	
 	/**
+	 * Checks if the given attributes map contains a reset marker.
+	 * 
+	 * @param attrs attributes map
+	 * @return true if the map contains the reset marker
+	 */
+	private static boolean isResetMarker(LinkedHashMap<String, String> attrs) {
+		return attrs != null && attrs.containsKey(RESET_MARKER);
+	}
+	
+	/**
+	 * Gets the default style map for a given default type, using cache.
+	 * 
+	 * @param defaultType default type from ConstructionDefaults
+	 * @param defaults ConstructionDefaults instance
+	 * @return map from tag names to default attribute maps, or null if default geo not found
+	 */
+	private static Map<String, LinkedHashMap<String, String>> getDefaultStyleMap(
+			int defaultType, ConstructionDefaults defaults) {
+		// Check cache first
+		return DEFAULT_STYLE_MAP_CACHE.computeIfAbsent(defaultType, type -> {
+			GeoElement defaultGeo = defaults.getDefaultGeo(type);
+			if (defaultGeo == null) {
+				return null;
+			}
+			
+			try {
+				// Parse default geo's XML to get style map
+				XMLToStyleMapParser parser = new XMLToStyleMapParser();
+				return parser.parse(defaultGeo.getStyleXML());
+			} catch (GpadParseException e) {
+				Log.debug("Failed to parse default geo XML for type " + type + ": " + e.getMessage());
+				return null;
+			}
+		});
+	}
+	
+	/**
+	 * Gets default attributes for a specific tag from the default geo.
+	 * 
+	 * @param geo GeoElement to get default type for
+	 * @param tagName XML tag name
+	 * @return default attributes map, or null if not found
+	 */
+	private static LinkedHashMap<String, String> getDefaultAttrsForTag(GeoElement geo, String tagName) {
+		ConstructionDefaults defaults = geo.getKernel().getConstruction().getConstructionDefaults();
+		int defaultType = defaults.getDefaultType(geo);
+		Map<String, LinkedHashMap<String, String>> defaultStyleMap = getDefaultStyleMap(defaultType, defaults);
+		
+		if (defaultStyleMap == null) {
+			return null;
+		}
+		
+		LinkedHashMap<String, String> defaultAttrs = defaultStyleMap.get(tagName);
+		if (defaultAttrs != null) {
+			// Return a copy to avoid modifying the cached version
+			return new LinkedHashMap<>(defaultAttrs);
+		}
+		
+		// Special handling for tags that need explicit clearing when not in default geo
+		// These tags may not exist in default geo but need to be cleared if they were set
+		
+		// trace - clear trace flag (similar to spreadsheetTrace)
+		if ("trace".equals(tagName)) {
+			LinkedHashMap<String, String> disableAttrs = new LinkedHashMap<>();
+			disableAttrs.put("val", "false");
+			return disableAttrs;
+		}
+		
+		// spreadsheetTrace - clear spreadsheet trace
+		if ("spreadsheetTrace".equals(tagName)) {
+			LinkedHashMap<String, String> disableAttrs = new LinkedHashMap<>();
+			disableAttrs.put("val", "false");
+			disableAttrs.put("traceColumn1", "-1");
+			disableAttrs.put("traceColumn2", "-1");
+			disableAttrs.put("traceRow1", "-1");
+			disableAttrs.put("traceRow2", "-1");
+			disableAttrs.put("tracingRow", "0");
+			disableAttrs.put("numRows", "0");
+			disableAttrs.put("headerOffset", "0");
+			disableAttrs.put("doColumnReset", "false");
+			disableAttrs.put("doRowLimit", "false");
+			disableAttrs.put("showLabel", "false");
+			disableAttrs.put("showTraceList", "false");
+			disableAttrs.put("doTraceGeoCopy", "false");
+			disableAttrs.put("pause", "false");
+			return disableAttrs;
+		}
+		
+		// condition - clear show object condition
+		// Note: processShowObjectConditionList evaluates the string to GeoBoolean
+		// Empty string may not work correctly (evaluateToBoolean("") returns null, which causes error)
+		// However, we provide empty string as it's the best we can do via XML
+		// This is kept as fallback even though handleDirectReset exists, because XML approach may not fully clear
+		if ("condition".equals(tagName)) {
+			LinkedHashMap<String, String> clearAttrs = new LinkedHashMap<>();
+			clearAttrs.put("showObject", "");  // Empty string (may not fully clear via XML)
+			return clearAttrs;
+		}
+		
+		// dynamicCaption - clear dynamic caption
+		// Note: processDynamicCaptionList looks up label, empty string may not work
+		// However, we provide empty string as it's the best we can do via XML
+		// This is kept as fallback even though handleDirectReset exists, because XML approach may not fully clear
+		if ("dynamicCaption".equals(tagName)) {
+			LinkedHashMap<String, String> clearAttrs = new LinkedHashMap<>();
+			clearAttrs.put("val", "");  // Empty string (may not fully clear via XML)
+			return clearAttrs;
+		}
+		
+		return null;
+	}
+	
+	/**
 	 * Applies a style sheet to a GeoElement using ConsElementXMLHandler.
 	 * 
 	 * @param geo GeoElement to apply styles to
@@ -232,11 +365,57 @@ public class GpadStyleXMLApplier {
 		for (Map.Entry<String, LinkedHashMap<String, String>> entry : properties.entrySet()) {
 			String tagName = entry.getKey();
 			LinkedHashMap<String, String> attrs = entry.getValue();
-			if (attrs != null) {
-				// Fill missing required attributes before applying
-				fillRequiredAttributes(tagName, attrs, geo);
-				xmlHandler.startGeoElement(tagName, attrs, myXMLHandler.errors);
+			
+			if (attrs == null)
+				continue;
+			
+			// Check if this is a reset marker (key: "~")
+			// Reset marker can coexist with normal attributes: {"~": "", "type": "1", "thickness": "5"}
+			// This means: first clear, then set the normal attributes
+			boolean hasResetMarker = isResetMarker(attrs);
+			if (hasResetMarker) {
+				// First, clear the property
+				// For certain tags, we can directly call geo methods to clear them
+				// This avoids going through XML handler and is more efficient
+				if (handleDirectReset(tagName, attrs, geo)) {
+					// Direct reset handled, but we still need to apply normal attributes if any
+					// Remove reset marker from attrs copy for further processing
+					LinkedHashMap<String, String> attrsWithoutReset = new LinkedHashMap<>(attrs);
+					attrsWithoutReset.remove(RESET_MARKER);
+					if (!attrsWithoutReset.isEmpty()) {
+						// There are normal attributes to apply after clearing
+						fillRequiredAttributes(tagName, attrsWithoutReset, geo);
+						xmlHandler.startGeoElement(tagName, attrsWithoutReset, myXMLHandler.errors);
+					}
+					continue; // Skip default-based reset since we already cleared directly
+				}
+				
+				// Get default attributes for this tag from the default geo
+				LinkedHashMap<String, String> defaultAttrs = getDefaultAttrsForTag(geo, tagName);
+				if (defaultAttrs != null) {
+					// Merge normal attributes with default attributes
+					// Normal attributes override defaults
+					LinkedHashMap<String, String> mergedAttrs = new LinkedHashMap<>(defaultAttrs);
+					// Remove reset marker and merge normal attributes
+					LinkedHashMap<String, String> normalAttrs = new LinkedHashMap<>(attrs);
+					normalAttrs.remove(RESET_MARKER);
+					mergedAttrs.putAll(normalAttrs);
+					attrs = mergedAttrs;
+				} else {
+					// No default value found, but we still need to apply normal attributes if any
+					LinkedHashMap<String, String> normalAttrs = new LinkedHashMap<>(attrs);
+					normalAttrs.remove(RESET_MARKER);
+					if (normalAttrs.isEmpty()) {
+						// No normal attributes and no default, skip this tag
+						continue;
+					}
+					attrs = normalAttrs;
+				}
 			}
+			
+			// Fill missing required attributes before applying
+			fillRequiredAttributes(tagName, attrs, geo);
+			xmlHandler.startGeoElement(tagName, attrs, myXMLHandler.errors);
 		}
 
 		xmlHandler.processLists(); // Process deferred lists (e.g., minMaxList for slider min/max)
@@ -261,5 +440,88 @@ public class GpadStyleXMLApplier {
 
 		if (!myXMLHandler.errors.isEmpty())
 			throw new GpadParseException("Failed to apply style sheet: " + myXMLHandler.errors.toString());
+	}
+	
+	/**
+	 * Handles direct reset for tags that can be cleared by calling geo methods directly.
+	 * This is more efficient than going through XML handler for simple clear operations.
+	 * 
+	 * @param tagName XML tag name
+	 * @param attrs attributes map (may contain type for listener)
+	 * @param geo GeoElement to reset
+	 * @return true if the reset was handled directly, false if should use default XML approach
+	 */
+	private static boolean handleDirectReset(String tagName, LinkedHashMap<String, String> attrs, GeoElement geo) {
+		try {
+			switch (tagName) {
+			case "condition":
+				// Clear show object condition
+				geo.setShowObjectCondition(null);
+				return true;
+				
+			case "dynamicCaption":
+				// Clear dynamic caption
+				geo.removeDynamicCaption();
+				return true;
+				
+			case "trace":
+				// Clear trace flag
+				if (geo instanceof Traceable) {
+					((Traceable) geo).setTrace(false);
+					return true;
+				}
+				return false;
+				
+			case "spreadsheetTrace":
+				// Clear spreadsheet trace
+				if (geo.isSpreadsheetTraceable()) {
+					geo.setSpreadsheetTrace(false);
+					return true;
+				}
+				return false;
+				
+			case "javascript":
+			case "onClick":
+				// Clear click script
+				geo.setScript(null, EventType.CLICK);
+				return true;
+				
+			case "onUpdate":
+				// Clear update script
+				geo.setScript(null, EventType.UPDATE);
+				return true;
+				
+			case "onDragEnd":
+				// Clear drag end script
+				geo.setScript(null, EventType.DRAG_END);
+				return true;
+				
+			case "onChange":
+				// Clear change script
+				geo.setScript(null, EventType.EDITOR_KEY_TYPED);
+				return true;
+				
+			case "listener":
+				// Clear listener - needs type attribute
+				String type = attrs != null ? attrs.get("type") : null;
+				if (type != null) {
+					ScriptManager scriptManager = geo.getKernel().getApplication().getScriptManager();
+					if ("objectUpdate".equals(type)) {
+						scriptManager.getUpdateListenerMap().remove(geo);
+						return true;
+					} else if ("objectClick".equals(type)) {
+						scriptManager.getClickListenerMap().remove(geo);
+						return true;
+					}
+				}
+				return false;
+				
+			default:
+				return false;
+			}
+		} catch (Exception e) {
+			Log.debug("Failed to directly reset " + tagName + ": " + e.getMessage());
+			return false; // Fall back to XML approach on error
+		}
 	}
 }
