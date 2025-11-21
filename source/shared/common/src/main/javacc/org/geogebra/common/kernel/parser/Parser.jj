@@ -76,7 +76,8 @@ import org.geogebra.common.kernel.parser.cashandlers.CommandDispatcherGiac;
 import org.geogebra.common.main.App;
 import org.geogebra.common.plugin.Operation;
 import org.geogebra.common.gpad.GpadStyleSheet;
-import org.geogebra.common.gpad.GpadStyleApplier;
+import org.geogebra.common.gpad.GpadParseException;
+import org.geogebra.common.io.GpadStyleXMLApplier;
 import org.geogebra.common.kernel.commands.EvalInfo;
 import org.geogebra.common.kernel.CircularDefinitionException;
 import java.util.Map;
@@ -3637,8 +3638,14 @@ void gpadCommandExpression() throws CircularDefinitionException :
             for(int i=0; i<geos.length; i++) {
                 GeoElement geo = geos[i];
                 GpadStyleSheet styleSheet = styleSheets.get(i);
-                if (styleSheet != null)
-                    GpadStyleApplier.apply(styleSheet, geo);
+                if (styleSheet != null) {
+                    try {
+                        GpadStyleXMLApplier.apply(styleSheet, geo);
+                    } catch (GpadParseException e) {
+                        // Log error but don't throw - allow parsing to continue
+                        org.geogebra.common.util.debug.Log.debug("Failed to apply style sheet: " + e.getMessage());
+                    }
+                }
                 gpadResults.add(geo);
             }               
         } catch (CircularDefinitionException e) {
