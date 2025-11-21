@@ -648,7 +648,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("alpha", "1.0");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain objColor", gpad.contains("objColor"));
 		assertTrue("Should contain #FF0000", gpad.contains("#FF0000"));
@@ -668,7 +668,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("alpha", "0.5"); // 128/255
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain objColor", gpad.contains("objColor"));
 		assertTrue("Should contain 8-digit hex with alpha", gpad.contains("#FF0000"));
@@ -688,7 +688,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("b", "0");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain #00FF00", gpad.contains("#00FF00"));
 		assertTrue("Should not contain 8-digit hex", !gpad.contains("#00FF00FF"));
@@ -707,7 +707,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "0"); // RGB
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain objColor", gpad.contains("objColor"));
 		assertTrue("Should contain rgb(", gpad.contains("rgb("));
@@ -729,7 +729,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "0"); // RGB
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain rgb(", gpad.contains("rgb("));
 		assertTrue("Should contain 4 parameters", gpad.contains("rgb(x,y,z,a)"));
@@ -748,7 +748,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "1"); // HSB/HSV
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain hsv(", gpad.contains("hsv("));
 		assertTrue("Should contain h,s,v", gpad.contains("h") && gpad.contains("s") && gpad.contains("v"));
@@ -768,7 +768,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "1"); // HSB/HSV
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain hsv(", gpad.contains("hsv("));
 		assertTrue("Should contain 4 parameters", gpad.contains("hsv(h,s,v,a)"));
@@ -787,7 +787,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "2"); // HSL
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain hsl(", gpad.contains("hsl("));
 		assertTrue("Should contain h,s,l", gpad.contains("h") && gpad.contains("s") && gpad.contains("l"));
@@ -807,7 +807,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "2"); // HSL
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain hsl(", gpad.contains("hsl("));
 		assertTrue("Should contain 4 parameters", gpad.contains("hsl(h,s,l,a)"));
@@ -826,7 +826,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "0");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain rgb(", gpad.contains("rgb("));
 		// Complex expressions should not need quotes if they don't contain special chars
@@ -846,7 +846,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "0");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain rgb(", gpad.contains("rgb("));
 		// Expressions with special chars should be quoted
@@ -866,7 +866,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("fillType", "1"); // HATCH
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain fill=hatch", gpad.contains("fill=hatch"));
 	}
@@ -889,7 +889,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 			attrs.put("fillType", fillTypes[i]);
 			styleMap.put("objColor", attrs);
 			
-			String gpad = converter.convert("test", styleMap);
+			String gpad = converter.convert("test", styleMap, null);
 			if (i == 0) {
 				// fillType=0 (STANDARD) is default, should be omitted
 				assertTrue("fillType=0 should be omitted", !gpad.contains("fill="));
@@ -914,7 +914,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("hatchAngle", "30");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain angle=30", gpad.contains("angle=30"));
 	}
@@ -933,7 +933,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("hatchAngle", "45"); // Default value
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should not contain angle=45 (default)", !gpad.contains("angle=45"));
 	}
@@ -952,7 +952,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("hatchDistance", "15");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain dist=15", gpad.contains("dist=15"));
 	}
@@ -971,7 +971,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("hatchDistance", "10"); // Default value
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should not contain dist=10 (default)", !gpad.contains("dist=10"));
 	}
@@ -990,7 +990,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("image", "path/to/image.png");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain image=", gpad.contains("image="));
 		assertTrue("Should contain path", gpad.contains("path/to/image.png"));
@@ -1010,7 +1010,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("image", "path/to/image with spaces.png");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain image=", gpad.contains("image="));
 		// Path with spaces should be quoted
@@ -1031,7 +1031,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("fillSymbol", "$");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain symbol=", gpad.contains("symbol="));
 		assertTrue("Should contain $", gpad.contains("$"));
@@ -1051,7 +1051,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("fillSymbol", "\r");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		// Symbol with special chars should be skipped
 		assertTrue("Should not contain special symbol", !gpad.contains("symbol="));
@@ -1070,7 +1070,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("inverseFill", "true");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain inverse", gpad.contains("inverse"));
 		assertTrue("Should not contain ~inverse", !gpad.contains("~inverse"));
@@ -1089,7 +1089,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("inverseFill", "false");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should not contain inverse (default false)", !gpad.contains("inverse"));
 	}
@@ -1111,7 +1111,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("inverseFill", "true");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain rgb(", gpad.contains("rgb("));
 		assertTrue("Should contain fill=hatch", gpad.contains("fill=hatch"));
@@ -1140,7 +1140,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("inverseFill", "true");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain hsv(", gpad.contains("hsv("));
 		assertTrue("Should contain fill=crosshatch", gpad.contains("fill=crosshatch"));
@@ -1164,7 +1164,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "0");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain rgb(", gpad.contains("rgb("));
 		// Expressions with newlines/tabs should be quoted with escape sequences
@@ -1181,7 +1181,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		// When attributes are empty, objColor property should not be output
 		assertTrue("Should not contain objColor when attrs empty", gpad == null || !gpad.contains("objColor"));
 	}
@@ -1196,7 +1196,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("fillType", "1"); // HATCH
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		// Without color, objColor should still be output if fillType is set
 		assertNotNull(gpad);
 		assertTrue("Should contain fill=hatch", gpad.contains("fill=hatch"));
@@ -1219,7 +1219,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("inverseFill", "false"); // Default
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain #FF0000", gpad.contains("#FF0000"));
 		assertTrue("Should not contain fill= (default)", !gpad.contains("fill="));
@@ -1243,7 +1243,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "0");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		// Simple expressions should not be quoted
 		assertTrue("Should contain rgb(x,y,z)", gpad.contains("rgb(x,y,z)"));
@@ -1265,7 +1265,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "0");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		// Numbers should not be quoted
 		assertTrue("Should contain rgb(255,128,64)", gpad.contains("rgb(255,128,64)"));
@@ -1285,7 +1285,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "0");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		// Float numbers should not be quoted
 		assertTrue("Should contain float numbers", gpad.contains("255.5"));
@@ -1305,7 +1305,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "0");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		// Addition expressions should not be quoted
 		assertTrue("Should contain x+y", gpad.contains("x+y"));
@@ -1325,7 +1325,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "0");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		// Subtraction expressions should not be quoted
 		assertTrue("Should contain x-y", gpad.contains("x-y"));
@@ -1345,7 +1345,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "0");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		// Multiplication expressions should not be quoted
 		assertTrue("Should contain x*y", gpad.contains("x*y"));
@@ -1365,7 +1365,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "0");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		// Division expressions should not be quoted
 		assertTrue("Should contain x/y", gpad.contains("x/y"));
@@ -1385,7 +1385,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "0");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		// Power expressions should not be quoted
 		assertTrue("Should contain x^2", gpad.contains("x^2"));
@@ -1405,7 +1405,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "0");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		// Unary minus expressions should not be quoted
 		assertTrue("Should contain -x", gpad.contains("-x"));
@@ -1425,7 +1425,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "0");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		// Parenthesized expressions should not be quoted
 		assertTrue("Should contain (x+y)*z", gpad.contains("(x+y)*z"));
@@ -1445,7 +1445,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "0");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		// Function calls should not be quoted
 		assertTrue("Should contain sin(x)", gpad.contains("sin(x)"));
@@ -1465,7 +1465,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "0");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		// Complex but valid expressions should not be quoted
 		assertTrue("Should contain sin(x+y)*z^2", gpad.contains("sin(x+y)*z^2"));
@@ -1485,7 +1485,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "0");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		// Expressions with comma should be quoted
 		assertTrue("Should contain quoted x, y", gpad.contains("\"x, y\""));
@@ -1504,7 +1504,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "0");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		// Expressions with semicolon should be quoted
 		assertTrue("Should contain quoted x; y", gpad.contains("\"x; y\""));
@@ -1523,7 +1523,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "0");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		// Expressions with right brace should be quoted
 		assertTrue("Should contain quoted x } y", gpad.contains("\"x } y\""));
@@ -1542,7 +1542,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "0");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		// Expressions with newline should be quoted and escaped
 		assertTrue("Should contain quoted expression with \\n", gpad.contains("\"x\\ny\""));
@@ -1561,7 +1561,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "0");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		// Expressions with carriage return should be quoted and escaped
 		assertTrue("Should contain quoted expression with \\r", gpad.contains("\"x\\ry\""));
@@ -1580,7 +1580,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "0");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		// Expressions with tab should be quoted but not escaped
 		assertTrue("Should contain quoted but not escaped expression with <tab>", gpad.contains("\"x\ty\""));
@@ -1599,7 +1599,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "0");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		// Expressions with space should be quoted
 		assertTrue("Should contain quoted x y", gpad.contains("\"x y\""));
@@ -1618,7 +1618,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "0");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		// Expressions with quote should be quoted and escaped
 		assertTrue("Should contain quoted expression with escaped quote", gpad.contains("\"x\\\"y\""));
@@ -1637,7 +1637,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "0");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		// Expressions with backslash should be quoted and escaped
 		assertTrue("Should contain quoted expression with escaped backslash", gpad.contains("\"x\\\\y\""));
@@ -1656,7 +1656,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "0");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		// All special characters should be properly escaped
 		assertTrue("Should contain quoted expression", gpad.contains("\"x, y; z } w\""));
@@ -1678,7 +1678,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "0");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		// Simple expressions with alpha should not be quoted
 		assertTrue("Should contain rgb(x,y,z,a)", gpad.contains("rgb(x,y,z,a)"));
@@ -1698,7 +1698,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "1");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		// Simple expressions should not be quoted
 		assertTrue("Should contain hsv(h,s,v)", gpad.contains("hsv(h,s,v)"));
@@ -1718,7 +1718,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "2");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		// Simple expressions should not be quoted
 		assertTrue("Should contain hsl(h,s,l)", gpad.contains("hsl(h,s,l)"));

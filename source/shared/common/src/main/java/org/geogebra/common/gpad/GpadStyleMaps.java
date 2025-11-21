@@ -9,22 +9,24 @@ public class GpadStyleMaps {
 	 * GpadStyleSheet 中必须更换元素名称的那些属性，在此登记
 	 * 映射：Gpad 属性名 -> XML 元素名
 	 */
-	public static final Map<String, String> GPAD_TO_XML_NAME_MAP = Map.of(
-			"@screen", "absoluteScreenLocation",
-			"hideLabelInAlgebra", "algebra",
-			"showIf", "condition",
-			"showGeneralAngle", "emphasizeRightAngle",
-			"filename", "file");
+	public static final Map<String, String> GPAD_TO_XML_NAME_MAP = Map.ofEntries(
+			Map.entry("@screen", "absoluteScreenLocation"),
+			Map.entry("hideLabelInAlgebra", "algebra"),
+			Map.entry("showIf", "condition"),
+			Map.entry("showGeneralAngle", "emphasizeRightAngle"),
+			Map.entry("filename", "file"),
+			Map.entry("random", "value"));
 
 	/**
 	 * XML 元素名 -> Gpad 属性名（GPAD_TO_XML_NAME_MAP 的反向映射）
 	 */
-	public static final Map<String, String> XML_TO_GPAD_NAME_MAP = Map.of(
-			"absoluteScreenLocation", "@screen",
-			"algebra", "hideLabelInAlgebra",
-			"condition", "showIf",
-			"emphasizeRightAngle", "showGeneralAngle",
-			"file", "filename");
+	public static final Map<String, String> XML_TO_GPAD_NAME_MAP = Map.ofEntries(
+			Map.entry("absoluteScreenLocation", "@screen"),
+			Map.entry("algebra", "hideLabelInAlgebra"),
+			Map.entry("condition", "showIf"),
+			Map.entry("emphasizeRightAngle", "showGeneralAngle"),
+			Map.entry("file", "filename"));
+			// Note: javascript tag uses the same name in Gpad, no mapping needed
 
 	// ==================== 属性名到XML属性名的映射 ====================
 
@@ -40,8 +42,10 @@ public class GpadStyleMaps {
 			"filename", "name",
 			"hideLabelInAlgebra", "labelVisible",
 			"linkedGeo", "exp",
+			"random", "random",
 			"showIf", "showObject",
 			"video", "src");
+			// Note: javascript uses default "val" attribute, no mapping needed
 
 	/**
 	 * 布尔值反转取值表
@@ -97,6 +101,7 @@ public class GpadStyleMaps {
 			Map.entry("keepTypeOnTransform", new PropertyInfo(GK_BOOL, null)),
 			Map.entry("levelOfDetailQuality", new PropertyInfo(GK_BOOL, null)),
 			Map.entry("outlyingIntersections", new PropertyInfo(GK_BOOL, null)),
+			Map.entry("random", new PropertyInfo(GK_BOOL, null)),
 			Map.entry("selectionAllowed", new PropertyInfo(GK_BOOL, null)),
 			Map.entry("showGeneralAngle", new PropertyInfo(GK_BOOL, null)),
 			Map.entry("showOnAxis", new PropertyInfo(GK_BOOL, null)),
@@ -136,6 +141,7 @@ public class GpadStyleMaps {
 			Map.entry("linkedGeo", new PropertyInfo(GK_STR, "")),
 			Map.entry("parentLabel", new PropertyInfo(GK_STR, "")),
 			Map.entry("pointStyle", new PropertyInfo(GK_STR, "-1")), // XML 中 "-1" 对应 Gpad 的 "default"
+			Map.entry("javascript", new PropertyInfo(GK_STR, "")), // javascript uses same name in Gpad and XML
 			Map.entry("showIf", new PropertyInfo(GK_STR, "")), // XML 元素名是 "condition"
 			Map.entry("startStyle", new PropertyInfo(GK_STR, "default")),
 			Map.entry("textAlign", new PropertyInfo(GK_STR, "left")),

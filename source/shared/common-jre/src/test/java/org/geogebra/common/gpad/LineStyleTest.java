@@ -264,7 +264,7 @@ public class LineStyleTest extends BaseUnitTest {
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		styleMap.put("lineStyle", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue(gpad.contains("lineStyle:"));
 		
@@ -293,7 +293,7 @@ public class LineStyleTest extends BaseUnitTest {
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		styleMap.put("lineStyle", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue(gpad.contains("lineStyle:"));
 		
@@ -322,7 +322,7 @@ public class LineStyleTest extends BaseUnitTest {
 			Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 			styleMap.put("lineStyle", attrs);
 			
-			String gpad = converter.convert("test", styleMap);
+			String gpad = converter.convert("test", styleMap, null);
 			assertTrue("Type " + xmlValues[i] + " should convert to " + gpadKeys[i],
 					gpad.contains(gpadKeys[i]));
 		}
@@ -340,7 +340,7 @@ public class LineStyleTest extends BaseUnitTest {
 		attrs1.put("typeHidden", "0");
 		Map<String, LinkedHashMap<String, String>> styleMap1 = new LinkedHashMap<>();
 		styleMap1.put("lineStyle", attrs1);
-		String gpad1 = converter.convert("test", styleMap1);
+		String gpad1 = converter.convert("test", styleMap1, null);
 		assertTrue(gpad1.contains("hidden"));
 		assertTrue(!gpad1.contains("hidden=dashed") && !gpad1.contains("hidden=show"));
 		
@@ -349,7 +349,7 @@ public class LineStyleTest extends BaseUnitTest {
 		attrs2.put("typeHidden", "1");
 		Map<String, LinkedHashMap<String, String>> styleMap2 = new LinkedHashMap<>();
 		styleMap2.put("lineStyle", attrs2);
-		String gpad2 = converter.convert("test", styleMap2);
+		String gpad2 = converter.convert("test", styleMap2, null);
 		assertTrue(gpad2.contains("hidden=dashed"));
 		
 		// Test typeHidden="2" -> hidden=show
@@ -357,7 +357,7 @@ public class LineStyleTest extends BaseUnitTest {
 		attrs3.put("typeHidden", "2");
 		Map<String, LinkedHashMap<String, String>> styleMap3 = new LinkedHashMap<>();
 		styleMap3.put("lineStyle", attrs3);
-		String gpad3 = converter.convert("test", styleMap3);
+		String gpad3 = converter.convert("test", styleMap3, null);
 		assertTrue(gpad3.contains("hidden=show"));
 	}
 
@@ -373,7 +373,7 @@ public class LineStyleTest extends BaseUnitTest {
 		attrs1.put("drawArrow", "true");
 		Map<String, LinkedHashMap<String, String>> styleMap1 = new LinkedHashMap<>();
 		styleMap1.put("lineStyle", attrs1);
-		String gpad1 = converter.convert("test", styleMap1);
+		String gpad1 = converter.convert("test", styleMap1, null);
 		assertTrue(gpad1.contains("arrow"));
 		assertTrue(!gpad1.contains("~arrow"));
 		
@@ -382,7 +382,7 @@ public class LineStyleTest extends BaseUnitTest {
 		attrs2.put("drawArrow", "false");
 		Map<String, LinkedHashMap<String, String>> styleMap2 = new LinkedHashMap<>();
 		styleMap2.put("lineStyle", attrs2);
-		String gpad2 = converter.convert("test", styleMap2);
+		String gpad2 = converter.convert("test", styleMap2, null);
 		assertTrue(!gpad2.contains("arrow"));
 	}
 
@@ -420,7 +420,7 @@ public class LineStyleTest extends BaseUnitTest {
 			StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 			Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 			styleMap.put("lineStyle", attrs);
-			String convertedGpad = converter.convert("style", styleMap);
+			String convertedGpad = converter.convert("style", styleMap, null);
 			
 			// Verify conversion contains expected values
 			assertTrue(convertedGpad.contains("dashedlong"));

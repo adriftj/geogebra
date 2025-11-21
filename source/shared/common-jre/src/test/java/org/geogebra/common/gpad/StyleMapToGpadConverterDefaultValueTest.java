@@ -27,7 +27,7 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 		attrs.put("val", "30");
 		styleMap.put("arcSize", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertTrue("Default arcSize should be omitted", gpad == null || !gpad.contains("arcSize"));
 	}
 
@@ -41,7 +41,7 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 		attrs.put("val", "45");
 		styleMap.put("arcSize", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain arcSize", gpad.contains("arcSize"));
 		assertTrue("Should contain value 45", gpad.contains("45"));
@@ -57,7 +57,7 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 		attrs.put("val", "-1");
 		styleMap.put("decimals", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertTrue("Default decimals should be omitted", gpad == null || !gpad.contains("decimals"));
 	}
 
@@ -71,7 +71,7 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 		attrs.put("val", "2");
 		styleMap.put("decimals", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain decimals", gpad.contains("decimals"));
 		assertTrue("Should contain value 2", gpad.contains("2"));
@@ -87,7 +87,7 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 		attrs.put("val", "0");
 		styleMap.put("layer", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertTrue("Default layer should be omitted", gpad == null || !gpad.contains("layer"));
 	}
 
@@ -101,7 +101,7 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 		attrs.put("val", "1");
 		styleMap.put("layer", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain layer", gpad.contains("layer"));
 		assertTrue("Should contain value 1", gpad.contains("1"));
@@ -117,7 +117,7 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 		attrs.put("val", "20");
 		styleMap.put("length", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertTrue("Default length should be omitted", gpad == null || !gpad.contains("length"));
 	}
 
@@ -131,7 +131,7 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 		attrs.put("val", "30");
 		styleMap.put("length", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain length", gpad.contains("length"));
 		assertTrue("Should contain value 30", gpad.contains("30"));
@@ -147,7 +147,7 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 		attrs.put("val", "0");
 		styleMap.put("selectedIndex", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertTrue("Default selectedIndex should be omitted", gpad == null || !gpad.contains("selectedIndex"));
 	}
 
@@ -161,7 +161,7 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 		attrs.put("val", "2");
 		styleMap.put("selectedIndex", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain selectedIndex", gpad.contains("selectedIndex"));
 		assertTrue("Should contain value 2", gpad.contains("2"));
@@ -177,7 +177,7 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 		attrs.put("val", "-1");
 		styleMap.put("significantfigures", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertTrue("Default significantfigures should be omitted", gpad == null || !gpad.contains("significantfigures"));
 	}
 
@@ -191,7 +191,7 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 		attrs.put("val", "5");
 		styleMap.put("significantfigures", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain significantfigures", gpad.contains("significantfigures"));
 		assertTrue("Should contain value 5", gpad.contains("5"));
@@ -207,7 +207,7 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 		attrs.put("val", "1");
 		styleMap.put("slopeTriangleSize", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertTrue("Default slopeTriangleSize should be omitted", gpad == null || !gpad.contains("slopeTriangleSize"));
 	}
 
@@ -221,7 +221,7 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 		attrs.put("val", "3");
 		styleMap.put("slopeTriangleSize", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain slopeTriangleSize", gpad.contains("slopeTriangleSize"));
 		assertTrue("Should contain value 3", gpad.contains("3"));
@@ -239,7 +239,7 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 		attrs.put("val", "0.0");
 		styleMap.put("fading", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertTrue("Default fading should be omitted", gpad == null || !gpad.contains("fading"));
 	}
 
@@ -253,7 +253,7 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 		attrs.put("val", "0.5");
 		styleMap.put("fading", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain fading", gpad.contains("fading"));
 		assertTrue("Should contain value 0.5", gpad.contains("0.5"));
@@ -269,7 +269,7 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 		attrs.put("val", "NaN");
 		styleMap.put("ordering", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertTrue("Default ordering (NaN) should be omitted", gpad == null || !gpad.contains("ordering"));
 	}
 
@@ -283,7 +283,7 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 		attrs.put("val", "1.5");
 		styleMap.put("ordering", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain ordering", gpad.contains("ordering"));
 		assertTrue("Should contain value 1.5", gpad.contains("1.5"));
@@ -299,7 +299,7 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 		attrs.put("val", "5");
 		styleMap.put("pointSize", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertTrue("Default pointSize should be omitted", gpad == null || !gpad.contains("pointSize"));
 	}
 
@@ -313,7 +313,7 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 		attrs.put("val", "8");
 		styleMap.put("pointSize", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain pointSize", gpad.contains("pointSize"));
 		assertTrue("Should contain value 8", gpad.contains("8"));
@@ -331,7 +331,7 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 		attrs.put("val", "0");
 		styleMap.put("angleStyle", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertTrue("Default angleStyle should be omitted", gpad == null || !gpad.contains("angleStyle"));
 	}
 
@@ -345,7 +345,7 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 		attrs.put("val", "1");
 		styleMap.put("angleStyle", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain angleStyle", gpad.contains("angleStyle"));
 		assertTrue("Should contain converted value 0-180", gpad.contains("0-180"));
@@ -361,7 +361,7 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 		attrs.put("val", "");
 		styleMap.put("caption", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertTrue("Default caption (empty) should be omitted", gpad == null || !gpad.contains("caption"));
 	}
 
@@ -375,7 +375,7 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 		attrs.put("val", "Test Caption");
 		styleMap.put("caption", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain caption", gpad.contains("caption"));
 		assertTrue("Should contain quoted value", gpad.contains("\"Test Caption\""));
@@ -391,7 +391,7 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 		attrs.put("val", "cartesian");
 		styleMap.put("coordStyle", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertTrue("Default coordStyle should be omitted", gpad == null || !gpad.contains("coordStyle"));
 	}
 
@@ -405,7 +405,7 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 		attrs.put("val", "polar");
 		styleMap.put("coordStyle", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain coordStyle", gpad.contains("coordStyle"));
 		// 根据新语法，不包含特殊字符的值可以不带引号
@@ -422,7 +422,7 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 		attrs.put("type", "0");
 		styleMap.put("decoration", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertTrue("Default decoration should be omitted", gpad == null || !gpad.contains("decoration"));
 	}
 
@@ -436,7 +436,7 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 		attrs.put("type", "1");
 		styleMap.put("decoration", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain decoration", gpad.contains("decoration"));
 		assertTrue("Should contain converted value single_tick", gpad.contains("single_tick"));
@@ -452,7 +452,7 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 		attrs.put("val", "default");
 		styleMap.put("endStyle", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertTrue("Default endStyle should be omitted", gpad == null || !gpad.contains("endStyle"));
 	}
 
@@ -466,7 +466,7 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 		attrs.put("val", "arrow");
 		styleMap.put("endStyle", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain endStyle", gpad.contains("endStyle"));
 		// 根据新语法，不包含特殊字符的值可以不带引号
@@ -483,7 +483,7 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 		attrs.put("val", "0");
 		styleMap.put("headStyle", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertTrue("Default headStyle should be omitted", gpad == null || !gpad.contains("headStyle"));
 	}
 
@@ -497,7 +497,7 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 		attrs.put("val", "1");
 		styleMap.put("headStyle", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain headStyle", gpad.contains("headStyle"));
 		assertTrue("Should contain converted value arrow", gpad.contains("arrow"));
@@ -513,7 +513,7 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 		attrs.put("val", "0");
 		styleMap.put("labelMode", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertTrue("Default labelMode should be omitted", gpad == null || !gpad.contains("labelMode"));
 	}
 
@@ -527,7 +527,7 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 		attrs.put("val", "1");
 		styleMap.put("labelMode", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain labelMode", gpad.contains("labelMode"));
 		assertTrue("Should contain converted value namevalue", gpad.contains("namevalue"));
@@ -543,7 +543,7 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 		attrs.put("val", "-1");
 		styleMap.put("pointStyle", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertTrue("Default pointStyle should be omitted", gpad == null || !gpad.contains("pointStyle"));
 	}
 
@@ -557,7 +557,7 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 		attrs.put("val", "0");
 		styleMap.put("pointStyle", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain pointStyle", gpad.contains("pointStyle"));
 		assertTrue("Should contain converted value dot", gpad.contains("dot"));
@@ -573,7 +573,7 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 		attrs.put("val", "default");
 		styleMap.put("startStyle", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertTrue("Default startStyle should be omitted", gpad == null || !gpad.contains("startStyle"));
 	}
 
@@ -587,7 +587,7 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 		attrs.put("val", "arrow");
 		styleMap.put("startStyle", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain startStyle", gpad.contains("startStyle"));
 		// 根据新语法，不包含特殊字符的值可以不带引号
@@ -604,7 +604,7 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 		attrs.put("val", "left");
 		styleMap.put("textAlign", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertTrue("Default textAlign should be omitted", gpad == null || !gpad.contains("textAlign"));
 	}
 
@@ -618,7 +618,7 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 		attrs.put("val", "center");
 		styleMap.put("textAlign", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain textAlign", gpad.contains("textAlign"));
 		// 根据新语法，不包含特殊字符的值可以不带引号
@@ -635,7 +635,7 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 		attrs.put("val", "0");
 		styleMap.put("tooltipMode", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertTrue("Default tooltipMode should be omitted", gpad == null || !gpad.contains("tooltipMode"));
 	}
 
@@ -649,7 +649,7 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 		attrs.put("val", "1");
 		styleMap.put("tooltipMode", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain tooltipMode", gpad.contains("tooltipMode"));
 		assertTrue("Should contain converted value on", gpad.contains("on"));
@@ -665,7 +665,7 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 		attrs.put("val", "top");
 		styleMap.put("verticalAlign", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertTrue("Default verticalAlign should be omitted", gpad == null || !gpad.contains("verticalAlign"));
 	}
 
@@ -679,7 +679,7 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 		attrs.put("val", "middle");
 		styleMap.put("verticalAlign", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain verticalAlign", gpad.contains("verticalAlign"));
 		// 根据新语法，不包含特殊字符的值可以不带引号
@@ -698,7 +698,7 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 		attrs.put("name", "test.png");
 		styleMap.put("file", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain filename", gpad.contains("filename"));
 		assertTrue("Should contain file name", gpad.contains("test.png"));
@@ -714,7 +714,7 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 		attrs.put("showObject", "x > 0");
 		styleMap.put("condition", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain showIf", gpad.contains("showIf"));
 		assertTrue("Should contain condition value", gpad.contains("x > 0"));
@@ -730,7 +730,7 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 		attrs.put("labelVisible", "false");
 		styleMap.put("algebra", attrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should not contain hideLabelInAlgebra", !gpad.contains("hideLabelInAlgebra"));
 	}

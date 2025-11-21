@@ -82,12 +82,20 @@ public class GpadParser {
 			} catch (Exception ex) {
 				// Ignore if we can't access token information
 			}
-			throw new GpadParseException("Parse error: " + e.getMessage(), line, column);
+			String errorMsg = e.getMessage();
+			if (errorMsg == null) {
+				errorMsg = "Parse error";
+			}
+			throw new GpadParseException("Parse error: " + errorMsg, line, column);
 		} catch (Exception e) {
 			if (e instanceof GpadParseException) {
 				throw e;
 			}
-			throw new GpadParseException("Error parsing Gpad: " + e.getMessage(), e);
+			String errorMsg = e.getMessage();
+			if (errorMsg == null) {
+				errorMsg = e.getClass().getSimpleName();
+			}
+			throw new GpadParseException("Error parsing Gpad: " + errorMsg, e);
 		}
 	}
 

@@ -724,6 +724,7 @@ TOKEN : {
     "keepTypeOnTransform" |
     "levelOfDetailQuality" |
     "outlyingIntersections" |
+    "random" |
     "selectionAllowed" |
     "showGeneralAngle" |
     "showOnAxis" |
@@ -752,6 +753,7 @@ TOKEN : {
     "filename" |
     "headStyle" |
     "incrementY" |
+    "javascript" |
     "labelMode" |
     "linkedGeo" |
     "parentLabel" |

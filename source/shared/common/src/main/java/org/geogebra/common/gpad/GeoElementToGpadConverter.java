@@ -56,7 +56,11 @@ public class GeoElementToGpadConverter {
 		String styleSheetName = null;
 		if (styleMap != null && !styleMap.isEmpty()) {
 			styleSheetName = generateStyleSheetName(geo);
-			String styleSheetGpad = styleConverter.convert(styleSheetName, styleMap);
+			// Get object type name for value element conversion
+			String objectType = geo.getTypeString();
+			
+			String styleSheetGpad = styleConverter.convert(styleSheetName, styleMap, objectType);
+			
 			if (styleSheetGpad != null && !styleSheetGpad.isEmpty()) {
 				sb.append(styleSheetGpad);
 				sb.append("\n");
@@ -97,7 +101,7 @@ public class GeoElementToGpadConverter {
 
 		// Add style sheet reference if available
 		if (styleSheetName != null)
-			sb.append(" $").append(styleSheetName);
+			sb.append(" @").append(styleSheetName);
 
 		// Add command
 		sb.append(" = ").append(command);
@@ -146,12 +150,53 @@ public class GeoElementToGpadConverter {
 			}
 		}
 
+		// Special handling for Button objects
+		if (geo instanceof org.geogebra.common.kernel.geos.GeoButton) {
+			org.geogebra.common.kernel.geos.GeoButton button = 
+					(org.geogebra.common.kernel.geos.GeoButton) geo;
+			String caption = button.getCaption(StringTemplate.defaultTemplate);
+			if (caption != null && !caption.isEmpty()) {
+				// Button with caption: Button("caption")
+				return "Button(\"" + escapeString(caption) + "\")";
+			} else {
+				// Button without caption: Button()
+				return "Button()";
+			}
+		}
+
+		// Special handling for Slider objects (GeoNumeric with slider properties)
+		if (geo instanceof org.geogebra.common.kernel.geos.GeoNumeric) {
+			org.geogebra.common.kernel.geos.GeoNumeric num = 
+					(org.geogebra.common.kernel.geos.GeoNumeric) geo;
+			if (num.isSliderable()) {
+				// Build Slider command: Slider(min, max)
+				double min = num.getIntervalMin();
+				double max = num.getIntervalMax();
+				return "Slider(" + min + ", " + max + ")";
+			}
+		}
+
 		// For independent elements, try to get definition
 		if (geo.isIndependent() && geo.getDefinition() != null) {
 			return geo.getDefinition(StringTemplate.defaultTemplate);
 		}
 
 		return null;
+	}
+	
+	/**
+	 * Escapes special characters in a string for Gpad format.
+	 * 
+	 * @param str
+	 *            string to escape
+	 * @return escaped string
+	 */
+	private String escapeString(String str) {
+		if (str == null) {
+			return "";
+		}
+		// Escape backslash and double quote
+		return str.replace("\\", "\\\\").replace("\"", "\\\"");
 	}
 
 

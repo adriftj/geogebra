@@ -299,7 +299,7 @@ public class SliderGpadTest extends BaseUnitTest {
 		sliderAttrs.put("width", "200");
 		styleMap.put("slider", sliderAttrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain slider", gpad.contains("slider:"));
 		assertTrue("Should contain min=0", gpad.contains("min=0"));
@@ -320,7 +320,7 @@ public class SliderGpadTest extends BaseUnitTest {
 		sliderAttrs.put("y", "150");
 		styleMap.put("slider", sliderAttrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain slider", gpad.contains("slider:"));
 		assertTrue("Should contain x=100", gpad.contains("x=100"));
@@ -340,7 +340,7 @@ public class SliderGpadTest extends BaseUnitTest {
 		sliderAttrs.put("horizontal", "false"); // vertical = true
 		styleMap.put("slider", sliderAttrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain slider", gpad.contains("slider:"));
 		assertTrue("Should contain vertical", gpad.contains("vertical"));
@@ -358,7 +358,7 @@ public class SliderGpadTest extends BaseUnitTest {
 		sliderAttrs.put("showAlgebra", "true");
 		styleMap.put("slider", sliderAttrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain slider", gpad.contains("slider:"));
 		assertTrue("Should contain algebra", gpad.contains("algebra"));
@@ -376,7 +376,7 @@ public class SliderGpadTest extends BaseUnitTest {
 		sliderAttrs.put("arbitraryConstant", "true");
 		styleMap.put("slider", sliderAttrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain slider", gpad.contains("slider:"));
 		assertTrue("Should contain constant", gpad.contains("constant"));
@@ -393,7 +393,7 @@ public class SliderGpadTest extends BaseUnitTest {
 		sliderAttrs.put("width", "200");
 		styleMap.put("slider", sliderAttrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain slider", gpad.contains("slider:"));
 		assertTrue("Should contain min=-5", gpad.contains("min=-5"));
@@ -412,7 +412,7 @@ public class SliderGpadTest extends BaseUnitTest {
 		sliderAttrs.put("fixed", "true");
 		styleMap.put("slider", sliderAttrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain slider", gpad.contains("slider:"));
 		// fixed should be in slider output (independent property)
@@ -434,7 +434,7 @@ public class SliderGpadTest extends BaseUnitTest {
 		sliderAttrs.put("y", "200");
 		styleMap.put("slider", sliderAttrs);
 		
-		String gpad = converter.convert("test", styleMap);
+		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain slider", gpad.contains("slider:"));
 		// @screen should be in slider output (independent property)
@@ -472,6 +472,102 @@ public class SliderGpadTest extends BaseUnitTest {
 			// Note: isSliderable() checks if object can be a slider
 			// For independent GeoNumeric with valid intervals, this should be true
 			assertTrue("Number expression with slider style should create a slider", 
+					num.isSliderable());
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testCreateSliderFromNumberExpressionWithShow() {
+		// Test: Can we create a visible slider by using a number expression with 
+		// slider style and show style?
+		// This tests if setting slider: min/max and show: object label can 
+		// convert a plain GeoNumeric (created from number expression) into a visible slider
+		String gpad = "@style = { slider: min=1 max=3 width=200; show: object label }\n"
+				+ "a @style = 2";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertNotNull("Parse should return a non-null list", geos);
+			assertTrue("Should create at least one GeoElement", geos.size() >= 1);
+			GeoElement geo = geos.get(0);
+			assertNotNull("GeoElement should not be null", geo);
+			assertTrue("Should be a GeoNumeric, but got: " + geo.getClass().getSimpleName(), 
+					geo instanceof GeoNumeric);
+			GeoNumeric num = (GeoNumeric) geo;
+			
+			// Verify label
+			assertEquals("a", num.getLabelSimple());
+			
+			// Verify value
+			assertEquals(2.0, num.getValue(), 1e-10);
+			
+			// Verify that slider properties are set
+			assertEquals(1.0, num.getIntervalMin(), 1e-10);
+			assertEquals(3.0, num.getIntervalMax(), 1e-10);
+			
+			// Verify that the object is visible in Euclidian view
+			assertTrue("Number expression with slider and show style should be visible in Euclidian view", 
+					num.isEuclidianVisible());
+			
+			// Verify that the object is actually a slider
+			// isSlider() returns true if object is independent and visible in Euclidian view
+			assertTrue("Number expression with slider and show style should create a slider", 
+					num.isSlider());
+			
+			// Verify that the object is sliderable (has valid intervals and is independent)
+			assertTrue("Number expression with slider style should be sliderable", 
+					num.isSliderable());
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testCreateSliderFromNumberExpressionWithHiddenShow() {
+		// Test: Can we create a slider (but hidden) by using a number expression with 
+		// slider style and show style that hides the object?
+		// This tests if setting slider: min/max/width and show: ~object ~label can 
+		// create a slider that is not visible in Euclidian view
+		String gpad = "@style = { slider: min=1 max=3 width=200; show: ~object ~label }\n"
+				+ "a @style = 2";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertNotNull("Parse should return a non-null list", geos);
+			assertTrue("Should create at least one GeoElement", geos.size() >= 1);
+			GeoElement geo = geos.get(0);
+			assertNotNull("GeoElement should not be null", geo);
+			assertTrue("Should be a GeoNumeric, but got: " + geo.getClass().getSimpleName(), 
+					geo instanceof GeoNumeric);
+			GeoNumeric num = (GeoNumeric) geo;
+			
+			// Verify label
+			assertEquals("a", num.getLabelSimple());
+			
+			// Verify value
+			assertEquals(2.0, num.getValue(), 1e-10);
+			
+			// Verify that slider properties are set
+			assertEquals(1.0, num.getIntervalMin(), 1e-10);
+			assertEquals(3.0, num.getIntervalMax(), 1e-10);
+			assertEquals(200.0, num.getSliderWidth(), 1e-10);
+			
+			// Verify that the object is NOT visible in Euclidian view
+			assertTrue("Number expression with slider and ~object show style should NOT be visible in Euclidian view", 
+					!num.isEuclidianVisible());
+			
+			// Verify that the object is NOT a slider (because it's not visible)
+			// isSlider() returns true only if object is independent AND visible in Euclidian view
+			assertTrue("Number expression with slider and ~object show style should NOT create a visible slider", 
+					!num.isSlider());
+			
+			// Verify that the object is still sliderable (has valid intervals and is independent)
+			// isSliderable() only checks if object can be a slider, not if it's currently visible
+			assertTrue("Number expression with slider style should be sliderable even when hidden", 
 					num.isSliderable());
 		} catch (GpadParseException | CircularDefinitionException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);

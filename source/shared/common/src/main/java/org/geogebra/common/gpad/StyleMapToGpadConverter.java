@@ -14,22 +14,37 @@ public class StyleMapToGpadConverter {
 	 * Converts a style map to Gpad style sheet format.
 	 * 
 	 * @param name
-	 *            style sheet name (without $ prefix)
+	 *            style sheet name (without @ prefix)
 	 * @param styleMap
 	 *            map from XML tag names to attribute maps
+	 * @param objectType
+	 *            object type name (e.g., "Button", "Numeric"), can be null
 	 * @return Gpad style sheet string, or null if styleMap is empty
 	 */
-	public String convert(String name, Map<String, LinkedHashMap<String, String>> styleMap) {
+	public String convert(String name, Map<String, LinkedHashMap<String, String>> styleMap, String objectType) {
 		if (styleMap == null || styleMap.isEmpty())
 			return null;
 
 		StringBuilder sb = new StringBuilder();
-		sb.append("$").append(name).append(" = {");
+		sb.append("@").append(name).append(" = {");
 
 		boolean first = true;
 		for (Map.Entry<String, LinkedHashMap<String, String>> entry : styleMap.entrySet()) {
 			String tagName = entry.getKey();
 			LinkedHashMap<String, String> attrs = entry.getValue();
+
+			// Special handling for value element: convert based on object type
+			if ("value".equals(tagName)) {
+				String gpadProperty = convertValueElement(attrs, objectType);
+				if (gpadProperty != null && !gpadProperty.isEmpty()) {
+					if (!first)
+						sb.append(";");
+					sb.append(" ");
+					sb.append(gpadProperty);
+					first = false;
+				}
+				continue;
+			}
 
 			// Special handling for checkbox: if fixed="true", output both "checkbox;" and "fixed;"
 			if ("checkbox".equals(tagName)) {
@@ -71,6 +86,36 @@ public class StyleMapToGpadConverter {
 
 		sb.append(" }");
 		return sb.toString();
+	}
+
+	/**
+	 * Converts value element to Gpad format based on object type.
+	 * - For Numeric type: converts random attribute to random style (if random="true")
+	 * - Otherwise: ignores
+	 * 
+	 * Note: Button's script is now handled by javascript element via convertSimplePropertyToGpad
+	 * 
+	 * @param attrs value element attributes
+	 * @param objectType object type name (e.g., "Button", "Numeric")
+	 * @return Gpad property string, or null if should be omitted
+	 */
+	private String convertValueElement(LinkedHashMap<String, String> attrs, String objectType) {
+		if (attrs == null || attrs.isEmpty())
+			return null;
+
+		// For Numeric type: convert random attribute to random style
+		if ("Numeric".equals(objectType)) {
+			// Check random attribute
+			String random = attrs.get("random");
+			if ("true".equals(random)) {
+				// Convert to random style (GK_BOOL)
+				return "random";
+			}
+			return null;
+		}
+
+		// For other types: ignore
+		return null;
 	}
 
 	/**
@@ -651,10 +696,12 @@ public class StyleMapToGpadConverter {
 		String gpadName = GpadStyleMaps.XML_TO_GPAD_NAME_MAP.get(xmlTagName);
 		if (gpadName == null)
 			gpadName = xmlTagName;
+		
 		// 从 PROPERTY_INFO 获取属性信息（key 是 Gpad 属性名）
 		GpadStyleMaps.PropertyInfo propInfo = GpadStyleMaps.PROPERTY_INFO.get(gpadName);
-		if (propInfo == null) // 如果找不到，说明不是已知的属性
+		if (propInfo == null) { // 如果找不到，说明不是已知的属性
 			return "";
+		}
 
 		Integer gkType = propInfo.type;
 		// 确定 XML 属性名（检查是否有特殊属性名映射）
@@ -662,6 +709,7 @@ public class StyleMapToGpadConverter {
 
 		// 获取属性值
 		String value = attrs != null ? attrs.get(attrName) : null;
+		
 		if (value == null)
 			return null; // 找不到值，省略
 
@@ -716,8 +764,11 @@ public class StyleMapToGpadConverter {
 			return "true".equals(value)? gpadName: "";
 
 		// 现在只能是字符串值，转换为 Gpad 格式（如果有特殊字符，需要用引号括起来并转义）
-		if (containsSpecialChars(value)) // 注意：这里的顺序很重要
+		// Special handling for javascript: always quote the value to avoid parsing issues
+		if ("javascript".equals(gpadName) || containsSpecialChars(value)) {
 			value = "\"" + escapeString(value) + "\"";
+		}
+		
 		return gpadName + ": " + value;
 	}
 
