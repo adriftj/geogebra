@@ -2,6 +2,7 @@ package org.geogebra.common.io;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.geogebra.common.gpad.GpadParseException;
@@ -37,127 +38,111 @@ public class GpadStyleXMLApplier {
 	 */
 	private static final Map<Integer, Map<String, LinkedHashMap<String, String>>> DEFAULT_STYLE_MAP_CACHE = 
 			new ConcurrentHashMap<>();
+	
 	/**
-	 * Map of required attributes for each XML element.
+	 * Map of required attributes that will throw exceptions if missing.
 	 * Key: element name (e.g., "value", "slider")
-	 * Value: Map of attribute name -> default value
+	 * Value: Set of attribute names that are required (will throw exception if missing)
 	 * 
-	 * This map records attributes that will throw exceptions if missing when
-	 * parsed by ConsElementXMLHandler. Missing attributes will be filled with
-	 * default values before applying styles.
+	 * This map only includes attributes that will cause exceptions when parsed by
+	 * ConsElementXMLHandler. Attributes that are optional (like show's object/label/ev)
+	 * are not included here.
 	 */
-	private static final Map<String, Map<String, String>> REQUIRED_ATTRIBUTES = Map.ofEntries(
-			// value element: val attribute is required for GeoNumeric, GeoBoolean, GeoButton
-			// Note: Default value depends on object type, handled separately
-			Map.entry("value", Map.of("val", "")), // Will be set based on object type
+	private static final Map<String, Set<String>> REQUIRED_ATTRIBUTE_NAMES = Map.ofEntries(
+			// value element: val attribute is required (throws exception when parsing)
+			Map.entry("value", java.util.Set.of("val")),
 			
-			// slider element
-			Map.entry("slider", Map.of("width", "200")), // Default slider width
+			// slider element: width is required (throws exception in setSliderWidth)
+			Map.entry("slider", java.util.Set.of("width")),
 			
-			// absoluteScreenLocation element
-			Map.entry("absoluteScreenLocation", Map.of("x", "0", "y", "0")),
+			// absoluteScreenLocation element: x and y are required
+			Map.entry("absoluteScreenLocation", java.util.Set.of("x", "y")),
 			
-			// cropBox element
-			Map.entry("cropBox", Map.of("x", "0", "y", "0", "width", "100", "height", "100")),
+			// cropBox element: x, y, width, height are required
+			Map.entry("cropBox", java.util.Set.of("x", "y", "width", "height")),
 			
-			// video element
-			Map.entry("video", Map.of("width", "320", "height", "240")),
+			// video element: width and height are required
+			Map.entry("video", java.util.Set.of("width", "height")),
 			
-			// spreadsheetTrace element
-			Map.entry("spreadsheetTrace", Map.ofEntries(
-					Map.entry("traceColumn1", "0"),
-					Map.entry("traceColumn2", "0"),
-					Map.entry("traceRow1", "0"),
-					Map.entry("traceRow2", "0"),
-					Map.entry("tracingRow", "0"),
-					Map.entry("numRows", "0"),
-					Map.entry("headerOffset", "0"))),
+			// spreadsheetTrace element: many attributes are required
+			Map.entry("spreadsheetTrace", java.util.Set.of(
+					"val", "traceColumn1", "traceColumn2", "traceRow1", "traceRow2",
+					"tracingRow", "numRows", "headerOffset", "doColumnReset", "doRowLimit",
+					"showLabel", "showTraceList", "doTraceGeoCopy")),
 			
-			// pointSize element
-			Map.entry("pointSize", Map.of("val", "4")),
+			// pointSize element: val is required
+			Map.entry("pointSize", java.util.Set.of("val")),
 			
-			// pointStyle element
-			Map.entry("pointStyle", Map.of("val", "0")),
+			// pointStyle element: val is required
+			Map.entry("pointStyle", java.util.Set.of("val")),
 			
-			// layer element
-			Map.entry("layer", Map.of("val", "0")),
+			// layer element: val is required
+			Map.entry("layer", java.util.Set.of("val")),
 			
-			// lineStyle element
-			Map.entry("lineStyle", Map.of("type", "0", "thickness", "1")),
+			// lineStyle element: type and thickness are required
+			Map.entry("lineStyle", java.util.Set.of("type", "thickness")),
 			
-			// decoration element
-			Map.entry("decoration", Map.of("type", "0")),
+			// decoration element: type is required
+			Map.entry("decoration", java.util.Set.of("type")),
 			
-			// headStyle element
-			Map.entry("headStyle", Map.of("val", "0")),
+			// headStyle element: val is required
+			Map.entry("headStyle", java.util.Set.of("val")),
 			
-			// arcSize element
-			Map.entry("arcSize", Map.of("val", "30")),
+			// arcSize element: val is required
+			Map.entry("arcSize", java.util.Set.of("val")),
 			
-			// angleStyle element
-			Map.entry("angleStyle", Map.of("val", "0")),
+			// angleStyle element: val is required
+			Map.entry("angleStyle", java.util.Set.of("val")),
 			
-			// slopeTriangleSize element
-			Map.entry("slopeTriangleSize", Map.of("val", "1")),
+			// slopeTriangleSize element: val is required
+			Map.entry("slopeTriangleSize", java.util.Set.of("val")),
 			
-			// decimals element
-			Map.entry("decimals", Map.of("val", "10")),
+			// decimals element: val is required
+			Map.entry("decimals", java.util.Set.of("val")),
 			
-			// significantfigures element
-			Map.entry("significantfigures", Map.of("val", "5")),
+			// significantfigures element: val is required
+			Map.entry("significantfigures", java.util.Set.of("val")),
 			
-			// labelOffset element
-			Map.entry("labelOffset", Map.of("x", "0", "y", "0")),
+			// labelOffset element: x and y are required
+			Map.entry("labelOffset", java.util.Set.of("x", "y")),
 			
-			// labelMode element
-			Map.entry("labelMode", Map.of("val", "0")),
+			// labelMode element: val is required
+			Map.entry("labelMode", java.util.Set.of("val")),
 			
-			// tooltipMode element
-			Map.entry("tooltipMode", Map.of("val", "0")),
+			// tooltipMode element: val is required
+			Map.entry("tooltipMode", java.util.Set.of("val")),
 			
-			// ordering element
-			Map.entry("ordering", Map.of("val", "0")),
+			// ordering element: val is required
+			Map.entry("ordering", java.util.Set.of("val")),
 			
-			// selectedIndex element
-			Map.entry("selectedIndex", Map.of("val", "0")),
+			// selectedIndex element: val is required
+			Map.entry("selectedIndex", java.util.Set.of("val")),
 			
-			// borderColor element
-			Map.entry("borderColor", Map.of("r", "0", "g", "0", "b", "0")),
+			// borderColor element: r, g, b are required
+			Map.entry("borderColor", java.util.Set.of("r", "g", "b")),
 			
-			// boundingBox element
-			Map.entry("boundingBox", Map.of("width", "100", "height", "50")),
+			// boundingBox element: width and height are required
+			Map.entry("boundingBox", java.util.Set.of("width", "height")),
 			
-			// embed element
-			Map.entry("embed", Map.of("id", "0")),
+			// embed element: id is required
+			Map.entry("embed", java.util.Set.of("id")),
 			
-			// tag element (for chart styles)
-			Map.entry("tag", Map.ofEntries(
-					Map.entry("key", ""),
-					Map.entry("value", ""),
-					Map.entry("barNumber", "0"))),
+			// tag element (for chart styles): key, value, barNumber are required
+			Map.entry("tag", java.util.Set.of("key", "value", "barNumber")),
 			
-			// length element
-			Map.entry("length", Map.of("val", "10")),
+			// length element: val is required
+			Map.entry("length", java.util.Set.of("val")),
 			
-			// font element
-			// Note: If sizeM is null, then size is required
-			// We'll handle this in fillRequiredAttributes
-			Map.entry("font", Map.of("size", "12")), // Required if sizeM is null
+			// contentSize element: width and height are required
+			Map.entry("contentSize", java.util.Set.of("width", "height")),
 			
-			// contentSize element
-			// Note: Has try-catch, but we'll provide defaults to avoid errors
-			Map.entry("contentSize", Map.of("width", "100", "height", "100")),
-			
-			// javascript element
-			// Note: val attribute is required (default empty string if missing)
-			Map.entry("javascript", Map.of("val", ""))
-			// matrix element (for conic/quadric - A0-A5 or A0-A9)
-			// Note: These are conditionally required based on needsValuesFromXML
-			// We'll handle them separately if needed
+			// javascript element: val is required (default empty string if missing)
+			Map.entry("javascript", java.util.Set.of("val"))
 	);
 	
 	/**
-	 * Fills missing required attributes with default values.
+	 * Fills missing required attributes with default values from defaultGeo.
+	 * Only fills attributes that will throw exceptions if missing.
 	 * 
 	 * @param tagName
 	 *            XML element name
@@ -168,31 +153,42 @@ public class GpadStyleXMLApplier {
 	 */
 	private static void fillRequiredAttributes(String tagName,
 			LinkedHashMap<String, String> attrs, GeoElement geo) {
-		Map<String, String> required = REQUIRED_ATTRIBUTES.get(tagName);
-		if (required == null) {
+		// Get the set of required attribute names for this tag
+		Set<String> requiredAttrNames = REQUIRED_ATTRIBUTE_NAMES.get(tagName);
+		
+		// If this tag has no required attributes (like "show"), skip filling
+		if (requiredAttrNames == null || requiredAttrNames.isEmpty()) {
 			return;
 		}
 		
-		// Special handling for font element: if sizeM is null, size is required
-		if ("font".equals(tagName)) {
-			if (!attrs.containsKey("sizeM") || attrs.get("sizeM") == null) {
-				if (!attrs.containsKey("size") || attrs.get("size") == null) {
-					attrs.put("size", "12");
-				}
-			}
-		}
+		// Get default attributes for this tag from the default geo
+		LinkedHashMap<String, String> defaultAttrs = getDefaultAttrsForTag(geo, tagName);
 		
-		for (Map.Entry<String, String> entry : required.entrySet()) {
-			String attrName = entry.getKey();
-			String defaultValue = entry.getValue();
-			
-			// Check if attribute is missing
+		// Fill only the required attributes that are missing
+		for (String attrName : requiredAttrNames) {
 			if (!attrs.containsKey(attrName) || attrs.get(attrName) == null) {
-				// Special handling for value element's val attribute
-				if ("value".equals(tagName) && "val".equals(attrName)) {
+				String defaultValue = null;
+				
+				// Try to get default value from default geo
+				if (defaultAttrs != null && defaultAttrs.containsKey(attrName)) {
+					defaultValue = defaultAttrs.get(attrName);
+				}
+				
+				// Special handling for value element's val attribute:
+				// If default geo doesn't have value element, use current geo's value
+				if ("value".equals(tagName) && "val".equals(attrName) && defaultValue == null) {
 					defaultValue = getDefaultValueForValueElement(geo);
 				}
-				attrs.put(attrName, defaultValue);
+				
+				// Special handling for javascript element's val attribute:
+				// Default to empty string if not found
+				if ("javascript".equals(tagName) && "val".equals(attrName) && defaultValue == null) {
+					defaultValue = "";
+				}
+				
+				if (defaultValue != null) {
+					attrs.put(attrName, defaultValue);
+				}
 			}
 		}
 	}
