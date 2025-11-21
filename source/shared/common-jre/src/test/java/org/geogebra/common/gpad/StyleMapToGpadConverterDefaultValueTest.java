@@ -535,12 +535,12 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 
 	@Test
 	public void testPointStyleDefaultValue() {
-		// Test pointStyle with default value ("-1" -> "default") should be omitted
+		// Test pointStyle with default value ("0" -> "dot") should be omitted
 		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
-		attrs.put("val", "-1");
+		attrs.put("val", "0");
 		styleMap.put("pointStyle", attrs);
 		
 		String gpad = converter.convert("test", styleMap, null);
@@ -554,13 +554,13 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
-		attrs.put("val", "0");
+		attrs.put("val", "-1");
 		styleMap.put("pointStyle", attrs);
 		
 		String gpad = converter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain pointStyle", gpad.contains("pointStyle"));
-		assertTrue("Should contain converted value dot", gpad.contains("dot"));
+		assertTrue("Should contain converted value default", gpad.contains("default"));
 	}
 
 	@Test

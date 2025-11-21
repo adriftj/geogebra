@@ -55,9 +55,6 @@ public class GpadStyleXMLApplier {
 			// slider element: width is required (throws exception in setSliderWidth)
 			Map.entry("slider", java.util.Set.of("width")),
 			
-			// absoluteScreenLocation element: x and y are required
-			Map.entry("absoluteScreenLocation", java.util.Set.of("x", "y")),
-			
 			// cropBox element: x, y, width, height are required
 			Map.entry("cropBox", java.util.Set.of("x", "y", "width", "height")),
 			
@@ -70,56 +67,8 @@ public class GpadStyleXMLApplier {
 					"tracingRow", "numRows", "headerOffset", "doColumnReset", "doRowLimit",
 					"showLabel", "showTraceList", "doTraceGeoCopy")),
 			
-			// pointSize element: val is required
-			Map.entry("pointSize", java.util.Set.of("val")),
-			
-			// pointStyle element: val is required
-			Map.entry("pointStyle", java.util.Set.of("val")),
-			
-			// layer element: val is required
-			Map.entry("layer", java.util.Set.of("val")),
-			
 			// lineStyle element: type and thickness are required
 			Map.entry("lineStyle", java.util.Set.of("type", "thickness")),
-			
-			// decoration element: type is required
-			Map.entry("decoration", java.util.Set.of("type")),
-			
-			// headStyle element: val is required
-			Map.entry("headStyle", java.util.Set.of("val")),
-			
-			// arcSize element: val is required
-			Map.entry("arcSize", java.util.Set.of("val")),
-			
-			// angleStyle element: val is required
-			Map.entry("angleStyle", java.util.Set.of("val")),
-			
-			// slopeTriangleSize element: val is required
-			Map.entry("slopeTriangleSize", java.util.Set.of("val")),
-			
-			// decimals element: val is required
-			Map.entry("decimals", java.util.Set.of("val")),
-			
-			// significantfigures element: val is required
-			Map.entry("significantfigures", java.util.Set.of("val")),
-			
-			// labelOffset element: x and y are required
-			Map.entry("labelOffset", java.util.Set.of("x", "y")),
-			
-			// labelMode element: val is required
-			Map.entry("labelMode", java.util.Set.of("val")),
-			
-			// tooltipMode element: val is required
-			Map.entry("tooltipMode", java.util.Set.of("val")),
-			
-			// ordering element: val is required
-			Map.entry("ordering", java.util.Set.of("val")),
-			
-			// selectedIndex element: val is required
-			Map.entry("selectedIndex", java.util.Set.of("val")),
-			
-			// borderColor element: r, g, b are required
-			Map.entry("borderColor", java.util.Set.of("r", "g", "b")),
 			
 			// boundingBox element: width and height are required
 			Map.entry("boundingBox", java.util.Set.of("width", "height")),
@@ -130,14 +79,8 @@ public class GpadStyleXMLApplier {
 			// tag element (for chart styles): key, value, barNumber are required
 			Map.entry("tag", java.util.Set.of("key", "value", "barNumber")),
 			
-			// length element: val is required
-			Map.entry("length", java.util.Set.of("val")),
-			
 			// contentSize element: width and height are required
-			Map.entry("contentSize", java.util.Set.of("width", "height")),
-			
-			// javascript element: val is required (default empty string if missing)
-			Map.entry("javascript", java.util.Set.of("val"))
+			Map.entry("contentSize", java.util.Set.of("width", "height"))
 	);
 	
 	/**

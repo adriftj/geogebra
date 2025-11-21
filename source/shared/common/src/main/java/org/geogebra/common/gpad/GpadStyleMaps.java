@@ -26,7 +26,6 @@ public class GpadStyleMaps {
 			Map.entry("condition", "showIf"),
 			Map.entry("emphasizeRightAngle", "showGeneralAngle"),
 			Map.entry("file", "filename"));
-			// Note: javascript tag uses the same name in Gpad, no mapping needed
 
 	// ==================== 属性名到XML属性名的映射 ====================
 
@@ -45,7 +44,6 @@ public class GpadStyleMaps {
 			"random", "random",
 			"showIf", "showObject",
 			"video", "src");
-			// Note: javascript uses default "val" attribute, no mapping needed
 
 	/**
 	 * 布尔值反转取值表
@@ -137,11 +135,11 @@ public class GpadStyleMaps {
 			Map.entry("filename", new PropertyInfo(GK_STR, "")), // XML 元素名是 "file"
 			Map.entry("headStyle", new PropertyInfo(GK_STR, "0")), // XML 中 "0" 对应 Gpad 的 "default"
 			Map.entry("incrementY", new PropertyInfo(GK_STR, "")),
+			Map.entry("javascript", new PropertyInfo(GK_STR, "")),
 			Map.entry("labelMode", new PropertyInfo(GK_STR, "0")), // XML 中 "0" 对应 Gpad 的 "name"
 			Map.entry("linkedGeo", new PropertyInfo(GK_STR, "")),
 			Map.entry("parentLabel", new PropertyInfo(GK_STR, "")),
-			Map.entry("pointStyle", new PropertyInfo(GK_STR, "-1")), // XML 中 "-1" 对应 Gpad 的 "default"
-			Map.entry("javascript", new PropertyInfo(GK_STR, "")), // javascript uses same name in Gpad and XML
+			Map.entry("pointStyle", new PropertyInfo(GK_STR, "0")), // XML 中 "0" 对应 Gpad 的 "dot"
 			Map.entry("showIf", new PropertyInfo(GK_STR, "")), // XML 元素名是 "condition"
 			Map.entry("startStyle", new PropertyInfo(GK_STR, "default")),
 			Map.entry("textAlign", new PropertyInfo(GK_STR, "left")),
