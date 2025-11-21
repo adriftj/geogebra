@@ -13,12 +13,6 @@ import org.geogebra.common.kernel.parser.Parser;
 
 /**
  * Main Gpad parser that parses complete Gpad text and creates GeoElements.
- * Uses JavaCC Parser for parsing, supporting multi-line style sheets, commands, and nested command calls.
- * 
- * Supports:
- * - Style sheet definitions: @name = { ... } (multi-line supported)
- * - Command execution: output* @style { inline:style } = Command(...) (nested calls supported)
- * - Macro definitions: @tool name(...) { ... return ... }
  */
 public class GpadParser {
 	private Map<String, GpadStyleSheet> globalStyleSheets;
@@ -28,8 +22,7 @@ public class GpadParser {
 	/**
 	 * Creates a new Gpad parser.
 	 * 
-	 * @param kernel
-	 *            GeoGebra kernel
+	 * @param kernel GeoGebra kernel
 	 */
 	public GpadParser(Kernel kernel) {
 		this.kernel = kernel;
@@ -49,24 +42,18 @@ public class GpadParser {
 	 *             if circular definition is detected
 	 */
 	public List<GeoElement> parse(String gpadText) throws GpadParseException, CircularDefinitionException {
-		if (gpadText == null || gpadText.trim().isEmpty()) {
+		if (gpadText == null || gpadText.trim().isEmpty())
 			return new ArrayList<>();
-		}
 
 		try {
-			// Use JavaCC Parser to parse Gpad
-			// Note: parseGpad returns java.util.List<org.geogebra.common.kernel.geos.GeoElement>
-			java.util.List<org.geogebra.common.kernel.geos.GeoElement> results = parser.parseGpad(gpadText);
+			List<GeoElement> results = parser.parseGpad(gpadText);
 			
 			// Update global style sheets
-			// Note: getGpadStyleSheets returns java.util.Map<String, org.geogebra.common.gpad.GpadStyleSheet>
-			java.util.Map<String, org.geogebra.common.gpad.GpadStyleSheet> parserStyleSheets = parser.getGpadStyleSheets();
-			if (parserStyleSheets != null) {
+			Map<String, GpadStyleSheet> parserStyleSheets = parser.getGpadStyleSheets();
+			if (parserStyleSheets != null)
 				globalStyleSheets.putAll(parserStyleSheets);
-			}
 			
 			return results;
-			
 		} catch (CircularDefinitionException e) {
 			// Let CircularDefinitionException propagate
 			throw e;
@@ -142,4 +129,3 @@ public class GpadParser {
 		return kernel;
 	}
 }
-

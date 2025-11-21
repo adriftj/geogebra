@@ -6,6 +6,7 @@ import org.geogebra.common.main.App;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.TreeSet;
 
 /**
  * Converts XML construction to Gpad format.
@@ -64,7 +65,7 @@ public class XMLToGpadConverter {
 			
 			// Get newly created elements
 			List<GeoElement> newElements = new ArrayList<>();
-			java.util.TreeSet<GeoElement> allElements = kernel.getConstruction().getGeoSetConstructionOrder();
+			TreeSet<GeoElement> allElements = kernel.getConstruction().getGeoSetConstructionOrder();
 			int index = 0;
 			for (GeoElement geo : allElements) {
 				if (index >= startCount) {

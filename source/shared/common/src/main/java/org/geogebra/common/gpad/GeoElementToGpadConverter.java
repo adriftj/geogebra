@@ -1,19 +1,25 @@
 package org.geogebra.common.gpad;
 
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.geogebra.common.kernel.geos.GeoElement;
 import org.geogebra.common.kernel.StringTemplate;
+import org.geogebra.common.kernel.geos.GeoButton;
+import org.geogebra.common.kernel.geos.GeoElement;
+import org.geogebra.common.kernel.geos.GeoNumeric;
+import org.geogebra.common.util.debug.Log;
 
 /**
  * Converts GeoElement objects to Gpad format.
  * Uses XML to extract style properties, then converts to Gpad format.
  */
 public class GeoElementToGpadConverter {
+	static final StringTemplate myTPL = StringTemplate.noLocalDefault;
+
 	private int styleSheetCounter = 0;
-	private Map<GeoElement, String> styleSheetMap = new java.util.HashMap<>();
+	private Map<GeoElement, String> styleSheetMap = new HashMap<>();
 	private XMLToStyleMapParser xmlParser;
 	private StyleMapToGpadConverter styleConverter;
 
@@ -28,8 +34,7 @@ public class GeoElementToGpadConverter {
 	/**
 	 * Converts a GeoElement to Gpad format.
 	 * 
-	 * @param geo
-	 *            GeoElement to convert
+	 * @param geo GeoElement to convert
 	 * @return Gpad string representation
 	 */
 	public String toGpad(GeoElement geo) {
@@ -37,10 +42,7 @@ public class GeoElementToGpadConverter {
 			return "";
 
 		StringBuilder sb = new StringBuilder();
-
-		// Get XML style string from GeoElement
 		String styleXML = geo.getStyleXML();
-		
 		// Parse XML to get style map
 		Map<String, LinkedHashMap<String, String>> styleMap = null;
 		if (styleXML != null && !styleXML.trim().isEmpty()) {
@@ -48,19 +50,16 @@ public class GeoElementToGpadConverter {
 				styleMap = xmlParser.parse(styleXML);
 			} catch (GpadParseException e) {
 				// If parsing fails, continue without styles
-				org.geogebra.common.util.debug.Log.debug("Failed to parse style XML: " + e.getMessage());
+				Log.debug("Failed to parse style XML: " + e.getMessage());
 			}
 		}
 
-		// Convert style map to Gpad style sheet if needed
 		String styleSheetName = null;
 		if (styleMap != null && !styleMap.isEmpty()) {
 			styleSheetName = generateStyleSheetName(geo);
-			// Get object type name for value element conversion
 			String objectType = geo.getTypeString();
 			
 			String styleSheetGpad = styleConverter.convert(styleSheetName, styleMap, objectType);
-			
 			if (styleSheetGpad != null && !styleSheetGpad.isEmpty()) {
 				sb.append(styleSheetGpad);
 				sb.append("\n");
@@ -69,24 +68,11 @@ public class GeoElementToGpadConverter {
 
 		// Extract command definition
 		String command = extractCommand(geo);
-		if (command == null || command.isEmpty()) {
-			// If no command, it might be an independent element
-			// Try to get its definition
-			if (geo.isIndependent()) {
-				command = geo.getDefinition(StringTemplate.defaultTemplate);
-				if (command == null || command.isEmpty()) {
-					return ""; // Cannot convert
-				}
-			} else {
-				return ""; // Cannot convert dependent elements without command
-			}
-		}
+		if (command == null || command.isEmpty())
+			return "";
 
 		// Build output part
 		String label = geo.getLabelSimple();
-		if (label == null || label.isEmpty()) {
-			label = geo.getLabel(StringTemplate.defaultTemplate);
-		}
 
 		// Determine visibility flags
 		boolean hideObject = !geo.isSetEuclidianVisible();
@@ -104,28 +90,23 @@ public class GeoElementToGpadConverter {
 			sb.append(" @").append(styleSheetName);
 
 		// Add command
-		sb.append(" = ").append(command);
-
+		sb.append(" = ").append(command).append(";");
 		return sb.toString();
 	}
 
 	/**
 	 * Converts multiple GeoElements to Gpad format.
 	 * 
-	 * @param geos
-	 *            list of GeoElements to convert
+	 * @param geos list of GeoElements to convert
 	 * @return Gpad string representation
 	 */
 	public String toGpad(List<GeoElement> geos) {
 		StringBuilder sb = new StringBuilder();
-		
 		for (GeoElement geo : geos) {
 			String gpad = toGpad(geo);
-			if (!gpad.isEmpty()) {
+			if (!gpad.isEmpty())
 				sb.append(gpad).append("\n");
-			}
 		}
-
 		return sb.toString();
 	}
 
@@ -133,41 +114,32 @@ public class GeoElementToGpadConverter {
 	/**
 	 * Extracts command definition from GeoElement.
 	 * 
-	 * @param geo
-	 *            GeoElement
+	 * @param geo GeoElement
 	 * @return command string, or null if not available
 	 */
 	private String extractCommand(GeoElement geo) {
 		if (geo.getParentAlgorithm() != null) {
 			// Get command from parent algorithm
-			String cmdName = geo.getParentAlgorithm().getDefinitionName(
-					StringTemplate.defaultTemplate);
-			
+			String cmdName = geo.getParentAlgorithm().getDefinitionName(myTPL);
 			if (cmdName != null && !"Expression".equals(cmdName)) {
 				// Get command string with parameters
-				return geo.getParentAlgorithm().getDefinition(
-						StringTemplate.defaultTemplate);
+				return geo.getParentAlgorithm().getDefinition(myTPL);
 			}
 		}
 
 		// Special handling for Button objects
-		if (geo instanceof org.geogebra.common.kernel.geos.GeoButton) {
-			org.geogebra.common.kernel.geos.GeoButton button = 
-					(org.geogebra.common.kernel.geos.GeoButton) geo;
-			String caption = button.getCaption(StringTemplate.defaultTemplate);
-			if (caption != null && !caption.isEmpty()) {
-				// Button with caption: Button("caption")
+		if (geo instanceof GeoButton) {
+			GeoButton button = (GeoButton) geo;
+			String caption = button.getCaption(myTPL);
+			if (caption != null && !caption.isEmpty()) // with caption
 				return "Button(\"" + escapeString(caption) + "\")";
-			} else {
-				// Button without caption: Button()
+			else // without caption
 				return "Button()";
-			}
 		}
 
 		// Special handling for Slider objects (GeoNumeric with slider properties)
-		if (geo instanceof org.geogebra.common.kernel.geos.GeoNumeric) {
-			org.geogebra.common.kernel.geos.GeoNumeric num = 
-					(org.geogebra.common.kernel.geos.GeoNumeric) geo;
+		if (geo instanceof GeoNumeric) {
+			GeoNumeric num = (GeoNumeric) geo;
 			if (num.isSliderable()) {
 				// Build Slider command: Slider(min, max)
 				double min = num.getIntervalMin();
@@ -177,24 +149,20 @@ public class GeoElementToGpadConverter {
 		}
 
 		// For independent elements, try to get definition
-		if (geo.isIndependent() && geo.getDefinition() != null) {
-			return geo.getDefinition(StringTemplate.defaultTemplate);
-		}
-
+		if (geo.isIndependent() && geo.getDefinition() != null)
+			return geo.getDefinition(myTPL);
 		return null;
 	}
 	
 	/**
 	 * Escapes special characters in a string for Gpad format.
 	 * 
-	 * @param str
-	 *            string to escape
+	 * @param str string to escape
 	 * @return escaped string
 	 */
 	private String escapeString(String str) {
-		if (str == null) {
+		if (str == null)
 			return "";
-		}
 		// Escape backslash and double quote
 		return str.replace("\\", "\\\\").replace("\"", "\\\"");
 	}
@@ -203,8 +171,7 @@ public class GeoElementToGpadConverter {
 	/**
 	 * Generates a unique style sheet name for a GeoElement.
 	 * 
-	 * @param geo
-	 *            GeoElement
+	 * @param geo GeoElement
 	 * @return style sheet name
 	 */
 	private String generateStyleSheetName(GeoElement geo) {

@@ -4,6 +4,9 @@ import java.util.regex.Pattern;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.geogebra.common.kernel.parser.Parser;
+import org.geogebra.common.kernel.parser.ParserConstants;
+import org.geogebra.common.kernel.parser.StringProvider;
+import org.geogebra.common.kernel.parser.Token;
 
 /**
  * Converts style map (Map<String, LinkedHashMap<String, String>>) to Gpad format.
@@ -663,13 +666,13 @@ public class StyleMapToGpadConverter {
 		boolean needsQuotes = true;
 		try {
 			Parser parser = new Parser();
-			parser.ReInit(new org.geogebra.common.kernel.parser.StringProvider(expr.trim()));
-			parser.token_source.SwitchTo(org.geogebra.common.kernel.parser.ParserConstants.GK_EXPR_BLOCK);
+			parser.ReInit(new StringProvider(expr.trim()));
+			parser.token_source.SwitchTo(ParserConstants.GK_EXPR_BLOCK);
 			parser.gpadExpr();
 			// Check if all input was consumed by checking if next token is EOF
 			// getToken(0) returns the current token, getToken(1) returns the next token
-			org.geogebra.common.kernel.parser.Token nextToken = parser.getToken(1);
-			needsQuotes = !(nextToken != null && nextToken.kind == org.geogebra.common.kernel.parser.ParserConstants.EOF);
+			Token nextToken = parser.getToken(1);
+			needsQuotes = !(nextToken != null && nextToken.kind == ParserConstants.EOF);
 			// if all input consumed, it's a simple expression
 		} catch (Exception e) {
 			// Parsing failed or other exception, expression needs quotes

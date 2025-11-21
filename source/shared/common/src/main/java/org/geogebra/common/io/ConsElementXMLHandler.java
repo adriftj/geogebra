@@ -148,6 +148,7 @@ public class ConsElementXMLHandler {
 	private final MyXMLHandler xmlHandler;
 	private boolean needsConstructionDefaults;
 	private String pendingLabel;
+	private boolean isGpadMode = false;
 
 	private static class GeoNumericMinMax {
 		private GeoElement geoElement;
@@ -459,6 +460,24 @@ public class ConsElementXMLHandler {
 			geo.setObjColor(GColor.BLACK);
 			((GeoButton) geo).setHeight(DEFAULT_BUTTON_HEIGHT);
 		}
+	}
+
+	/**
+	 * Initialize handler for Gpad style application.
+	 * This method avoids setting default values that would interfere with
+	 * partial style updates. Uses the provided GeoElement directly without
+	 * modifying its existing properties.
+	 * 
+	 * @param geo the GeoElement to apply styles to
+	 */
+	protected void initForGpad(GeoElement geo) {
+		isGpadMode = true;
+		sliderTagProcessed = false;
+		fontTagProcessed = false;
+		symbolicTagProcessed = false;
+		lineStyleTagProcessed = false;
+		this.geo = geo;
+		// Don't set any default values in Gpad mode - preserve existing properties
 	}
 
 	// for point or vector
@@ -2023,21 +2042,25 @@ public class ConsElementXMLHandler {
 	}
 
 	protected void finish() {
-		if (!sliderTagProcessed && geo.isGeoNumeric()) {
-			((GeoNumeric) geo).setAVSliderOrCheckboxVisible(false);
-		} else if (!fontTagProcessed && geo.isGeoText()) {
-			((TextProperties) geo).setFontSizeMultiplier(1);
-			((TextProperties) geo).setSerifFont(false);
-			((TextProperties) geo).setFontStyle(GFont.PLAIN);
-		} else if (!lineStyleTagProcessed && ((geo.isGeoFunctionNVar()
-				&& ((GeoFunctionNVar) geo).isFun2Var())
-				|| geo.isGeoSurfaceCartesian())) {
-			geo.setLineThickness(0);
-		}
+		// In Gpad mode, skip default value settings to avoid overwriting existing properties
+		if (!isGpadMode) {
+			if (!sliderTagProcessed && geo.isGeoNumeric()) {
+				((GeoNumeric) geo).setAVSliderOrCheckboxVisible(false);
+			} else if (!fontTagProcessed && geo.isGeoText()) {
+				((TextProperties) geo).setFontSizeMultiplier(1);
+				((TextProperties) geo).setSerifFont(false);
+				((TextProperties) geo).setFontStyle(GFont.PLAIN);
+			} else if (!lineStyleTagProcessed && ((geo.isGeoFunctionNVar()
+					&& ((GeoFunctionNVar) geo).isFun2Var())
+					|| geo.isGeoSurfaceCartesian())) {
+				geo.setLineThickness(0);
+			}
 
-		if (!symbolicTagProcessed && (geo.isGeoText() || geo.isGeoInputBox() || geo.isGeoList())) {
-			((HasSymbolicMode) geo).setSymbolicMode(false, false);
+			if (!symbolicTagProcessed && (geo.isGeoText() || geo.isGeoInputBox() || geo.isGeoList())) {
+				((HasSymbolicMode) geo).setSymbolicMode(false, false);
+			}
 		}
+		
 		if (xmlHandler.casMap != null && geo instanceof CasEvaluableFunction) {
 			((CasEvaluableFunction) geo).updateCASEvalMap(xmlHandler.casMap);
 		}
@@ -2718,6 +2741,7 @@ public class ConsElementXMLHandler {
 		lineStyleTagProcessed = false;
 		symbolicTagProcessed = false;
 		setEigenvectorsCalled = false;
+		isGpadMode = false;
 	}
 
 	/*
