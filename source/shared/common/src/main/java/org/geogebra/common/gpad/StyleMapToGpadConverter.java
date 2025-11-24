@@ -35,22 +35,20 @@ public class StyleMapToGpadConverter {
 		for (Map.Entry<String, LinkedHashMap<String, String>> entry : styleMap.entrySet()) {
 			String tagName = entry.getKey();
 			LinkedHashMap<String, String> attrs = entry.getValue();
+			String gpadProperty = null;
 
 			// Special handling for checkbox: if fixed="true", output both "checkbox;" and "fixed;"
 			if ("checkbox".equals(tagName)) {
 				String fixed = attrs != null ? attrs.get("fixed") : null;
-				if (!first)
-					sb.append(";");
-				sb.append(" checkbox");
-				first = false;
-				if ("true".equals(fixed)) // Also output fixed (as a boolean property)
-					sb.append("; fixed");
 				// If fixed="false" or not present, only output "checkbox;" (fixed is default false, so omitted)
-				continue;
-			}
+				gpadProperty = "true".equals(fixed)? "checkbox; fixed": "checkbox";
+			} else if ("value".equals(tagName)) {
+				// value: convert based on object type (e.g., "random" for Numeric)
+				// It is a special boolean property but won't be processed by convertSimplePropertyToGpad
+				gpadProperty = convertValueElement(attrs, objectType);
+			} else
+				gpadProperty = convertPropertyToGpad(tagName, attrs, objectType);
 
-			// Convert XML tag name and attributes to Gpad format
-			String gpadProperty = convertPropertyToGpad(tagName, attrs, objectType);
 			if (gpadProperty != null && !gpadProperty.isEmpty()) {
 				if (!first)
 					sb.append(";");
@@ -108,10 +106,6 @@ public class StyleMapToGpadConverter {
 		String convertedValue = null;
 
 		switch (tagName) {
-		case "value":
-			// value: convert based on object type (e.g., "random" for Numeric)
-			// It is a special boolean property but won't be processed by convertSimplePropertyToGpad
-			return convertValueElement(attrs, objectType);
 		case "slider":
 			convertedValue = convertSlider(attrs);
 			break;
@@ -169,6 +163,10 @@ public class StyleMapToGpadConverter {
 		case "dimensions":
 			// dimensions: width=100 height=200 angle=45 scaled
 			convertedValue = convertDimensions(attrs);
+			break;
+		case "startPoint":
+			// startPoint: absolute x y z | "expA"
+			convertedValue = convertStartPoint(attrs);
 			break;
 		case "font":
 			// font: serif size=0.5 plain; or font: ~serif size=2 italic bold;
@@ -1340,6 +1338,78 @@ public class StyleMapToGpadConverter {
 		if (first)
 			return null;
 
+		return sb.toString();
+	}
+	
+	/**
+	 * Converts startPoint elements to Gpad format.
+	 * startPoint is now serialized in XMLToStyleMapParser as _corners attribute.
+	 * This method deserializes it and converts to gpad format.
+	 * 
+	 * @param attrs startPoint attributes
+	 * @return Gpad property string (e.g., "startPoint: absolute 1 2 | \"A\" ~absolute")
+	 */
+	private String convertStartPoint(LinkedHashMap<String, String> attrs) {
+		if (attrs == null || !attrs.containsKey("_corners"))
+			return null;
+		
+		String serialized = attrs.get("_corners");
+		if (serialized == null || serialized.isEmpty())
+			return null;
+		
+		// Deserialize corners
+		String[] cornerStrings = serialized.split("\u0001", -1);
+		if (cornerStrings.length == 0)
+			return null;
+		
+		StringBuilder sb = new StringBuilder();
+		boolean first = true;
+		for (String cornerStr : cornerStrings) {
+			if (cornerStr.isEmpty())
+				continue;
+			
+			if (!first)
+				sb.append(" | ");
+			first = false;
+			
+			// Parse corner format: [absolute byte][type byte][content]
+			if (cornerStr.length() < 2)
+				continue; // Invalid format
+			
+			// (1) Parse absolute byte
+			char absoluteByte = cornerStr.charAt(0);
+			boolean isAbsolute = (absoluteByte == '\u0002');
+			
+			// (2) Parse type byte
+			char typeByte = cornerStr.charAt(1);
+			boolean isExp = (typeByte == '\u0002');
+			
+			// (3) Parse content
+			String content = cornerStr.substring(2);
+			
+			// Build corner string
+			if (isExp) {
+				// Expression-based corner
+				if (isAbsolute)
+					sb.append("absolute \"");
+				else
+					sb.append("\"");
+				sb.append(escapeString(content));
+				sb.append("\"");
+			} else {
+				// x/y/z type: content is "x,y,z" or "x,y" (z optional)
+				String[] coords = content.split(",", -1);
+				if (coords.length >= 2) {
+					// Coordinate-based corner
+					if (isAbsolute)
+						sb.append("absolute ");
+					sb.append(coords[0]).append(" ").append(coords[1]);
+					if (coords.length >= 3 && !coords[2].isEmpty())
+						sb.append(" ").append(coords[2]);
+				}
+			}
+		}
+		
 		return sb.toString();
 	}
 }

@@ -3,6 +3,7 @@ package org.geogebra.common.io;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.geogebra.common.gpad.GpadParseException;
@@ -311,12 +312,20 @@ public class GpadStyleXMLApplier {
 		// We can access startGeoElement because we're in the same package
 		// Use myXMLHandler.errors directly, same as evalXML does
 		// This ensures all errors (from handleValue and addError) go to the same list
+		
 		for (Map.Entry<String, LinkedHashMap<String, String>> entry : properties.entrySet()) {
 			String tagName = entry.getKey();
 			LinkedHashMap<String, String> attrs = entry.getValue();
 			
 			if (attrs == null)
 				continue;
+			
+			// Special handling for startPoint: deserialize _corners and apply immediately
+			if ("startPoint".equals(tagName) && attrs.containsKey("_corners")) {
+				String serialized = attrs.get("_corners");
+				deserializeAndApplyStartPointCorners(serialized, xmlHandler, myXMLHandler.errors);
+				continue;
+			}
 			
 			// Check if this is a reset marker (key: "~")
 			// Reset marker can coexist with normal attributes: {"~": "", "type": "1", "thickness": "5"}
@@ -471,6 +480,70 @@ public class GpadStyleXMLApplier {
 		} catch (Exception e) {
 			Log.debug("Failed to directly reset " + tagName + ": " + e.getMessage());
 			return false; // Fall back to XML approach on error
+		}
+	}
+	
+	/**
+	 * Deserializes startPoint corners from serialized string and applies them immediately.
+	 * Format: corner1\u0001corner2\u0001...
+	 * Each corner: [absolute byte][type byte][content]
+	 *   - absolute byte: \u0002=true, \u0003=false
+	 *   - type byte: \u0002=exp, \u0003=x/y/z
+	 *   - content: if exp, then exp string; if x/y/z, then "x,y,z" (z optional, no trailing comma)
+	 * 
+	 * @param serialized serialized string
+	 * @param xmlHandler XML handler to apply corners
+	 * @param errors error list
+	 */
+	private static void deserializeAndApplyStartPointCorners(String serialized,
+			ConsElementXMLHandler xmlHandler, ArrayList<String> errors) {
+		if (serialized == null || serialized.isEmpty())
+			return;
+		
+		// Split by SOH (\u0001) to get individual corners
+		String[] cornerStrings = serialized.split("\u0001", -1);
+		int cornerIndex = 0;
+		for (String cornerStr : cornerStrings) {
+			if (cornerStr.isEmpty())
+				continue;
+			
+			LinkedHashMap<String, String> corner = new LinkedHashMap<>();
+			
+			// Parse corner format: [absolute byte][type byte][content]
+			if (cornerStr.length() < 2)
+				continue; // Invalid format
+			
+			// (1) Parse absolute byte
+			char absoluteByte = cornerStr.charAt(0);
+			boolean isAbsolute = (absoluteByte == '\u0002');
+			if (isAbsolute)
+				corner.put("absolute", "true");
+			
+			// (2) Parse type byte
+			char typeByte = cornerStr.charAt(1);
+			boolean isExp = (typeByte == '\u0002');
+			
+			// (3) Parse content
+			String content = cornerStr.substring(2);
+			if (isExp) // exp type: content is the expression
+				corner.put("exp", content);
+			else {
+				// x/y/z type: content is "x,y,z" or "x,y" (z optional)
+				String[] coords = content.split(",", -1);
+				if (coords.length >= 2) {
+					corner.put("x", coords[0]);
+					corner.put("y", coords[1]);
+					if (coords.length >= 3 && !coords[2].isEmpty())
+						corner.put("z", coords[2]);
+				}
+			}
+			
+			// Set number attribute based on position (0, 1, 2, ...)
+			// Note: number is needed for XML handler to identify corner index
+			corner.put("number", String.valueOf(cornerIndex++));
+			
+			// Apply immediately (no need to fill required attributes, startPoint has none)
+			xmlHandler.startGeoElement("startPoint", corner, errors);
 		}
 	}
 }

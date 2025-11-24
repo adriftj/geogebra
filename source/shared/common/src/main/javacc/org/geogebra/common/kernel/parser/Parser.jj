@@ -787,6 +787,9 @@ TOKEN : {
  < GK_objColor_hsl: "hsl" > |
  < GK_objColor_inverse: "inverse" > |
  < GK_objColor_tilde_inverse: "~inverse" > |
+ < GK_startPoint_absolute: "absolute" > |
+ < GK_startPoint_tilde_absolute: "~absolute" > |
+ < GK_startPoint_pipe: "|" > |
  < GK_EXPR_comma: "," > |
  < GK_EXPR_lparen: "(" > |
  < GK_EXPR_rparen: ")" > |
@@ -2376,7 +2379,8 @@ void gpadStyleSheetKeyValue(GpadStyleSheet styleSheet) :
         gpadStyleSheetPropertyShow(styleSheet) | // show key
         gpadStyleSheetPropertyObjColor(styleSheet) | // objColor key
         gpadStyleSheetPropertySlider(styleSheet) | // slider key
-        gpadStyleSheetPropertyTableView(styleSheet) // tableview key
+        gpadStyleSheetPropertyTableView(styleSheet) | // tableview key
+        gpadStyleSheetPropertyStartPoint(styleSheet) // startPoint key
         )
         { token_source.SwitchTo(DEFAULT); }
     }
@@ -3314,6 +3318,169 @@ void gpadStyleSheetPropertyShow(GpadStyleSheet styleSheet) :
 }
 
 /**
+ * Parses startPoint property
+ * Syntax: startPoint: corner [| corner]*;
+ * Each corner consists of three optional parts:
+ *   1. absolute | ~absolute (optional, default ~absolute)
+ *   2. TEXT (quoted expression, optional)
+ *   3. x y [z] (coordinates, optional)
+ * At least one of part 2 or part 3 must be present.
+ */
+void gpadStyleSheetPropertyStartPoint(GpadStyleSheet styleSheet) :
+{
+    Token keyToken;
+    java.util.ArrayList<java.util.LinkedHashMap<String, String>> corners = new java.util.ArrayList<>();
+    java.util.LinkedHashMap<String, String> currentCorner;
+    StringBuilder serialized = new StringBuilder();
+}
+{
+    keyToken = <GK_startPoint> <GK_COLON> { token_source.SwitchTo(GK_EXPR_BLOCK); }
+    (
+        {
+            currentCorner = new java.util.LinkedHashMap<>();
+        }
+        gpadStartPointCorner(currentCorner)
+        {
+            // Set number attribute based on position (0, 1, 2, ...)
+            currentCorner.put("number", String.valueOf(corners.size()));
+            corners.add(currentCorner);
+        }
+        (
+            <GK_startPoint_pipe>
+            {
+                currentCorner = new java.util.LinkedHashMap<>();
+            }
+            gpadStartPointCorner(currentCorner)
+            {
+                // Set number attribute based on position (0, 1, 2, ...)
+                currentCorner.put("number", String.valueOf(corners.size()));
+                corners.add(currentCorner);
+            }
+        )*
+    )
+    {
+        // Serialize all corners into a single string
+        // Format: corner1\u0001corner2\u0001...
+        // Each corner: [absolute byte][type byte][content]
+        //   - absolute byte: \u0002=true, \u0003=false
+        //   - type byte: \u0002=exp, \u0003=x/y/z
+        //   - content: if exp, then exp string; if x/y/z, then "x,y,z" (z optional, no trailing comma)
+        for (int i = 0; i < corners.size(); i++) {
+            if (i > 0)
+                serialized.append((char)1); // SOH: separator between corners
+            java.util.LinkedHashMap<String, String> corner = corners.get(i);
+            
+            // (1) absolute: \u0002=true, \u0003=false
+            boolean isAbsolute = "true".equals(corner.get("absolute"));
+            serialized.append(isAbsolute ? (char)2 : (char)3);
+            
+            // (2) type: \u0002=exp, \u0003=x/y/z
+            String exp = corner.get("exp");
+            if (exp != null) {
+                // exp type
+                serialized.append((char)2);
+                // (3) exp content
+                serialized.append(exp);
+            } else {
+                // x/y/z type
+                serialized.append((char)3);
+                // (3) x,y,z content (z optional, no trailing comma)
+                String x = corner.get("x");
+                String y = corner.get("y");
+                String z = corner.get("z");
+                if (x != null && y != null) {
+                    serialized.append(x);
+                    serialized.append(',');
+                    serialized.append(y);
+                    if (z != null) {
+                        serialized.append(',');
+                        serialized.append(z);
+                    }
+                }
+            }
+        }
+        
+        // Store serialized string in a special attribute
+        java.util.LinkedHashMap<String, String> attrs = new java.util.LinkedHashMap<>();
+        attrs.put("_corners", serialized.toString());
+        styleSheet.setProperty(keyToken.image, attrs);
+    }
+}
+
+/**
+ * Parses a single startPoint corner.
+ * Three optional parts (at least one of part 2 or part 3 must be present):
+ *   1. absolute | ~absolute (optional, default ~absolute)
+ *   2. TEXT (quoted expression, optional)
+ *   3. x y [z] (coordinates, optional)
+ * 
+ * Parts can appear in any order, but at least one of part 2 or part 3 must be present.
+ */
+void gpadStartPointCorner(java.util.LinkedHashMap<String, String> corner) :
+{
+    Boolean absolute1 = null;
+    Boolean absolute2 = null;
+}
+{
+    ( absolute1 = gpadStartPointCornerAbsolute() )?
+    gpadStartPointCornerExpOrXyz(corner)
+    ( absolute2 = gpadStartPointCornerAbsolute() )?
+    {
+        Boolean absolute = absolute2 != null? absolute2: absolute1;
+        if (absolute != null)
+            corner.put("absolute", String.valueOf(absolute));
+    }
+}
+
+/**
+ * Parses `absolue` of a single startPoint corner.
+ *   absolute | ~absolute
+ */
+boolean gpadStartPointCornerAbsolute() :
+{
+    boolean result = false;
+}
+{
+    (
+        <GK_startPoint_absolute> { result = true; }
+        |
+        <GK_startPoint_tilde_absolute> { result = false; }
+    )
+    {
+        return result;
+    }
+}
+
+void gpadStartPointCornerExpOrXyz(java.util.LinkedHashMap<String, String> corner) :
+{
+    Token textToken;
+    Token xToken;
+    Token yToken;
+    Token zToken = null;
+}
+{
+    textToken = <TEXT>
+    {
+        String exp = textToken.image.substring(1, textToken.image.length() - 1)
+            .replace("\\n", "\n")
+            .replace("\\r", "\r")
+            .replace("\\t", "\t")
+            .replace("\\\"", "\"")
+            .replace("\\\\", "\\");
+        corner.put("exp", exp);
+    }
+    |
+    xToken = <GK_EXPR_FLOAT>
+    yToken = <GK_EXPR_FLOAT>
+    ( zToken = <GK_EXPR_FLOAT> )?
+    {
+        corner.put("x", xToken.image);
+        corner.put("y", yToken.image);
+        corner.put("z", zToken != null? zToken.image: "1" );
+    }
+}
+
+/**
  * Helper rule to parse an expression (either TEXT or full expression)
  * Returns the parsed string value with escape sequences processed
  * Supports GLABEL, numbers, some operations, and function calls
@@ -3359,6 +3526,7 @@ Token gpadExprLabel() :
         labelToken = <GK_objColor_hsv> |
         labelToken = <GK_objColor_hsl> |
         labelToken = <GK_objColor_inverse> |
+        labelToken = <GK_startPoint_absolute> |
         labelToken = <GK_slider_min> |
         labelToken = <GK_slider_max> |
         labelToken = <GK_slider_width> |
