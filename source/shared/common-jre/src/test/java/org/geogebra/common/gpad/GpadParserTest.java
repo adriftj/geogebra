@@ -2230,4 +2230,237 @@ public class GpadParserTest extends BaseUnitTest {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
+
+	// ========== Tests for tempUserInput ==========
+
+	@Test
+	public void testParseTempUserInputBasic() {
+		// Test tempUserInput with both eval and display
+		String gpad = "@style = { tempUserInput: eval=\"x+1\" display=\"x + 1\" }\n"
+				+ "ib @style = InputBox()";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("tempUserInput");
+			assertNotNull(attrs);
+			assertEquals("x+1", attrs.get("eval"));
+			assertEquals("x + 1", attrs.get("display"));
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testParseTempUserInputOnlyEval() {
+		// Test tempUserInput with only eval
+		String gpad = "@style = { tempUserInput: eval=\"x^2+1\" }\n"
+				+ "ib @style = InputBox()";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("tempUserInput");
+			assertNotNull(attrs);
+			assertEquals("x^2+1", attrs.get("eval"));
+			assertTrue(attrs.get("display") == null);
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testParseTempUserInputOnlyDisplay() {
+		// Test tempUserInput with only display
+		String gpad = "@style = { tempUserInput: display=\"用户输入\" }\n"
+				+ "ib @style = InputBox()";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("tempUserInput");
+			assertNotNull(attrs);
+			assertTrue(attrs.get("eval") == null);
+			assertEquals("用户输入", attrs.get("display"));
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testParseTempUserInputDifferentOrder() {
+		// Test that order doesn't matter
+		String gpad = "@style = { tempUserInput: display=\"x + 1\" eval=\"x+1\" }\n"
+				+ "ib @style = InputBox()";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("tempUserInput");
+			assertNotNull(attrs);
+			assertEquals("x+1", attrs.get("eval"));
+			assertEquals("x + 1", attrs.get("display"));
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testParseTempUserInputWithEscapeSequences() {
+		// Test tempUserInput with escape sequences
+		String gpad = "@style = { tempUserInput: eval=\"x\\n+1\" display=\"x\\t+\\r1\" }\n"
+				+ "ib @style = InputBox()";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("tempUserInput");
+			assertNotNull(attrs);
+			// Escape sequences should be processed: \\n -> \n, \\t -> \t, \\r -> \r
+			assertEquals("x\n+1", attrs.get("eval"));
+			assertEquals("x\t+\r1", attrs.get("display"));
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testParseTempUserInputWithSpecialChars() {
+		// Test tempUserInput with special characters (no quotes to avoid GeoGebra parsing issues)
+		String gpad = "@style = { tempUserInput: eval=\"x+1\" display=\"x plus 1\" }\n"
+				+ "ib @style = InputBox()";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("tempUserInput");
+			assertNotNull(attrs);
+			assertEquals("x+1", attrs.get("eval"));
+			assertEquals("x plus 1", attrs.get("display"));
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testParseTempUserInputWithBackslash() {
+		// Test tempUserInput with escaped backslash
+		String gpad = "@style = { tempUserInput: eval=\"x\\\\+1\" display=\"pathto\" }\n"
+				+ "ib @style = InputBox()";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("tempUserInput");
+			assertNotNull(attrs);
+			// Escaped backslash should be processed: \\\\ -> \\
+			assertEquals("x\\+1", attrs.get("eval"));
+			assertEquals("pathto", attrs.get("display"));
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testParseTempUserInputWithInlineStyle() {
+		// Test tempUserInput with inline style
+		String gpad = "ib { tempUserInput: eval=\"2*x+3\" display=\"2x + 3\" } = InputBox()";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GeoElement geo = geos.get(0);
+			assertEquals("ib", geo.getLabelSimple());
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testParseTempUserInputWithOtherProperties() {
+		// Test tempUserInput combined with other properties
+		String gpad = "@style = { tempUserInput: eval=\"x+1\" display=\"x + 1\"; pointSize: 5 }\n"
+				+ "ib @style = InputBox()";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> tempUserInputAttrs = styleSheet.getProperty("tempUserInput");
+			assertNotNull(tempUserInputAttrs);
+			assertEquals("x+1", tempUserInputAttrs.get("eval"));
+			assertEquals("x + 1", tempUserInputAttrs.get("display"));
+			java.util.LinkedHashMap<String, String> pointSizeAttrs = styleSheet.getProperty("pointSize");
+			assertNotNull(pointSizeAttrs);
+			assertEquals("5", pointSizeAttrs.get("val"));
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testParseTempUserInputComplexString() {
+		// Test tempUserInput with complex string containing various characters
+		String gpad = "@style = { tempUserInput: eval=\"x^2 + y^2 = r^2\" display=\"x² + y² = r²\" }\n"
+				+ "ib @style = InputBox()";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("tempUserInput");
+			assertNotNull(attrs);
+			assertEquals("x^2 + y^2 = r^2", attrs.get("eval"));
+			assertEquals("x² + y² = r²", attrs.get("display"));
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	@Test
+	public void testParseTempUserInputEmptyString() {
+		// Test tempUserInput with empty strings
+		String gpad = "@style = { tempUserInput: eval=\"\" display=\"\" }\n"
+				+ "ib @style = InputBox()";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			List<GeoElement> geos = parser.parse(gpad);
+			assertEquals(1, geos.size());
+			GpadStyleSheet styleSheet = parser.getGlobalStyleSheets().get("style");
+			assertNotNull(styleSheet);
+			java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("tempUserInput");
+			assertNotNull(attrs);
+			assertEquals("", attrs.get("eval"));
+			assertEquals("", attrs.get("display"));
+		} catch (GpadParseException | CircularDefinitionException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
 }

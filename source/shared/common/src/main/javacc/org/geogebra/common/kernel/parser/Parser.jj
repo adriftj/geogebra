@@ -485,6 +485,20 @@ public class Parser implements ParserInterface {
         }
         return tokenImage.substring(valueStart);
     }
+
+    /**
+     * Unescapes a quoted string by processing escape sequences.
+     * Handles: \\n -> \n, \\r -> \r, \\t -> \t, \\" -> ", \\\\ -> \
+     * @param quoted the string with escape sequences (already with quotes removed)
+     * @return the unescaped string
+     */
+    private static String unescapeString(String quoted) {
+        return quoted.replace("\\n", "\n")
+                     .replace("\\r", "\r")
+                     .replace("\\t", "\t")
+                     .replace("\\\"", "\"")
+                     .replace("\\\\", "\\");
+    }
 }
 PARSER_END(Parser)
 
@@ -819,6 +833,8 @@ TOKEN : {
  < GK_slider_tilde_screen: "~@screen" > |
  < GK_slider_fixed: "fixed" > |
  < GK_slider_tilde_fixed: "~fixed" > |
+ < GK_tempUserInput_eval: "eval" > |
+ < GK_tempUserInput_display: "display" > |
  < GK_EXPR_LABEL: <GLABEL> > |
  < GK_EXPR_FLOAT: <GINTEGER> ("." <GINTEGER>)? > |
  < GK_objColor_fill_equals_value: "fill" ([" ", "\t"])* "=" ([" ", "\t"])* (["a"-"z"])+ > |
@@ -2382,7 +2398,8 @@ void gpadStyleSheetKeyValue(GpadStyleSheet styleSheet) :
         gpadStyleSheetPropertyObjColor(styleSheet) | // objColor key
         gpadStyleSheetPropertySlider(styleSheet) | // slider key
         gpadStyleSheetPropertyTableView(styleSheet) | // tableview key
-        gpadStyleSheetPropertyStartPoint(styleSheet) // startPoint key
+        gpadStyleSheetPropertyStartPoint(styleSheet) | // startPoint key
+        gpadStyleSheetPropertyTempUserInput(styleSheet) // tempUserInput key
         )
         { token_source.SwitchTo(DEFAULT); }
     }
@@ -2497,11 +2514,7 @@ void gpadStyleSheetPropertyStr(GpadStyleSheet styleSheet) :
     (
         valueToken = <TEXT> {
             val = valueToken.image;
-            val = val.substring(1, val.length() - 1)
-                    .replace("\\n", "\n")
-    			    .replace("\\r", "\r")
-                    .replace("\\\"", "\"")
-                    .replace("\\\\", "\\");
+            val = unescapeString(val.substring(1, val.length() - 1));
             sb.append(val);
         }
         | valueToken = <GK_STR_UNQUOTED> { sb.append(valueToken.image); }
@@ -3093,6 +3106,47 @@ void gpadStyleSheetPropertyContentSize(GpadStyleSheet styleSheet) :
 }
 
 /**
+ * Parses tempUserInput property
+ * Syntax: tempUserInput: eval="<string>" display="<string>";
+ * Both eval and display are quoted strings (required to be quoted)
+ * Order can be arbitrary, both are optional
+ */
+void gpadStyleSheetPropertyTempUserInput(GpadStyleSheet styleSheet) :
+{
+    Token keyToken;
+    String eval = null;
+    String display = null;
+    Token textToken;
+}
+{
+    keyToken = <GK_tempUserInput> <GK_COLON> { token_source.SwitchTo(GK_EXPR_BLOCK); }
+    ( (
+        // Parse eval="<string>"
+        <GK_tempUserInput_eval> <GK_slider_equal> 
+        textToken = <TEXT>
+        {
+            eval = unescapeString(textToken.image.substring(1, textToken.image.length() - 1));
+        }
+    ) | (
+        // Parse display="<string>"
+        <GK_tempUserInput_display> <GK_slider_equal>
+        textToken = <TEXT>
+        {
+            display = unescapeString(textToken.image.substring(1, textToken.image.length() - 1));
+        }
+    ) )*
+    {
+        java.util.LinkedHashMap<String, String> attrs = new java.util.LinkedHashMap<>();
+        if (eval != null)
+            attrs.put("eval", eval);
+        if (display != null)
+            attrs.put("display", display);
+        if (!attrs.isEmpty())
+            styleSheet.setProperty(keyToken.image, attrs);
+    }
+}
+
+/**
  * Parses cropBox property
  * Syntax: cropBox: x=<value> y=<value> width=<value> height=<value> [cropped|~cropped];
  * x, y, width, height are floats, cropped is boolean (cropped for true, ~cropped for false)
@@ -3463,12 +3517,7 @@ void gpadStartPointCornerExpOrXyz(java.util.LinkedHashMap<String, String> corner
 {
     textToken = <TEXT>
     {
-        String exp = textToken.image.substring(1, textToken.image.length() - 1)
-            .replace("\\n", "\n")
-            .replace("\\r", "\r")
-            .replace("\\t", "\t")
-            .replace("\\\"", "\"")
-            .replace("\\\\", "\\");
+        String exp = unescapeString(textToken.image.substring(1, textToken.image.length() - 1));
         corner.put("exp", exp);
     }
     |
@@ -3498,12 +3547,7 @@ String gpadExpr() :
         textToken = <TEXT>
         {
             String text = textToken.image;
-            exprValue = text.substring(1, text.length() - 1)
-                    .replace("\\n", "\n")
-                    .replace("\\r", "\r")
-                    .replace("\\t", "\t")
-                    .replace("\\\"", "\"")
-                    .replace("\\\\", "\\");
+            exprValue = unescapeString(text.substring(1, text.length() - 1));
         }
     |
         { sb = new StringBuilder(); }
@@ -3538,6 +3582,8 @@ Token gpadExprLabel() :
         labelToken = <GK_slider_algebra> |
         labelToken = <GK_slider_constant> |
         labelToken = <GK_slider_fixed> |
+        labelToken = <GK_tempUserInput_eval> |
+        labelToken = <GK_tempUserInput_display> |
         labelToken = <GK_EXPR_LABEL>
     )
     { return labelToken; }
@@ -3730,11 +3776,7 @@ void gpadStyleSheetPropertyObjColor(GpadStyleSheet styleSheet) :
                 if (value.startsWith("\"") && value.endsWith("\"")) {
                     // Handle quoted string with escape sequences
                     String quoted = value.substring(1, value.length() - 1); // Remove surrounding quotes
-                    image = quoted.replace("\\n", "\n")
-                            .replace("\\r", "\r")
-                            .replace("\\t", "\t")
-                            .replace("\\\"", "\"")
-                            .replace("\\\\", "\\");
+                    image = unescapeString(quoted);
                 } else {
                     // Unquoted string, use as-is
                     image = value;

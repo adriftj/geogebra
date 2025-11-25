@@ -176,6 +176,10 @@ public class StyleMapToGpadConverter {
 			// show: object ~label ev1 ~ev2 plane ~3d;
 			convertedValue = convertShow(attrs);
 			break;
+		case "tempUserInput":
+			// tempUserInput: eval="..." display="...";
+			convertedValue = convertTempUserInput(attrs);
+			break;
 		}
 
 		// Only add property name prefix if converted value is not null and not empty
@@ -829,6 +833,40 @@ public class StyleMapToGpadConverter {
 			if (!first)
 				sb.append(" ");
 			sb.append("height=").append(height);
+			first = false;
+		}
+
+		return sb.toString();
+	}
+
+	/**
+	 * Converts tempUserInput XML attributes to Gpad format.
+	 * Syntax: tempUserInput: eval="<string>" display="<string>";
+	 * Both eval and display are quoted strings (required to be quoted)
+	 * 
+	 * @param attrs tempUserInput attributes map
+	 * @return Gpad tempUserInput string (e.g., "eval=\"x+1\" display=\"x + 1\"")
+	 */
+	private String convertTempUserInput(LinkedHashMap<String, String> attrs) {
+		if (attrs == null || attrs.isEmpty())
+			return "";
+
+		StringBuilder sb = new StringBuilder();
+		boolean first = true;
+
+		String eval = attrs.get("eval");
+		if (eval != null) {
+			if (!first)
+				sb.append(" ");
+			sb.append("eval=\"").append(escapeString(eval)).append("\"");
+			first = false;
+		}
+
+		String display = attrs.get("display");
+		if (display != null) {
+			if (!first)
+				sb.append(" ");
+			sb.append("display=\"").append(escapeString(display)).append("\"");
 			first = false;
 		}
 
