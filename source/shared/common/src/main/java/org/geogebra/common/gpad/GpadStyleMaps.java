@@ -34,16 +34,17 @@ public class GpadStyleMaps {
 	 * 若其唯一属性名不是 "val"，则在此登记
 	 * 映射：Gpad 属性名 -> XML 属性名
 	 */
-	public static final Map<String, String> GPAD_TO_XML_ATTR_NAME_MAP = Map.of(
-			"audio", "src",
-			"curveParam", "t",
-			"decoration", "type",
-			"filename", "name",
-			"hideLabelInAlgebra", "labelVisible",
-			"linkedGeo", "exp",
-			"random", "random",
-			"showIf", "showObject",
-			"video", "src");
+	public static final Map<String, String> GPAD_TO_XML_ATTR_NAME_MAP = Map.ofEntries(
+		Map.entry("audio", "src"),
+		Map.entry("curveParam", "t"),
+		Map.entry("decoration", "type"),
+		Map.entry("filename", "name"),
+		Map.entry("hideLabelInAlgebra", "labelVisible"),
+		Map.entry("linkedGeo", "exp"),
+		Map.entry("random", "random"),
+		Map.entry("showIf", "showObject"),
+		Map.entry("userinput", "show"),
+		Map.entry("video", "src"));
 
 	/**
 	 * 布尔值反转取值表
@@ -106,6 +107,7 @@ public class GpadStyleMaps {
 			Map.entry("showTrimmed", new PropertyInfo(GK_BOOL, null)),
 			Map.entry("symbolic", new PropertyInfo(GK_BOOL, null)),
 			Map.entry("trace", new PropertyInfo(GK_BOOL, null)),
+			Map.entry("userinput", new PropertyInfo(GK_BOOL, null)),
 
 			// GK_INT 类型
 			Map.entry("arcSize", new PropertyInfo(GK_INT, "30")),

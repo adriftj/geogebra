@@ -680,6 +680,7 @@ TOKEN : {
 
 <GK_BLOCK> TOKEN : {
  < GK_animation: "animation" > |
+ < GK_allowReflexAngle: "allowReflexAngle" > |
  < GK_boundingBox: "boundingBox" > |
  < GK_casMap: "casMap" > |
  < GK_checkbox: "checkbox" > |
@@ -693,6 +694,7 @@ TOKEN : {
  < GK_embedSettings: "embedSettings" > |
  < GK_eqnStyle: "eqnStyle" > |
  < GK_font: "font" > |
+ < GK_forceReflexAngle: "forceReflexAngle" > |
  < GK_lineStyle: "lineStyle" > |
  < GK_listener: "listener" > |
  < GK_listType: "listType" > |
@@ -707,7 +709,6 @@ TOKEN : {
  < GK_tableview: "tableview" > |
  < GK_tag: "tag" > |
  < GK_tempUserInput: "tempUserInput" > |
- < GK_userinput: "userinput" > |
  < GK_value: "value" > |
  < GK_variables: "variables" > |
  < GK_BOOL: "autocolor" |
@@ -731,7 +732,8 @@ TOKEN : {
     "showOnAxis" |
     "showTrimmed" |
     "symbolic" |
-    "trace" > |
+    "trace" |
+    "userinput"> |
  < GK_INT: "arcSize" |
     "decimals" |
     "layer" |
