@@ -273,6 +273,23 @@ public class GpadStyleXMLApplier {
 		put("width", "200");
 	}};
 	
+	/** spreadsheetTrace: ... */
+	private static final LinkedHashMap<String, String> SPREADSHEETTRACE_DEFAULTS = new LinkedHashMap<String, String>() {{
+		put("val", "false");
+		put("traceColumn1", "-1");
+		put("traceColumn2", "-1");
+		put("traceRow1", "-1");
+		put("traceRow2", "-1");
+		put("tracingRow", "0");
+		put("numRows", "10");
+		put("headerOffset", "1");
+		put("doColumnReset", "false");
+		put("doRowLimit", "false");
+		put("showLabel", "true");
+		put("showTraceList", "false");
+		put("doTraceGeoCopy", "false");
+	}};
+	
 	/**
 	 * 样式重置信息 Map
 	 * Key: XML 标签名
@@ -289,7 +306,6 @@ public class GpadStyleXMLApplier {
 		Map.entry("onClick", ResetInfo.direct()),
 		Map.entry("onDragEnd", ResetInfo.direct()),
 		Map.entry("onUpdate", ResetInfo.direct()),
-		Map.entry("spreadsheetTrace", ResetInfo.direct()),
 		Map.entry("startPoint", ResetInfo.direct()),
 		Map.entry("trace", ResetInfo.direct()),
 		
@@ -366,6 +382,7 @@ public class GpadStyleXMLApplier {
 		Map.entry("lineStyle", ResetInfo.defaults(LINE_STYLE_DEFAULTS)),
 		Map.entry("show", ResetInfo.defaults(SHOW_DEFAULTS)),
 		Map.entry("slider", ResetInfo.defaults(SLIDER_DEFAULTS)), // width 会在 getDefaultAttrsForTag 中根据对象类型特殊处理
+		Map.entry("spreadsheetTrace", ResetInfo.defaults(SPREADSHEETTRACE_DEFAULTS)),
 		Map.entry("tableview", ResetInfo.defaults(TABLEVIEW_DEFAULTS)),
 		
 		// 其他复杂样式（暂时使用空 Map，表示不需要重置或使用默认值）
@@ -454,7 +471,7 @@ public class GpadStyleXMLApplier {
 		if (requiredAttrNames == null || requiredAttrNames.isEmpty())
 			return;
 		
-		// Get default attributes for this tag from the default geo
+		// Get default attributes for this tag
 		LinkedHashMap<String, String> defaultAttrs = getDefaultAttrsForTag(geo, tagName);
 		
 		// Fill only the required attributes that are missing
@@ -515,34 +532,7 @@ public class GpadStyleXMLApplier {
 	}
 	
 	/**
-	 * Gets the default style map for a given default type, using cache.
-	 * 
-	 * @param defaultType default type from ConstructionDefaults
-	 * @param defaults ConstructionDefaults instance
-	 * @return map from tag names to default attribute maps, or null if default geo not found
-	 */
-	private static Map<String, LinkedHashMap<String, String>> getDefaultStyleMap(
-			int defaultType, ConstructionDefaults defaults) {
-		// Check cache first
-		return DEFAULT_STYLE_MAP_CACHE.computeIfAbsent(defaultType, type -> {
-			GeoElement defaultGeo = defaults.getDefaultGeo(type);
-			if (defaultGeo == null) {
-				return null;
-			}
-			
-			try {
-				// Parse default geo's XML to get style map
-				XMLToStyleMapParser parser = new XMLToStyleMapParser();
-				return parser.parse(defaultGeo.getStyleXML());
-			} catch (GpadParseException e) {
-				Log.debug("Failed to parse default geo XML for type " + type + ": " + e.getMessage());
-				return null;
-			}
-		});
-	}
-	
-	/**
-	 * Gets default attributes for a specific tag from the default geo.
+	 * Gets default attributes for a specific tag.
 	 * 
 	 * @param geo GeoElement to get default type for
 	 * @param tagName XML tag name
@@ -551,49 +541,30 @@ public class GpadStyleXMLApplier {
 	private static LinkedHashMap<String, String> getDefaultAttrsForTag(GeoElement geo, String tagName) {
 		// 首先检查 RESET_INFO_MAP
 		ResetInfo resetInfo = RESET_INFO_MAP.get(tagName);
-		if (resetInfo != null) {
-			if (resetInfo.type == ResetInfo.ResetType.DIRECT) {
-				// 第二类：需要特殊处理，返回 null（由 handleDirectReset 处理）
-				return null;
-			}
-			
-			// 第一类：使用缺省值 Map
-			LinkedHashMap<String, String> defaultAttrs = resetInfo.defaultAttrs;
-			if (defaultAttrs != null) {
-				// 特殊处理：slider 的 width 需要根据对象类型动态确定
-				if ("slider".equals(tagName) && defaultAttrs.containsKey("width")) {
-					LinkedHashMap<String, String> result = new LinkedHashMap<>(defaultAttrs);
-					// 根据 geo 类型确定 width 缺省值
-					// 如果是 GeoAngle，使用 180；否则使用 200
-					if (geo instanceof GeoAngle) {
-						result.put("width", "180");
-					} else {
-						result.put("width", "200");
-					}
-					return result;
-				}
-				
-				// 返回缺省值的副本，避免修改原始 Map
-				return new LinkedHashMap<>(defaultAttrs);
-			}
-		}
-		
-		// 如果 RESET_INFO_MAP 中没有，尝试从 defaultGeo 获取（向后兼容）
-		ConstructionDefaults defaults = geo.getKernel().getConstruction().getConstructionDefaults();
-		int defaultType = defaults.getDefaultType(geo);
-		Map<String, LinkedHashMap<String, String>> defaultStyleMap = getDefaultStyleMap(defaultType, defaults);
-		
-		if (defaultStyleMap == null) {
+		if (resetInfo == null)
 			return null;
+
+		if (resetInfo.type == ResetInfo.ResetType.DIRECT) // 第二类：需要特殊处理，返回 null（由 handleDirectReset 处理）
+			return null;
+			
+		// 第一类：使用缺省值 Map
+		LinkedHashMap<String, String> defaultAttrs = resetInfo.defaultAttrs;
+		if (defaultAttrs == null)
+			return null;
+
+		// 特殊处理：slider 的 width 需要根据对象类型动态确定
+		if ("slider".equals(tagName)) {
+			// 根据 geo 类型确定 width 缺省值
+			// 如果是 GeoAngle，使用 180；否则使用defaultAttrs里的(200)
+			if (geo instanceof GeoAngle) {
+				LinkedHashMap<String, String> result = new LinkedHashMap<>(defaultAttrs);
+				result.put("width", "180");
+				return result;
+			}
 		}
 		
-		LinkedHashMap<String, String> defaultAttrs = defaultStyleMap.get(tagName);
-		if (defaultAttrs != null) {
-			// Return a copy to avoid modifying the cached version
-			return new LinkedHashMap<>(defaultAttrs);
-		}
-		
-		return null;
+		// 返回缺省值的副本，避免修改原始 Map
+		return new LinkedHashMap<>(defaultAttrs);
 	}
 	
 	/**
@@ -750,14 +721,6 @@ public class GpadStyleXMLApplier {
 				// Clear trace flag
 				if (geo instanceof Traceable) {
 					((Traceable) geo).setTrace(false);
-					return true;
-				}
-				return false;
-				
-			case "spreadsheetTrace":
-				// Clear spreadsheet trace
-				if (geo.isSpreadsheetTraceable()) {
-					geo.setSpreadsheetTrace(false);
 					return true;
 				}
 				return false;

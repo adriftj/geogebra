@@ -112,6 +112,9 @@ public class StyleMapToGpadConverter {
 		case "tableview":
 			convertedValue = convertTableView(attrs);
 			break;
+		case "spreadsheetTrace":
+			convertedValue = convertSpreadsheetTrace(attrs);
+			break;
 		case "lineStyle":
 			// lineStyle: dashedlong thickness=5 hidden opacity=128 ~arrow
 			convertedValue = convertLineStyle(attrs);
@@ -1373,6 +1376,119 @@ public class StyleMapToGpadConverter {
 
 		// If no attributes were output, return null (omit the property)
 		// This should only happen if column is -1 and points is not present
+		if (first)
+			return null;
+
+		return sb.toString();
+	}
+
+	/**
+	 * Converts spreadsheetTrace XML attributes to Gpad format.
+	 * Syntax: [trace|~trace] [column=<int>] [row=<int>[/<int>]] 
+	 *         [reset|~reset] [label|~label] [list|~list] [copy|~copy] [pause|~pause]
+	 * 
+	 * row format:
+	 *   row=12/30    -> traceRow1=12, numRows=30, doRowLimit=true
+	 *   row=12       -> traceRow1=12, doRowLimit=false, numRows not set
+	 * 
+	 * @param attrs spreadsheetTrace attributes map
+	 * @return Gpad spreadsheetTrace string, or null if should be omitted
+	 */
+	private String convertSpreadsheetTrace(LinkedHashMap<String, String> attrs) {
+		if (attrs == null || attrs.isEmpty())
+			return null;
+
+		StringBuilder sb = new StringBuilder();
+		boolean first = true;
+
+		// Convert trace (val attribute) - default is false, only output if true
+		String val = attrs.get("val");
+		if ("true".equals(val)) {
+			if (!first)
+				sb.append(" ");
+			sb.append("trace");
+			first = false;
+		}
+
+		// Convert column (traceColumn1)
+		String traceColumn1 = attrs.get("traceColumn1");
+		if (traceColumn1 != null && !traceColumn1.isEmpty()) {
+			// Only output if column is not -1 (default value)
+			if (!"-1".equals(traceColumn1)) {
+				if (!first)
+					sb.append(" ");
+				sb.append("column=").append(traceColumn1);
+				first = false;
+			}
+		}
+
+		// Convert row (traceRow1, numRows, doRowLimit)
+		String traceRow1 = attrs.get("traceRow1");
+		if (traceRow1 != null && !traceRow1.isEmpty()) {
+			// Only output if traceRow1 is not -1 (default value)
+			if (!"-1".equals(traceRow1)) {
+				if (!first)
+					sb.append(" ");
+				
+				String doRowLimit = attrs.get("doRowLimit");
+				String numRows = attrs.get("numRows");
+				
+				// Format: row=12/30 if doRowLimit=true and numRows is set
+				// Format: row=12 if doRowLimit=false or numRows is not set
+				if ("true".equals(doRowLimit) && numRows != null && !numRows.isEmpty())
+					sb.append("row=").append(traceRow1).append("/").append(numRows);
+				else
+					sb.append("row=").append(traceRow1);
+				first = false;
+			}
+		}
+
+		// Convert reset (doColumnReset) - default is false, only output if true
+		String doColumnReset = attrs.get("doColumnReset");
+		if ("true".equals(doColumnReset)) {
+			if (!first)
+				sb.append(" ");
+			sb.append("reset");
+			first = false;
+		}
+
+		// Convert label (showLabel) - default is true, only output if false
+		String showLabel = attrs.get("showLabel");
+		if ("false".equals(showLabel)) {
+			if (!first)
+				sb.append(" ");
+			sb.append("~label");
+			first = false;
+		}
+
+		// Convert list (showTraceList) - default is false, only output if true
+		String showTraceList = attrs.get("showTraceList");
+		if ("true".equals(showTraceList)) {
+			if (!first)
+				sb.append(" ");
+			sb.append("list");
+			first = false;
+		}
+
+		// Convert copy (doTraceGeoCopy) - default is false, only output if true
+		String doTraceGeoCopy = attrs.get("doTraceGeoCopy");
+		if ("true".equals(doTraceGeoCopy)) {
+			if (!first)
+				sb.append(" ");
+			sb.append("copy");
+			first = false;
+		}
+
+		// Convert pause - default is false, only output if true
+		String pause = attrs.get("pause");
+		if ("true".equals(pause)) {
+			if (!first)
+				sb.append(" ");
+			sb.append("pause");
+			first = false;
+		}
+
+		// If no attributes were output, return null (omit the property)
 		if (first)
 			return null;
 
