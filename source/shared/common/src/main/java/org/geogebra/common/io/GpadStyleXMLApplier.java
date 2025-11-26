@@ -2,21 +2,19 @@ package org.geogebra.common.io;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.ArrayList;
-import java.util.concurrent.ConcurrentHashMap;
 
 import org.geogebra.common.gpad.GpadParseException;
 import org.geogebra.common.gpad.GpadStyleSheet;
-import org.geogebra.common.gpad.XMLToStyleMapParser;
-import org.geogebra.common.kernel.ConstructionDefaults;
 import org.geogebra.common.kernel.Kernel;
 import org.geogebra.common.kernel.geos.GeoAngle;
 import org.geogebra.common.kernel.geos.GeoBoolean;
 import org.geogebra.common.kernel.geos.GeoButton;
 import org.geogebra.common.kernel.geos.GeoElement;
+import org.geogebra.common.kernel.geos.GeoInputBox;
 import org.geogebra.common.kernel.geos.GeoNumeric;
-import org.geogebra.common.kernel.geos.Traceable;
 import org.geogebra.common.plugin.EventType;
 import org.geogebra.common.plugin.ScriptManager;
 import org.geogebra.common.util.debug.Log;
@@ -34,43 +32,18 @@ public class GpadStyleXMLApplier {
 	private static final String RESET_MARKER = "~";
 	
 	/**
-	 * Cache for default style maps by default type.
-	 * Key: default type (Integer)
-	 * Value: Map from tag names to default attribute maps
-	 */
-	private static final Map<Integer, Map<String, LinkedHashMap<String, String>>> DEFAULT_STYLE_MAP_CACHE = 
-			new ConcurrentHashMap<>();
-	
-	/**
 	 * 样式重置信息
 	 * 用于定义每个 XML 标签在重置时的处理方式
 	 */
 	public static class ResetInfo {
-		/**
-		 * 重置类型
-		 */
-		public enum ResetType {
-			/** 第二类：需要特殊处理（调用 handleDirectReset） */
-			DIRECT,
-			/** 第一类：使用缺省值 Map */
-			DEFAULT_MAP
-		}
-		
-		public final ResetType type;
-		/** 如果是 DEFAULT_MAP，存储缺省属性 Map；如果是 DIRECT，为 null */
 		public final LinkedHashMap<String, String> defaultAttrs;
 		
-		private ResetInfo(ResetType type, LinkedHashMap<String, String> defaultAttrs) {
-			this.type = type;
+		private ResetInfo(LinkedHashMap<String, String> defaultAttrs) {
 			this.defaultAttrs = defaultAttrs;
 		}
 		
-		public static ResetInfo direct() {
-			return new ResetInfo(ResetType.DIRECT, null);
-		}
-		
 		public static ResetInfo defaults(LinkedHashMap<String, String> attrs) {
-			return new ResetInfo(ResetType.DEFAULT_MAP, attrs);
+			return new ResetInfo(attrs);
 		}
 	}
 	
@@ -106,13 +79,15 @@ public class GpadStyleXMLApplier {
 		put("val", "default");
 	}};
 	
-	/** 空 Map */
-	private static final LinkedHashMap<String, String> EMPTY_MAP = new LinkedHashMap<>();
-	
 	// 布尔类型特殊属性名
 	/** algebra: labelVisible="false" */
 	private static final LinkedHashMap<String, String> ALGEBRA_FALSE = new LinkedHashMap<String, String>() {{
 		put("labelVisible", "false");
+	}};
+
+	/** checkbox: fixed="false" */
+	private static final LinkedHashMap<String, String> CHECKBOX_FIXED_FALSE = new LinkedHashMap<String, String>() {{
+		put("fixed", "false");
 	}};
 	
 	/** userinput: show="false" */
@@ -179,6 +154,11 @@ public class GpadStyleXMLApplier {
 		put("val", "cartesian");
 	}};
 	
+	/** linkedGeo: exp="" */
+	private static final LinkedHashMap<String, String> LINKEDGEO_EXP_EMPTY = new LinkedHashMap<String, String>() {{
+		put("exp", "");
+	}};
+	
 	/** textAlign: val="left" */
 	private static final LinkedHashMap<String, String> TEXT_ALIGN_LEFT = new LinkedHashMap<String, String>() {{
 		put("val", "left");
@@ -190,6 +170,14 @@ public class GpadStyleXMLApplier {
 	}};
 	
 	// 复杂样式缺省值
+
+	/** bgColor/borderColor/objColor: #000000 */
+	private static final LinkedHashMap<String, String> COLOR_DEFAULTS = new LinkedHashMap<String, String>() {{
+		put("r", "0");
+		put("g", "0");
+		put("b", "0");
+	}};
+
 	/** lineStyle: type="0", thickness="5" */
 	private static final LinkedHashMap<String, String> LINE_STYLE_DEFAULTS = new LinkedHashMap<String, String>() {{
 		put("type", "0");
@@ -268,11 +256,16 @@ public class GpadStyleXMLApplier {
 		put("y", "0");
 	}};
 	
-	/** slider: width="200" (普通数字的缺省值，角度会在 getDefaultAttrsForTag 中特殊处理为 180) */
+	/** slider: width="200" (普通数字的缺省值，角度的缺省值需要特殊处理为 180) */
 	private static final LinkedHashMap<String, String> SLIDER_DEFAULTS = new LinkedHashMap<String, String>() {{
 		put("width", "200");
 	}};
-	
+
+	/** slider: width="180" (角度的缺省值) */
+	private static final LinkedHashMap<String, String> SLIDER_ANGLE_DEFAULTS = new LinkedHashMap<String, String>() {{
+		put("width", "180");
+	}};
+
 	/** spreadsheetTrace: ... */
 	private static final LinkedHashMap<String, String> SPREADSHEETTRACE_DEFAULTS = new LinkedHashMap<String, String>() {{
 		put("val", "false");
@@ -289,6 +282,11 @@ public class GpadStyleXMLApplier {
 		put("showTraceList", "false");
 		put("doTraceGeoCopy", "false");
 	}};
+
+	/** startPoint: _corners="..." */
+	private static final LinkedHashMap<String, String> STARTPOINT_DEFAULTS = new LinkedHashMap<String, String>() {{
+		put("_corners", "\u0002\u00030,0");
+	}};
 	
 	/**
 	 * 样式重置信息 Map
@@ -296,26 +294,25 @@ public class GpadStyleXMLApplier {
 	 * Value: ResetInfo 对象，定义重置时的处理方式
 	 */
 	private static final Map<String, ResetInfo> RESET_INFO_MAP = Map.ofEntries(
-		// ==================== 第二类：需要特殊处理 ====================
-		Map.entry("condition", ResetInfo.direct()),
-		Map.entry("dynamicCaption", ResetInfo.direct()),
-		Map.entry("javascript", ResetInfo.direct()),
-		Map.entry("linkedGeo", ResetInfo.direct()),
-		Map.entry("listener", ResetInfo.direct()),
-		Map.entry("onChange", ResetInfo.direct()),
-		Map.entry("onClick", ResetInfo.direct()),
-		Map.entry("onDragEnd", ResetInfo.direct()),
-		Map.entry("onUpdate", ResetInfo.direct()),
-		Map.entry("startPoint", ResetInfo.direct()),
-		Map.entry("trace", ResetInfo.direct()),
+		// ==================== 调用handleDirectReset直接清除的 ====================
+		// "condition":
+		// "dynamicCaption":
+		// "javascript":
+		// "onClick":
+		// "onUpdate":
+		// "onDragEnd":
+		// "onChange":
+		// "listener":
+		// "tempUserInput":
 		
-		// ==================== 第一类：布尔类型（缺省值 false）====================
+		// ==================== 布尔类型（缺省值 false）====================
 		Map.entry("absoluteScreenLocation", ResetInfo.defaults(BOOL_FALSE)),
 		Map.entry("algebra", ResetInfo.defaults(ALGEBRA_FALSE)),
 		Map.entry("autocolor", ResetInfo.defaults(BOOL_FALSE)),
 		Map.entry("auxiliary", ResetInfo.defaults(BOOL_FALSE)),
 		Map.entry("breakpoint", ResetInfo.defaults(BOOL_FALSE)),
 		Map.entry("centered", ResetInfo.defaults(BOOL_FALSE)),
+		Map.entry("checkbox", ResetInfo.defaults(CHECKBOX_FIXED_FALSE)),
 		Map.entry("comboBox", ResetInfo.defaults(BOOL_FALSE)),
 		Map.entry("contentSerif", ResetInfo.defaults(BOOL_FALSE)),
 		Map.entry("emphasizeRightAngle", ResetInfo.defaults(BOOL_TRUE)),
@@ -331,10 +328,11 @@ public class GpadStyleXMLApplier {
 		Map.entry("showOnAxis", ResetInfo.defaults(BOOL_FALSE)),
 		Map.entry("showTrimmed", ResetInfo.defaults(BOOL_FALSE)),
 		Map.entry("symbolic", ResetInfo.defaults(BOOL_FALSE)),
+		Map.entry("trace", ResetInfo.defaults(BOOL_FALSE)),
 		Map.entry("userinput", ResetInfo.defaults(USER_INPUT_FALSE)),
 		Map.entry("value", ResetInfo.defaults(RANDOM_FALSE)),
 		
-		// ==================== 第一类：整数类型 ====================
+		// ==================== 整数类型 ====================
 		Map.entry("arcSize", ResetInfo.defaults(ARC_SIZE_30)),
 		Map.entry("decimals", ResetInfo.defaults(INT_M1)),
 		Map.entry("layer", ResetInfo.defaults(INT_ZERO)),
@@ -343,12 +341,12 @@ public class GpadStyleXMLApplier {
 		Map.entry("significantfigures", ResetInfo.defaults(INT_M1)),
 		Map.entry("slopeTriangleSize", ResetInfo.defaults(SLOPE_TRIANGLE_SIZE_1)),
 		
-		// ==================== 第一类：浮点数类型 ====================
+		// ==================== 浮点数类型 ====================
 		Map.entry("fading", ResetInfo.defaults(INT_ZERO)),
 		Map.entry("ordering", ResetInfo.defaults(ORDERING_NAN)),
 		Map.entry("pointSize", ResetInfo.defaults(POINT_SIZE_5)),
 		
-		// ==================== 第一类：字符串类型（GK_STR）====================
+		// ==================== 字符串类型（GK_STR）====================
 		Map.entry("angleStyle", ResetInfo.defaults(INT_ZERO)),
 		Map.entry("audio", ResetInfo.defaults(SRC_EMPTY)),
 		Map.entry("caption", ResetInfo.defaults(STR_EMPTY)),
@@ -361,6 +359,7 @@ public class GpadStyleXMLApplier {
 		Map.entry("headStyle", ResetInfo.defaults(INT_ZERO)),
 		Map.entry("incrementY", ResetInfo.defaults(STR_EMPTY)),
 		Map.entry("labelMode", ResetInfo.defaults(INT_ZERO)),
+		Map.entry("linkedGeo", ResetInfo.defaults(LINKEDGEO_EXP_EMPTY)),
 		Map.entry("parentLabel", ResetInfo.defaults(STR_EMPTY)),
 		Map.entry("pointStyle", ResetInfo.defaults(INT_ZERO)),
 		Map.entry("startStyle", ResetInfo.defaults(STR_DEFAULT)),
@@ -369,8 +368,10 @@ public class GpadStyleXMLApplier {
 		Map.entry("verticalAlign", ResetInfo.defaults(VERTICAL_ALIGN_TOP)),
 		Map.entry("video", ResetInfo.defaults(SRC_EMPTY)),
 		
-		// ==================== 第一类：复杂样式（多个属性）====================
+		// ==================== 复杂样式（多个属性）====================
 		Map.entry("animation", ResetInfo.defaults(ANIMATION_DEFAULTS)),
+		Map.entry("bgColor", ResetInfo.defaults(COLOR_DEFAULTS)),
+		Map.entry("borderColor", ResetInfo.defaults(COLOR_DEFAULTS)),
 		Map.entry("boundingBox", ResetInfo.defaults(BOUNDING_BOX_DEFAULTS)),
 		Map.entry("contentSize", ResetInfo.defaults(CONTENT_SIZE_DEFAULTS)),
 		Map.entry("cropBox", ResetInfo.defaults(CROP_BOX_DEFAULTS)),
@@ -380,27 +381,27 @@ public class GpadStyleXMLApplier {
 		Map.entry("font", ResetInfo.defaults(FONT_DEFAULTS)),
 		Map.entry("labelOffset", ResetInfo.defaults(LABEL_OFFSET_DEFAULTS)),
 		Map.entry("lineStyle", ResetInfo.defaults(LINE_STYLE_DEFAULTS)),
+		Map.entry("objColor", ResetInfo.defaults(COLOR_DEFAULTS)),
 		Map.entry("show", ResetInfo.defaults(SHOW_DEFAULTS)),
-		Map.entry("slider", ResetInfo.defaults(SLIDER_DEFAULTS)), // width 会在 getDefaultAttrsForTag 中根据对象类型特殊处理
+		Map.entry("slider", ResetInfo.defaults(SLIDER_DEFAULTS)), // width需要根据对象类型特殊处理
 		Map.entry("spreadsheetTrace", ResetInfo.defaults(SPREADSHEETTRACE_DEFAULTS)),
-		Map.entry("tableview", ResetInfo.defaults(TABLEVIEW_DEFAULTS)),
+		Map.entry("startPoint", ResetInfo.defaults(STARTPOINT_DEFAULTS)),
+		Map.entry("tableview", ResetInfo.defaults(TABLEVIEW_DEFAULTS))
 		
-		// 其他复杂样式（暂时使用空 Map，表示不需要重置或使用默认值）
-		Map.entry("allowReflexAngle", ResetInfo.defaults(EMPTY_MAP)),
-		Map.entry("casMap", ResetInfo.defaults(EMPTY_MAP)),
-		Map.entry("checkbox", ResetInfo.defaults(EMPTY_MAP)),
-		Map.entry("coefficients", ResetInfo.defaults(EMPTY_MAP)),
-		Map.entry("coords", ResetInfo.defaults(EMPTY_MAP)),
-		Map.entry("eigenvectors", ResetInfo.defaults(EMPTY_MAP)),
-		Map.entry("embedSettings", ResetInfo.defaults(EMPTY_MAP)),
-		Map.entry("forceReflexAngle", ResetInfo.defaults(EMPTY_MAP)),
-		Map.entry("listType", ResetInfo.defaults(EMPTY_MAP)),
-		Map.entry("matrix", ResetInfo.defaults(EMPTY_MAP)),
-		Map.entry("parent", ResetInfo.defaults(EMPTY_MAP)),
-		Map.entry("strokeCoords", ResetInfo.defaults(EMPTY_MAP)),
-		Map.entry("tag", ResetInfo.defaults(EMPTY_MAP)),
-		Map.entry("tempUserInput", ResetInfo.defaults(EMPTY_MAP)),
-		Map.entry("variables", ResetInfo.defaults(EMPTY_MAP))
+		// 其他复杂样式，不登记，所以查map时会得到null，表示不需要重置或使用默认值
+		// "allowReflexAngle" // 已废弃
+		// "casMap" // 是个缓存，不需要作为样式
+		// "coefficients"
+		// "coords"
+		// "eigenvectors"
+		// "embedSettings" // 不需要重置
+		// "forceReflexAngle" // 已废弃
+		// "listType" // 由命令自动生成，不需要作为样式
+		// "matrix"
+		// "parent"
+		// "strokeCoords" // 由命令自动生成，不需要作为样式
+		// "tag"
+		// "variables" // 由命令自动生成，不需要作为样式
 	);
 	
 	/**
@@ -455,46 +456,56 @@ public class GpadStyleXMLApplier {
 	 * Fills missing required attributes with default values from defaultGeo.
 	 * Only fills attributes that will throw exceptions if missing.
 	 * 
-	 * @param tagName
-	 *            XML element name
-	 * @param attrs
-	 *            attributes map to fill
-	 * @param geo
-	 *            GeoElement (needed for type-specific defaults)
+	 * @param attrs attributes map to fill
+	 * @param canModify false if need a new copy of adjusted map, true if can modify `attrs`
+	 * @param tagName XML element name
+	 * @param geo GeoElement (needed for type-specific defaults)
+	 * @return filled map
+	 * 
 	 */
-	private static void fillRequiredAttributes(String tagName,
-			LinkedHashMap<String, String> attrs, GeoElement geo) {
+	private static LinkedHashMap<String, String> fillRequiredAttributes(
+		LinkedHashMap<String, String> attrs, boolean canModify,
+		String tagName, GeoElement geo) {
 		// Get the set of required attribute names for this tag
 		Set<String> requiredAttrNames = REQUIRED_ATTRIBUTE_NAMES.get(tagName);
-		
 		// If this tag has no required attributes (like "show"), skip filling
 		if (requiredAttrNames == null || requiredAttrNames.isEmpty())
-			return;
-		
-		// Get default attributes for this tag
-		LinkedHashMap<String, String> defaultAttrs = getDefaultAttrsForTag(geo, tagName);
+			return attrs;
+
+		LinkedHashMap<String, String> originAttrs = attrs;
+		ResetInfo resetInfo = RESET_INFO_MAP.get(tagName);
+		LinkedHashMap<String, String> defaultAttrs =
+			resetInfo == null? null: resetInfo.defaultAttrs;
+		Optional<LinkedHashMap<String, String>> optDefaultAttrs = needAdjustDefault(tagName, geo);
+		if(optDefaultAttrs.isPresent()) {
+			defaultAttrs = new LinkedHashMap<String, String>(defaultAttrs);
+			defaultAttrs.putAll(optDefaultAttrs.get());
+		}
 		
 		// Fill only the required attributes that are missing
 		for (String attrName : requiredAttrNames) {
 			if (!attrs.containsKey(attrName) || attrs.get(attrName) == null) {
 				String defaultValue = null;
 
-				// Special handling for value element's val attribute:
-				// Use current geo's value
-				if ("value".equals(tagName) && "val".equals(attrName))
-					defaultValue = getDefaultValueForValueElement(geo);
-				else if ("javascript".equals(tagName) && "val".equals(attrName))
-					defaultValue = ""; // for javascript element's val, use ""
-				else {
-					// Try to get default value from default geo
-					if (defaultAttrs != null && defaultAttrs.containsKey(attrName))
-						defaultValue = defaultAttrs.get(attrName);
-				}
+				if ("value".equals(tagName)) { // Use current geo's value for default
+					if("val".equals(attrName))
+						defaultValue = getDefaultValueForValueElement(geo);
+				} else if ("javascript".equals(tagName)) {
+					if ("val".equals(attrName))
+						defaultValue = ""; // for javascript element's val, use ""
+				} else if (defaultAttrs != null) {
+					defaultValue = defaultAttrs.get(attrName);
+				} else
+					continue;
 
-				if (defaultValue != null)
+				if (defaultValue != null) {
+					if (!canModify && attrs == originAttrs)
+						attrs = new LinkedHashMap<String, String>(attrs);
 					attrs.put(attrName, defaultValue);
+				}
 			}
 		}
+		return attrs;
 	}
 	
 	/**
@@ -532,39 +543,22 @@ public class GpadStyleXMLApplier {
 	}
 	
 	/**
-	 * Gets default attributes for a specific tag.
+	 * Check if need adjust default attributes for a specific tag.
 	 * 
-	 * @param geo GeoElement to get default type for
 	 * @param tagName XML tag name
-	 * @return default attributes map, or null if not found
+	 * @param geo GeoElement to get default type for
+	 * @return optional map to adjust
 	 */
-	private static LinkedHashMap<String, String> getDefaultAttrsForTag(GeoElement geo, String tagName) {
-		// 首先检查 RESET_INFO_MAP
-		ResetInfo resetInfo = RESET_INFO_MAP.get(tagName);
-		if (resetInfo == null)
-			return null;
-
-		if (resetInfo.type == ResetInfo.ResetType.DIRECT) // 第二类：需要特殊处理，返回 null（由 handleDirectReset 处理）
-			return null;
-			
-		// 第一类：使用缺省值 Map
-		LinkedHashMap<String, String> defaultAttrs = resetInfo.defaultAttrs;
-		if (defaultAttrs == null)
-			return null;
-
+	private static Optional<LinkedHashMap<String, String>> needAdjustDefault(String tagName, GeoElement geo) {
 		// 特殊处理：slider 的 width 需要根据对象类型动态确定
 		if ("slider".equals(tagName)) {
 			// 根据 geo 类型确定 width 缺省值
-			// 如果是 GeoAngle，使用 180；否则使用defaultAttrs里的(200)
-			if (geo instanceof GeoAngle) {
-				LinkedHashMap<String, String> result = new LinkedHashMap<>(defaultAttrs);
-				result.put("width", "180");
-				return result;
-			}
+			// 如果是 GeoAngle，改成180；否则用原来的缺省值
+			if (geo instanceof GeoAngle)
+				return Optional.of(SLIDER_ANGLE_DEFAULTS);
 		}
 		
-		// 返回缺省值的副本，避免修改原始 Map
-		return new LinkedHashMap<>(defaultAttrs);
+		return Optional.empty();
 	}
 	
 	/**
@@ -598,77 +592,61 @@ public class GpadStyleXMLApplier {
 		
 		for (Map.Entry<String, LinkedHashMap<String, String>> entry : properties.entrySet()) {
 			String tagName = entry.getKey();
-			LinkedHashMap<String, String> originalAttrs = entry.getValue();
-			
-			if (originalAttrs == null)
+			LinkedHashMap<String, String> attrs = entry.getValue();
+			if (attrs == null)
 				continue;
-			
-			// Create a copy of attrs to avoid modifying the original styleSheet
-			LinkedHashMap<String, String> attrs = new LinkedHashMap<>(originalAttrs);
-			
-			// Special handling for startPoint: deserialize _corners and apply immediately
-			if ("startPoint".equals(tagName) && attrs.containsKey("_corners")) {
-				String serialized = attrs.get("_corners");
-				deserializeAndApplyStartPointCorners(serialized, xmlHandler, myXMLHandler.errors);
-				continue;
-			}
-			
+
 			// Check if this is a reset marker (key: "~")
 			// Reset marker can coexist with normal attributes: {"~": "", "type": "1", "thickness": "5"}
 			// This means: first clear, then set the normal attributes
 			boolean hasResetMarker = isResetMarker(attrs);
 			if (hasResetMarker) {
-				// Check if this is a second-class tag (DIRECT) or first-class tag (DEFAULT_MAP)
-				ResetInfo resetInfo = RESET_INFO_MAP.get(tagName);
-				
-				if (resetInfo != null && resetInfo.type == ResetInfo.ResetType.DIRECT) {
-					// 第二类：需要特殊处理，调用 handleDirectReset
-					if (handleDirectReset(tagName, attrs, geo)) {
-						// Direct reset handled, but we still need to apply normal attributes if any
-						// Remove reset marker from attrs copy for further processing
-						LinkedHashMap<String, String> attrsWithoutReset = new LinkedHashMap<>(attrs);
-						attrsWithoutReset.remove(RESET_MARKER);
-						if (!attrsWithoutReset.isEmpty()) {
-							// There are normal attributes to apply after clearing
-							fillRequiredAttributes(tagName, attrsWithoutReset, geo);
-							xmlHandler.startGeoElement(tagName, attrsWithoutReset, myXMLHandler.errors);
-						}
-						continue; // Skip default-based reset since we already cleared directly
-					}
-					// If handleDirectReset returned false, fall through to default handling
-				}
-				
-				// 第一类：使用缺省值 Map
-				// Remove reset marker to get normal attributes (if any)
-				LinkedHashMap<String, String> normalAttrs = new LinkedHashMap<>(attrs);
-				normalAttrs.remove(RESET_MARKER);
-				
-				// Get default attributes for this tag
-				LinkedHashMap<String, String> defaultAttrs = getDefaultAttrsForTag(geo, tagName);
-				
-				if (defaultAttrs != null) {
-					if (normalAttrs.isEmpty()) {
-						// 没有其他值要设置，直接用缺省值
-						attrs = defaultAttrs;
-					} else {
-						// 有其他值要设置，合并新设的值到缺省值中（新值覆盖缺省值）
-						LinkedHashMap<String, String> mergedAttrs = new LinkedHashMap<>(defaultAttrs);
-						mergedAttrs.putAll(normalAttrs);
-						attrs = mergedAttrs;
-					}
-				} else {
-					// No default value found, but we still need to apply normal attributes if any
-					if (normalAttrs.isEmpty()) {
-						// No normal attributes and no default, skip this tag
+				if (handleDirectReset(tagName, attrs, geo)) {
+					if (attrs.size()<=1) // no any normal attributes
 						continue;
+					// Remove reset marker from attrs copy
+					attrs = new LinkedHashMap<>(attrs);
+					attrs.remove(RESET_MARKER);
+					// There are normal attributes to apply after clearing
+					attrs = fillRequiredAttributes(attrs, true, tagName, geo);
+				}
+				else {
+					ResetInfo resetInfo = RESET_INFO_MAP.get(tagName);
+					if (attrs.size()<=1) { // no normal attributes
+						if (resetInfo == null) // no default
+							continue;
+						attrs = resetInfo.defaultAttrs;
 					}
-					attrs = normalAttrs;
+					else {
+						if(resetInfo != null) {
+							// 有其他值要设置，合并新设的值到缺省值中（新值覆盖缺省值）
+							LinkedHashMap<String, String> mergedAttrs = new LinkedHashMap<>(resetInfo.defaultAttrs);
+							needAdjustDefault(tagName, geo).ifPresent(
+					            dAttrs -> mergedAttrs.putAll(dAttrs)
+        					);
+							mergedAttrs.putAll(attrs);
+							attrs = mergedAttrs;
+						} else // No default, has normal attributes
+							attrs = new LinkedHashMap<>(attrs);
+						// Remove reset marker to get normal attributes
+						attrs.remove(RESET_MARKER);
+					}
 				}
 			}
-			
-			// Fill missing required attributes before applying
-			fillRequiredAttributes(tagName, attrs, geo);
-			xmlHandler.startGeoElement(tagName, attrs, myXMLHandler.errors);
+			else {
+				// Fill missing required attributes before applying
+				attrs = fillRequiredAttributes(attrs, false, tagName, geo);
+			}
+
+			// Special handling for startPoint: deserialize _corners and apply immediately
+			if ("startPoint".equals(tagName)) {
+				if(attrs.containsKey("_corners")) {
+					String serialized = attrs.get("_corners");
+					deserializeAndApplyStartPointCorners(serialized, xmlHandler, myXMLHandler.errors);
+				}
+			}
+			else
+				xmlHandler.startGeoElement(tagName, attrs, myXMLHandler.errors);
 		}
 
 		xmlHandler.processLists(); // Process deferred lists (e.g., minMaxList for slider min/max)
@@ -716,15 +694,7 @@ public class GpadStyleXMLApplier {
 				// Clear dynamic caption
 				geo.removeDynamicCaption();
 				return true;
-				
-			case "trace":
-				// Clear trace flag
-				if (geo instanceof Traceable) {
-					((Traceable) geo).setTrace(false);
-					return true;
-				}
-				return false;
-				
+
 			case "javascript":
 			case "onClick":
 				// Clear click script
@@ -751,22 +721,25 @@ public class GpadStyleXMLApplier {
 				String type = attrs != null ? attrs.get("type") : null;
 				if (type != null) {
 					ScriptManager scriptManager = geo.getKernel().getApplication().getScriptManager();
-					if ("objectUpdate".equals(type)) {
+					if ("objectUpdate".equals(type))
 						scriptManager.getUpdateListenerMap().remove(geo);
-						return true;
-					} else if ("objectClick".equals(type)) {
+					else if ("objectClick".equals(type))
 						scriptManager.getClickListenerMap().remove(geo);
-						return true;
-					}
 				}
-				return false;
+				return true;
+				
+			case "tempUserInput":
+				// Clear temp user input
+				if (geo instanceof GeoInputBox)
+					((GeoInputBox) geo).clearTempUserInput();
+				return true;
 				
 			default:
 				return false;
 			}
 		} catch (Exception e) {
 			Log.debug("Failed to directly reset " + tagName + ": " + e.getMessage());
-			return false; // Fall back to XML approach on error
+			return true;
 		}
 	}
 	
