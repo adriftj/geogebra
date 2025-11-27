@@ -46,7 +46,7 @@ the Free Software Foundation; either version 2 of the License, or
 options {
    STATIC = false;
    JAVA_TEMPLATE_TYPE = "modern";
-   DEBUG_PARSER = true;
+   //DEBUG_PARSER = true;
    //DEBUG_LOOKAHEAD = true;
    //DEBUG_TOKEN_MANAGER = true;
 }
@@ -455,12 +455,14 @@ public class Parser implements ParserInterface {
                 String r = String.valueOf(Integer.parseInt(colorUpper.substring(1, 3), 16));
                 String g = String.valueOf(Integer.parseInt(colorUpper.substring(3, 5), 16));
                 String b = String.valueOf(Integer.parseInt(colorUpper.substring(5, 7), 16));
-                // Parse hex color #rrggbb (alpha defaults to 1.0) or #rrggbbaa
-                String a = len==9? String.valueOf(Integer.parseInt(colorUpper.substring(7, 9), 16) / 255.0): "1.0";
                 attrs.put("r", r);
                 attrs.put("g", g);
                 attrs.put("b", b);
-                attrs.put("alpha", a);
+                // Parse hex color #rrggbb (alpha defaults to 1.0) or #rrggbbaa
+                if (len == 9) {
+                    int a = Integer.parseInt(colorUpper.substring(7, 9), 16);
+                    attrs.put("alpha", String.valueOf(a/255.0));
+                }
                 return true;
             } catch (NumberFormatException e) {
                 // Invalid format
@@ -707,6 +709,7 @@ TOKEN : {
  < GK_animation: "animation" > |
  < GK_allowReflexAngle: "allowReflexAngle" > |
  < GK_boundingBox: "boundingBox" > |
+ < GK_barTag: "barTag" > |
  < GK_casMap: "casMap" > |
  < GK_checkbox: "checkbox" > |
  < GK_coefficients: "coefficients" > |
@@ -854,7 +857,9 @@ TOKEN : {
  // symbol=xxx where xxx is double quoted string or single printable unicode character
  < GK_objColor_symbol_equals_value: "symbol" ([" ", "\t"])* "=" ([" ", "\t"])* (("\"" (<CHAR>)* "\"") | <PRINTABLE_CHAR>) > |
  // image=xxx where xxx is doubele quoted string or characters excluding some special
- < GK_objColor_image_equals_value: "image" ([" ", "\t"])* "=" ([" ", "\t"])* (("\"" (<CHAR>)* "\"") | (~["\u0000"-"\u001F", ";", "}", " ", "\t", "\u007F", "\""])+) >
+ < GK_objColor_image_equals_value: "image" ([" ", "\t"])* "=" ([" ", "\t"])* (("\"" (<CHAR>)* "\"") | (~["\u0000"-"\u001F", ";", "}", " ", "\t", "\u007F", "\""])+) > |
+ // bar=xxx where xxx is digits only (required for barTag)
+ < GK_barTag_bar_equals_value: "bar" ([" ", "\t"])* "=" ([" ", "\t"])* (["0"-"9"])+ >
 }
 
 <GK_STR_BLOCK> TOKEN : {
@@ -2424,6 +2429,7 @@ void gpadStyleSheetKeyValue(GpadStyleSheet styleSheet) :
         gpadStyleSheetPropertyFont(styleSheet) | // font key
         gpadStyleSheetPropertyShow(styleSheet) | // show key
         gpadStyleSheetPropertyObjColor(styleSheet) | // objColor key
+        gpadStyleSheetPropertyBarTag(styleSheet) | // barTag key
         gpadStyleSheetPropertySlider(styleSheet) | // slider key
         gpadStyleSheetPropertyTableView(styleSheet) | // tableview key
         gpadStyleSheetPropertySpreadsheetTrace(styleSheet) | // spreadsheetTrace key
@@ -4142,6 +4148,305 @@ void gpadStyleSheetPropertyObjColor(GpadStyleSheet styleSheet) :
         
         if (!attrs.isEmpty())
             styleSheet.setProperty(keyToken.image, attrs);
+    }
+}
+
+/**
+ * Parses barTag property
+ * Syntax: barTag: bar=<number> [#rrggbbaa] [fill=...] [angle=...] [dist=...] [image=...] [symbol=...] | bar=<number> ...
+ * Multiple bar styles separated by |
+ */
+void gpadStyleSheetPropertyBarTag(GpadStyleSheet styleSheet) :
+{
+    Token keyToken;
+    java.util.List<java.util.LinkedHashMap<String, String>> bars = new java.util.ArrayList<>();
+    java.util.LinkedHashMap<String, String> currentBar;
+    StringBuilder serialized = new StringBuilder();
+}
+{
+    keyToken = <GK_barTag> <GK_COLON> { token_source.SwitchTo(GK_EXPR_BLOCK); }
+    (
+        { currentBar = new java.util.LinkedHashMap<>(); }
+        gpadBarTagBar(currentBar) { bars.add(currentBar); }
+        (
+            <GK_startPoint_pipe> { currentBar = new java.util.LinkedHashMap<>(); }
+            gpadBarTagBar(currentBar) { bars.add(currentBar); }
+        )*
+    )
+    {
+        // Serialize all bars into a single string
+        // Format: [length1 char][bar1 data][length2 char][bar2 data]...
+        // Each bar: [length char][barNumber char][flags char][属性值序列]
+        // length: total length of barNumber + flags + 属性值序列 (excluding length itself)
+        for (int i = 0; i < bars.size(); i++) {
+            java.util.LinkedHashMap<String, String> bar = bars.get(i);
+            
+            // Build bar data first to calculate length
+            StringBuilder barData = new StringBuilder();
+            
+            // (1) barNumber: 1 char (0-65535)
+            String barNumberStr = bar.get("barNumber");
+            if (barNumberStr == null) // barNumber is required, skip this bar
+                continue;
+            try {
+                int barNumber = Integer.parseInt(barNumberStr);
+                barData.append((char)barNumber);
+            } catch (NumberFormatException e) {
+                // Invalid barNumber, skip this bar
+                continue;
+            }
+            
+            // (2) flags: 1 char, bit flags
+            char flags = 0;
+            String r = bar.get("r");
+            String g = bar.get("g");
+            String b = bar.get("b");
+            String alpha = bar.get("alpha");
+            String fillType = bar.get("fillType");
+            String hatchAngle = bar.get("hatchAngle");
+            String hatchDistance = bar.get("hatchDistance");
+            String image = bar.get("image");
+            String fillSymbol = bar.get("fillSymbol");
+            
+            if (r != null && g != null && b != null)
+                flags |= 0x01; // bit 0: barColor
+            if (alpha != null)
+                flags |= 0x02; // bit 1: barAlpha
+            if (fillType != null)
+                flags |= 0x04; // bit 2: barFillType
+            if (hatchAngle != null)
+                flags |= 0x08; // bit 3: barHatchAngle
+            if (hatchDistance != null)
+                flags |= 0x10; // bit 4: barHatchDistance
+            if (image != null)
+                flags |= 0x20; // bit 5: barImage
+            if (fillSymbol != null)
+                flags |= 0x40; // bit 6: barSymbol
+            barData.append(flags);
+            
+            // (3) 属性值序列（按 flags 顺序）
+            // bit 0: barColor (r, g, b)
+            if ((flags & 0x01) != 0) {
+                try {
+                    int rVal = Integer.parseInt(r);
+                    int gVal = Integer.parseInt(g);
+                    int bVal = Integer.parseInt(b);
+                    barData.append((char)rVal);
+                    barData.append((char)gVal);
+                    barData.append((char)bVal);
+                } catch (NumberFormatException e) {
+                    // Invalid color values, skip
+                }
+            }
+            
+            // bit 1: barAlpha
+            if ((flags & 0x02) != 0) {
+                try {
+                    // Parse alpha: float string (0.0-1.0)
+                    double alphaDouble = Double.parseDouble(alpha);
+                    int alphaInt = (int)(alphaDouble * 255);
+                    if (alphaInt < 0) alphaInt = 0;
+                    if (alphaInt > 255) alphaInt = 255;
+                    barData.append((char)alphaInt);
+                } catch (NumberFormatException e) {
+                    // Invalid alpha, clear the flag to avoid deserialization mismatch
+                    flags &= ~0x02; // Clear bit 1
+                }
+            }
+            
+            // bit 2: barFillType
+            if ((flags & 0x04) != 0 && fillType != null) {
+                try {
+                    int fillTypeInt = Integer.parseInt(fillType);
+                    if (fillTypeInt >= 0 && fillTypeInt <= 9) {
+                        barData.append((char)fillTypeInt);
+                    }
+                } catch (NumberFormatException e) {
+                    // Invalid fillType, skip
+                }
+            }
+            
+            // bit 3: barHatchAngle
+            if ((flags & 0x08) != 0 && hatchAngle != null) {
+                try {
+                    int angle = Integer.parseInt(hatchAngle);
+                    // Normalize angle to 0-359 range
+                    angle = ((angle % 360) + 360) % 360;
+                    barData.append((char)angle);
+                } catch (NumberFormatException e) {
+                    // Invalid angle, skip
+                }
+            }
+            
+            // bit 4: barHatchDistance
+            if ((flags & 0x10) != 0 && hatchDistance != null) {
+                try {
+                    int dist = Integer.parseInt(hatchDistance);
+                    if (dist > 65535) dist = 65535;
+                    barData.append((char)dist);
+                } catch (NumberFormatException e) {
+                    // Invalid distance, skip
+                }
+            }
+            
+            // bit 5: barImage (字符串，以 ETX 结尾)
+            if ((flags & 0x20) != 0) {
+                barData.append(image);
+                barData.append((char)3); // ETX: end of image string
+            }
+            
+            // bit 6: barSymbol
+            if ((flags & 0x40) != 0)
+                barData.append(fillSymbol.charAt(0));
+            
+            // Calculate length and prepend it
+            int barLength = barData.length();
+            if (barLength > 65535) {
+                // Bar too long, skip it
+                continue;
+            }
+            serialized.append((char)barLength);
+            serialized.append(barData);
+        }
+        
+        // Store serialized string in a special attribute
+        java.util.LinkedHashMap<String, String> attrs = new java.util.LinkedHashMap<>();
+        attrs.put("_barTags", serialized.toString());
+        styleSheet.setProperty(keyToken.image, attrs);
+    }
+}
+
+/**
+ * Parses a single barTag bar.
+ * Syntax: [bar=<number>] [#rrggbbaa] [fill=...] [angle=...] [dist=...] [image=...] [symbol=...]
+ * All attributes can appear in any order. bar=<number> is required (checked at end).
+ */
+void gpadBarTagBar(java.util.LinkedHashMap<String, String> bar) :
+{
+    Token exprToken = null;
+    Token colorToken = null;
+    String barNumber = null;
+    String fillType = null;
+    String hatchAngle = null;
+    String hatchDistance = null;
+    String image = null;
+    String fillSymbol = null;
+    String value = null;
+}
+{
+    (
+        // Parse bar=<number> (required, but can appear anywhere)
+        exprToken = <GK_barTag_bar_equals_value>
+        {
+            barNumber = extractValueAfterEquals(exprToken.image);
+            if (barNumber != null && !barNumber.isEmpty()) {
+                bar.put("barNumber", barNumber);
+            }
+        }
+    |
+        // Parse color: #rrggbb or #rrggbbaa (optional, can appear anywhere)
+        colorToken = <GK_objColor_RGBA_HEX_COLOR>
+        {
+            parseHexColor(colorToken.image, bar);
+        }
+    |
+        // Parse fill=xxx
+        exprToken = <GK_objColor_fill_equals_value>
+        {
+            fillType = extractValueAfterEquals(exprToken.image);
+        }
+    |
+        // Parse angle=xxx
+        exprToken = <GK_objColor_angle_equals_value>
+        {
+            hatchAngle = extractValueAfterEquals(exprToken.image);
+        }
+    |
+        // Parse dist=xxx
+        exprToken = <GK_objColor_dist_equals_value>
+        {
+            hatchDistance = extractValueAfterEquals(exprToken.image);
+        }
+    |
+        // Parse image=xxx
+        exprToken = <GK_objColor_image_equals_value>
+        {
+            value = extractValueAfterEquals(exprToken.image);
+            if (value != null) {
+                if (value.startsWith("\"") && value.endsWith("\"")) {
+                    String quoted = value.substring(1, value.length() - 1);
+                    image = unescapeString(quoted);
+                } else {
+                    image = value;
+                }
+            }
+        }
+    |
+        // Parse symbol=xxx
+        exprToken = <GK_objColor_symbol_equals_value>
+        {
+            value = extractValueAfterEquals(exprToken.image);
+            if (value != null) {
+                if (value.startsWith("\"") && value.endsWith("\"")) {
+                    if (value.length() > 2)
+                        fillSymbol = value.substring(1, 2);
+                }
+                else if (value.length() > 0)
+                    fillSymbol = value.substring(0, 1);
+            }
+        }
+    )*
+    
+    {
+        if (barNumber == null || barNumber.isEmpty()) // barNumber is required, skip this bar
+            return;
+        
+        // Handle fillType and its constraints (similar to objColor)
+        if (fillType != null) {
+            String fillTypeXML = GpadStyleMaps.FILL_TYPE_MAP.get(fillType);
+            if (fillTypeXML != null) {
+                bar.put("fillType", fillTypeXML);
+                // Check if fillType is a HATCH type (1-8, excluding 0=STANDARD and 9=IMAGE)
+                try {
+                    int fillTypeInt = Integer.parseInt(fillTypeXML);
+                    if (fillTypeInt >= 1 && fillTypeInt <= 8) {
+                        // HATCH type, ensure angle and dist are set
+                        if (hatchAngle == null)
+                            hatchAngle = "45"; // Default hatch angle
+                        if (hatchDistance == null)
+                            hatchDistance = "10"; // Default hatch distance
+                    }
+                } catch (NumberFormatException e) {
+                    // Ignore parsing errors
+                }
+            }
+        }
+        
+        // If symbol is set but fillType is not explicitly set, set fillType = SYMBOLS
+        if (fillSymbol != null && fillType == null) {
+            String symbolsFillType = GpadStyleMaps.FILL_TYPE_MAP.get("symbols");
+            if (symbolsFillType != null) {
+                bar.put("fillType", symbolsFillType);
+                if (hatchAngle == null)
+                    hatchAngle = "45";
+                if (hatchDistance == null)
+                    hatchDistance = "10";
+            }
+        }
+        
+        // Handle hatchAngle and hatchDistance constraints
+        if (hatchAngle != null) {
+            bar.put("hatchAngle", hatchAngle);
+            if (hatchDistance == null)
+                hatchDistance = "10";
+        }
+        if (hatchDistance != null)
+            bar.put("hatchDistance", hatchDistance);
+        
+        if (image != null)
+            bar.put("image", image);
+        if (fillSymbol != null)
+            bar.put("fillSymbol", fillSymbol);
     }
 }
 

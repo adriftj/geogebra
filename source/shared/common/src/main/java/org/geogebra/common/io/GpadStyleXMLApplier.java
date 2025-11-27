@@ -643,6 +643,13 @@ public class GpadStyleXMLApplier {
 					deserializeAndApplyStartPointCorners(serialized, xmlHandler, myXMLHandler.errors);
 				}
 			}
+			// Special handling for barTag: deserialize _barTags and apply immediately
+			else if ("barTag".equals(tagName)) {
+				if(attrs.containsKey("_barTags")) {
+					String serialized = attrs.get("_barTags");
+					deserializeAndApplyBarTags(serialized, xmlHandler, myXMLHandler.errors);
+				}
+			}
 			// Special handling for coords: map x,y,z,w to ox,oy,oz,ow for 3D objects
 			else {
 				if ("coords".equals(tagName))
@@ -845,5 +852,172 @@ public class GpadStyleXMLApplier {
 		if (w != null) mapped.put("ow", w);
 		
 		return mapped;
+	}
+	
+	/**
+	 * Deserializes barTag bars from serialized string and applies them immediately.
+	 * Format: [length1 char][bar1 data][length2 char][bar2 data]...
+	 * Each bar: [length char][barNumber char][flags char][属性值序列]
+	 *   - length: total length of barNumber + flags + 属性值序列 (excluding length itself)
+	 *   - barNumber: 1 char (0-65535)
+	 *   - flags: 1 char, bit flags
+	 *     bit 0 (0x01): barColor (r, g, b)
+	 *     bit 1 (0x02): barAlpha
+	 *     bit 2 (0x04): barFillType
+	 *     bit 3 (0x08): barHatchAngle
+	 *     bit 4 (0x10): barHatchDistance
+	 *     bit 5 (0x20): barImage (字符串，以 ETX 结尾)
+	 *     bit 6 (0x40): barSymbol
+	 *   - 属性值序列（按 flags 顺序）
+	 * 
+	 * @param serialized serialized string
+	 * @param xmlHandler XML handler to apply tag elements
+	 * @param errors error list
+	 */
+	private static void deserializeAndApplyBarTags(String serialized,
+			ConsElementXMLHandler xmlHandler, ArrayList<String> errors) {
+		if (serialized == null || serialized.isEmpty())
+			return;
+		
+		// Read bars by length prefix
+		int pos = 0;
+		while (pos < serialized.length()) {
+			if (pos + 1 > serialized.length())
+				break; // Need at least length char
+			
+			// Read length
+			int barLength = (int)serialized.charAt(pos++);
+			if (barLength <= 0 || barLength > 65535)
+				break; // Invalid length
+			
+			if (pos + barLength > serialized.length())
+				break; // Not enough data for this bar
+			
+			// Extract bar data
+			String barStr = serialized.substring(pos, pos + barLength);
+			pos += barLength;
+			
+			if (barStr.length() < 2)
+				continue; // Invalid format (need at least barNumber and flags)
+			
+			// (1) Parse barNumber
+			char barNumberChar = barStr.charAt(0);
+			int barNumber = (int)barNumberChar;
+			
+			// (2) Parse flags
+			char flags = barStr.charAt(1);
+			int posB = 2; // Start position for reading attribute values
+			
+			// (3) generate tags
+			// Generate barColor tag with rgba(r,g,b,a) format to match ChartStyle.barXml() output
+			// bit 0: barColor (r, g, b)
+			if ((flags & 0x01) != 0) {
+				if (posB + 3 > barStr.length())
+					continue; // Invalid format
+				int r = (int)barStr.charAt(posB++);
+				int g = (int)barStr.charAt(posB++);
+				int b = (int)barStr.charAt(posB++);
+				LinkedHashMap<String, String> tagAttrs = new LinkedHashMap<>();
+				tagAttrs.put("key", "barColor");
+				tagAttrs.put("barNumber", String.valueOf(barNumber));
+				tagAttrs.put("value", "rgba(" + r + "," + g + "," + b + ",1)");
+				xmlHandler.startGeoElement("tag", tagAttrs, errors);
+			}
+			
+			// Generate barAlpha tag separately (if present)
+			// bit 1: barAlpha
+			if ((flags & 0x02) != 0) {
+				if (posB >= barStr.length())
+					continue; // Invalid format
+				int alphaInt = (int)barStr.charAt(posB++);
+				double alpha = alphaInt / 255.0;
+				LinkedHashMap<String, String> tagAttrs = new LinkedHashMap<>();
+				tagAttrs.put("key", "barAlpha");
+				tagAttrs.put("barNumber", String.valueOf(barNumber));
+				tagAttrs.put("value", String.valueOf(alpha));
+				xmlHandler.startGeoElement("tag", tagAttrs, errors);
+			}
+			
+			// bit 2: barFillType
+			if ((flags & 0x04) != 0) {
+				if (posB >= barStr.length())
+					continue; // Invalid format
+				int fillType = (int)barStr.charAt(posB++);
+				
+				// Validate fillType is within valid range (0-9 for FillType enum)
+				if (fillType < 0 || fillType > 9) {
+					// Invalid fillType value, skip this bar
+					continue;
+				}
+				
+				// Create barFillType tag
+				LinkedHashMap<String, String> tagAttrs = new LinkedHashMap<>();
+				tagAttrs.put("key", "barFillType");
+				tagAttrs.put("barNumber", String.valueOf(barNumber));
+				tagAttrs.put("value", String.valueOf(fillType));
+				xmlHandler.startGeoElement("tag", tagAttrs, errors);
+			}
+			
+			// bit 3: barHatchAngle
+			if ((flags & 0x08) != 0) {
+				if (posB >= barStr.length())
+					continue; // Invalid format
+				int angle = (int)barStr.charAt(posB++);
+				
+				// Create barHatchAngle tag
+				LinkedHashMap<String, String> tagAttrs = new LinkedHashMap<>();
+				tagAttrs.put("key", "barHatchAngle");
+				tagAttrs.put("barNumber", String.valueOf(barNumber));
+				tagAttrs.put("value", String.valueOf(angle));
+				xmlHandler.startGeoElement("tag", tagAttrs, errors);
+			}
+			
+			// bit 4: barHatchDistance
+			if ((flags & 0x10) != 0) {
+				if (posB >= barStr.length())
+					continue; // Invalid format
+				int dist = (int)barStr.charAt(posB++);
+				
+				// Create barHatchDistance tag
+				LinkedHashMap<String, String> tagAttrs = new LinkedHashMap<>();
+				tagAttrs.put("key", "barHatchDistance");
+				tagAttrs.put("barNumber", String.valueOf(barNumber));
+				tagAttrs.put("value", String.valueOf(dist));
+				xmlHandler.startGeoElement("tag", tagAttrs, errors);
+			}
+			
+			// bit 5: barImage (字符串，以 ETX 结尾)
+			if ((flags & 0x20) != 0) {
+				// Find ETX (\u0003) to mark end of image string
+				int etxPos = barStr.indexOf('\u0003', posB);
+				if (etxPos < 0)
+					continue; // Invalid format (no ETX found)
+				
+				// Extract image string (no unescape needed since we don't escape during serialization)
+				String image = barStr.substring(posB, etxPos);
+				posB = etxPos + 1;
+				
+				// Create barImage tag
+				LinkedHashMap<String, String> tagAttrs = new LinkedHashMap<>();
+				tagAttrs.put("key", "barImage");
+				tagAttrs.put("barNumber", String.valueOf(barNumber));
+				tagAttrs.put("value", image);
+				xmlHandler.startGeoElement("tag", tagAttrs, errors);
+			}
+			
+			// bit 6: barSymbol
+			if ((flags & 0x40) != 0) {
+				if (posB >= barStr.length())
+					continue; // Invalid format
+				char symbol = barStr.charAt(posB++);
+				
+				// Create barSymbol tag
+				LinkedHashMap<String, String> tagAttrs = new LinkedHashMap<>();
+				tagAttrs.put("key", "barSymbol");
+				tagAttrs.put("barNumber", String.valueOf(barNumber));
+				tagAttrs.put("value", String.valueOf(symbol));
+				xmlHandler.startGeoElement("tag", tagAttrs, errors);
+			}
+		}
 	}
 }

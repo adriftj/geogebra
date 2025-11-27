@@ -1,6 +1,7 @@
 package org.geogebra.common.gpad;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -596,7 +597,7 @@ public class GpadParserTest extends BaseUnitTest {
 			assertEquals("255", colorAttrs.get("r"));
 			assertEquals("0", colorAttrs.get("g"));
 			assertEquals("0", colorAttrs.get("b"));
-			assertEquals("1.0", colorAttrs.get("alpha")); // Default alpha
+			assertNull(colorAttrs.get("alpha")); // alpha is absence
 		} catch (GpadParseException | CircularDefinitionException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
@@ -617,7 +618,7 @@ public class GpadParserTest extends BaseUnitTest {
 			assertEquals("0", colorAttrs.get("r"));
 			assertEquals("255", colorAttrs.get("g"));
 			assertEquals("0", colorAttrs.get("b"));
-			assertEquals("1.0", colorAttrs.get("alpha"));
+			assertNull(colorAttrs.get("alpha")); // alpha is absence
 		} catch (GpadParseException | CircularDefinitionException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
@@ -684,7 +685,7 @@ public class GpadParserTest extends BaseUnitTest {
 			assertEquals("18", colorAttrs.get("r")); // 0x12 = 18
 			assertEquals("52", colorAttrs.get("g")); // 0x34 = 52
 			assertEquals("86", colorAttrs.get("b")); // 0x56 = 86
-			assertEquals("1.0", colorAttrs.get("alpha"));
+			assertNull(colorAttrs.get("alpha")); // alpha is absence
 		} catch (GpadParseException | CircularDefinitionException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}

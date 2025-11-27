@@ -1187,11 +1187,10 @@ public class ConsElementXMLHandler {
 						Integer.parseInt(attrs.get("barNumber")));
 				return true;
 			case "barColor":
-				String[] c = attrs.get("value").split(",");
-				algo.setBarColor(
-						GColor.newColor(Integer.parseInt(c[0].substring(5)),
-								Integer.parseInt(c[1]), Integer.parseInt(c[2])),
-						Integer.parseInt(attrs.get("barNumber")));
+				GColor color = GColor.getGColor(attrs.get("value"));
+				if (color != null)
+					algo.setBarColor(color,
+							Integer.parseInt(attrs.get("barNumber")));
 				return true;
 			}
 		}

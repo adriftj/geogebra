@@ -123,6 +123,10 @@ public class StyleMapToGpadConverter {
 			// objColor: #rrggbbaa | rgb(...) | hsv(...) | hsl(...) [fill=...] [angle=...] [dist=...] [image=...] [symbol=...] [inverse|~inverse]
 			convertedValue = convertObjColor(attrs);
 			break;
+		case "barTag":
+			// barTag: bar=<number> [#rrggbbaa] [fill=...] [angle=...] [dist=...] [image=...] [symbol=...] | bar=<number> ...
+			convertedValue = convertBarTag(attrs);
+			break;
 		case "bgColor":
 		case "borderColor":
 			// bgColor/borderColor: #rrggbb or #rrggbbaa (if alpha is not default)
@@ -1641,5 +1645,176 @@ public class StyleMapToGpadConverter {
 		}
 
 		return sb.toString();
+	}
+	
+	/**
+	 * Converts barTag XML attributes to Gpad format.
+	 * Syntax: barTag: bar=<number> [#rrggbbaa] [fill=...] [angle=...] [dist=...] [image=...] [symbol=...] | bar=<number> ...
+	 * Multiple bar styles separated by |
+	 * 
+	 * @param attrs barTag attributes map (should contain _barTags serialized string)
+	 * @return Gpad barTag string, or null if should be omitted
+	 */
+	private String convertBarTag(LinkedHashMap<String, String> attrs) {
+		if (attrs == null || attrs.isEmpty())
+			return null;
+		
+		String serialized = attrs.get("_barTags");
+		if (serialized == null || serialized.isEmpty())
+			return null;
+		
+		// Deserialize _barTags and convert to gpad format
+		// Format: [length1 char][bar1 data][length2 char][bar2 data]...
+		// Each bar: [length char][barNumber char][flags char][属性值序列]
+		StringBuilder sb = new StringBuilder();
+		boolean firstBar = true;
+		
+		// Read bars by length prefix
+		int pos = 0;
+		while (pos < serialized.length()) {
+			if (pos + 1 > serialized.length())
+				break; // Need at least length char
+			
+			// Read length
+			int barLength = (int)serialized.charAt(pos++);
+			if (barLength <= 0 || barLength > 65535)
+				break; // Invalid length
+			
+			if (pos + barLength > serialized.length())
+				break; // Not enough data for this bar
+			
+			// Extract bar data
+			String barStr = serialized.substring(pos, pos + barLength);
+			pos += barLength;
+			
+			if (barStr.length() < 2)
+				continue; // Invalid format (need at least barNumber and flags)
+			
+			if (!firstBar)
+				sb.append(" | ");
+			firstBar = false;
+			
+			// (1) Parse barNumber
+			char barNumberChar = barStr.charAt(0);
+			int barNumber = (int)barNumberChar;
+			sb.append("bar=").append(barNumber);
+			
+			// (2) Parse flags
+			char flags = barStr.charAt(1);
+			int posB = 2; // Start position for reading attribute values
+			boolean firstAttr = true;
+			
+			// (3) Parse attribute values according to flags
+			// bit 0: barColor (r, g, b)
+			int r = -1, g = -1, b = -1, alphaInt = -1;
+			if ((flags & 0x01) != 0) {
+				if (posB + 3 > barStr.length())
+					continue; // Invalid format
+				r = (int)barStr.charAt(posB++);
+				g = (int)barStr.charAt(posB++);
+				b = (int)barStr.charAt(posB++);
+			}
+			
+			// bit 1: barAlpha
+			if ((flags & 0x02) != 0) {
+				if (posB >= barStr.length())
+					continue; // Invalid format
+				alphaInt = (int)barStr.charAt(posB++);
+			}
+			
+			// Output color (with alpha if present)
+			if (r >= 0 && g >= 0 && b >= 0) {
+				if (!firstAttr)
+					sb.append(" ");
+				if (alphaInt >= 0) {
+					// Include alpha in hex color
+					sb.append(String.format("#%02X%02X%02X%02X", r, g, b, alphaInt));
+				} else {
+					// No alpha
+					sb.append(String.format("#%02X%02X%02X", r, g, b));
+				}
+				firstAttr = false;
+			}
+			
+			// bit 2: barFillType
+			if ((flags & 0x04) != 0) {
+				if (posB >= barStr.length())
+					continue; // Invalid format
+				int fillType = (int)barStr.charAt(posB++);
+				String fillTypeGpad = GpadStyleMaps.FILL_TYPE_REVERSE_MAP.get(String.valueOf(fillType));
+				if (fillTypeGpad != null && fillType != 0) { // 0 is STANDARD, omit it
+					if (!firstAttr)
+						sb.append(" ");
+					sb.append("fill=").append(fillTypeGpad);
+					firstAttr = false;
+				}
+			}
+			
+			// bit 3: barHatchAngle
+			if ((flags & 0x08) != 0) {
+				if (posB >= barStr.length())
+					continue; // Invalid format
+				int angle = (int)barStr.charAt(posB++);
+				if (angle != 45) { // Not default
+					if (!firstAttr)
+						sb.append(" ");
+					sb.append("angle=").append(angle);
+					firstAttr = false;
+				}
+			}
+			
+			// bit 4: barHatchDistance
+			if ((flags & 0x10) != 0) {
+				if (posB >= barStr.length())
+					continue; // Invalid format
+				int dist = (int)barStr.charAt(posB++);
+				if (dist != 10) { // Not default
+					if (!firstAttr)
+						sb.append(" ");
+					sb.append("dist=").append(dist);
+					firstAttr = false;
+				}
+			}
+			
+			// bit 5: barImage (字符串，以 ETX 结尾)
+			if ((flags & 0x20) != 0) {
+				int etxPos = barStr.indexOf('\u0003', posB);
+				if (etxPos < 0)
+					continue; // Invalid format (no ETX found)
+				
+				String image = barStr.substring(posB, etxPos);
+				posB = etxPos + 1;
+				
+				if (!firstAttr)
+					sb.append(" ");
+				sb.append("fill=image image=");
+				// Escape if needed
+				if (containsSpecialChars(image))
+					sb.append("\"").append(escapeString(image)).append("\"");
+				else
+					sb.append(image);
+				firstAttr = false;
+			}
+			
+			// bit 6: barSymbol
+			if ((flags & 0x40) != 0) {
+				if (posB >= barStr.length())
+					continue; // Invalid format
+				char symbol = barStr.charAt(posB++);
+				
+				if (!firstAttr)
+					sb.append(" ");
+				sb.append("fill=symbols symbol=");
+				// Escape if needed
+				if (containsSpecialChars(String.valueOf(symbol)))
+					sb.append("\"").append(symbol).append("\"");
+				else
+					sb.append(symbol);
+				firstAttr = false;
+			}
+		}
+		
+		String result = sb.toString();
+		return result.isEmpty() ? null : result;
 	}
 }

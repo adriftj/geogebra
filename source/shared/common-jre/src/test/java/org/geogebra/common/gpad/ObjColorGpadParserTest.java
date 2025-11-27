@@ -2,6 +2,7 @@ package org.geogebra.common.gpad;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.LinkedHashMap;
@@ -35,7 +36,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 			assertEquals("255", attrs.get("r"));
 			assertEquals("0", attrs.get("g"));
 			assertEquals("0", attrs.get("b"));
-			assertEquals("1.0", attrs.get("alpha")); // Default alpha
+			assertNull(attrs.get("alpha")); // alpha is absence
 		} catch (GpadParseException | CircularDefinitionException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
