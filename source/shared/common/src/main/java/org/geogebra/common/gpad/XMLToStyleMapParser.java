@@ -148,38 +148,17 @@ public class XMLToStyleMapParser implements DocHandler {
 						break;
 					}
 					
-					if (!first)
-						serialized.append('\u0001'); // SOH: separator between corners
-					first = false;
-					
-					// (1) absolute: \u0002=true, \u0003=false
+					// Extract corner data
 					boolean isAbsolute = "true".equals(corner.get("absolute"));
-					serialized.append(isAbsolute ? '\u0002' : '\u0003');
+					String[] cornerData = new String[4]; // [0]=exp, [1]=x, [2]=y, [3]=z
+					cornerData[0] = corner.get("exp");
+					cornerData[1] = corner.get("x");
+					cornerData[2] = corner.get("y");
+					cornerData[3] = corner.get("z");
 					
-					// (2) type: \u0002=exp, \u0003=x/y/z
-					String exp = corner.get("exp");
-					if (exp != null) {
-						// exp type
-						serialized.append('\u0002');
-						// (3) exp content
-						serialized.append(exp);
-					} else {
-						// x/y/z type
-						serialized.append('\u0003');
-						// (3) x,y,z content (z optional, no trailing comma)
-						String x = corner.get("x");
-						String y = corner.get("y");
-						String z = corner.get("z");
-						if (x != null && y != null) {
-							serialized.append(x);
-							serialized.append(',');
-							serialized.append(y);
-							if (z != null) {
-								serialized.append(',');
-								serialized.append(z);
-							}
-						}
-					}
+					// Serialize using helper class
+					GpadSerializer.serializeStartPointCorner(serialized, first, isAbsolute, cornerData);
+					first = false;
 				}
 				
 				// Store serialized string in styleMap only if we have at least one corner
@@ -203,22 +182,15 @@ public class XMLToStyleMapParser implements DocHandler {
 					if (barTags == null || barTags.isEmpty())
 						continue;
 					
-					// Build bar data first to calculate length
-					StringBuilder barData = new StringBuilder();
-					
-					// (1) barNumber: 1 char
-					barData.append((char)(int)barNumber);
-					
-					// (2) flags: 1 char
-					char flags = 0;
-					String r = null, g = null, b = null, alpha = null;
+					// Extract bar attributes
 					String fillType = barTags.get("barFillType");
 					String hatchAngle = barTags.get("barHatchAngle");
 					String hatchDistance = barTags.get("barHatchDistance");
 					String image = barTags.get("barImage");
 					String fillSymbol = barTags.get("barSymbol");
 					
-					// Check for barColor (format: rgb(r,g,b) or rgba(r,g,b,a))
+					// Parse barColor (format: rgb(r,g,b) or rgba(r,g,b,a))
+					int[] rgba = {-1, -1, -1, -1};
 					String barColor = barTags.get("barColor");
 					if (barColor != null && (barColor.startsWith("rgb(") || barColor.startsWith("rgba(")) && barColor.endsWith(")")) {
 						// Remove "rgb(" or "rgba(" prefix and ")" suffix
@@ -227,121 +199,35 @@ public class XMLToStyleMapParser implements DocHandler {
 						String[] rgb = colorContent.split(",");
 						if (rgb.length >= 3) {
 							try {
-								r = rgb[0].trim();
-								g = rgb[1].trim();
-								b = rgb[2].trim();
-								flags |= 0x01; // bit 0: barColor
-								// Note: alpha in rgba() format is ignored here, as it's handled separately by barAlpha tag
-							} catch (Exception e) {
+								rgba[0] = Integer.parseInt(rgb[0].trim());
+								rgba[1] = Integer.parseInt(rgb[1].trim());
+								rgba[2] = Integer.parseInt(rgb[2].trim());
+							} catch (NumberFormatException e) {
 								// Invalid color format, ignore
 							}
 						}
 					}
 					
-					// Check for barAlpha
+					// Parse barAlpha (format: float string 0.0-1.0, convert to int 0-255)
 					String barAlpha = barTags.get("barAlpha");
 					if (barAlpha != null) {
-						alpha = barAlpha;
-						flags |= 0x02; // bit 1: barAlpha
-					}
-
-					if (fillType != null)
-						flags |= 0x04; // bit 2: barFillType
-					if (hatchAngle != null)
-						flags |= 0x08; // bit 3: barHatchAngle
-					if (hatchDistance != null)
-						flags |= 0x10; // bit 4: barHatchDistance
-					if (image != null)
-						flags |= 0x20; // bit 5: barImage
-					if (fillSymbol != null)
-						flags |= 0x40; // bit 6: barSymbol
-					
-					barData.append(flags);
-					
-					// (3) 属性值序列（按 flags 顺序）
-					// bit 0: barColor (r, g, b)
-					if ((flags & 0x01) != 0 && r != null && g != null && b != null) {
 						try {
-							int rVal = Integer.parseInt(r);
-							int gVal = Integer.parseInt(g);
-							int bVal = Integer.parseInt(b);
-							barData.append((char)rVal);
-							barData.append((char)gVal);
-							barData.append((char)bVal);
-						} catch (NumberFormatException e) {
-							// Invalid color values, skip
-						}
-					}
-					
-					// bit 1: barAlpha
-					if ((flags & 0x02) != 0 && alpha != null) {
-						try {
-							float alphaFloat = Float.parseFloat(alpha);
+							float alphaFloat = Float.parseFloat(barAlpha);
 							int alphaInt = (int)(alphaFloat * 255);
 							if (alphaInt < 0) alphaInt = 0;
 							if (alphaInt > 255) alphaInt = 255;
-							barData.append((char)alphaInt);
+							rgba[3] = alphaInt;
 						} catch (NumberFormatException e) {
-							// Invalid alpha, skip
+							// Invalid alpha, ignore
 						}
 					}
 					
-					// bit 2: barFillType
-					if ((flags & 0x04) != 0 && fillType != null) {
-						try {
-							int fillTypeInt = Integer.parseInt(fillType);
-							if (fillTypeInt >= 0 && fillTypeInt <= 9) {
-								barData.append((char)fillTypeInt);
-							}
-						} catch (NumberFormatException e) {
-							// Invalid fillType, skip
-						}
-					}
-					
-					// bit 3: barHatchAngle
-					if ((flags & 0x08) != 0 && hatchAngle != null) {
-						try {
-							int angle = Integer.parseInt(hatchAngle);
-							if (angle < 0) angle = 0;
-							if (angle > 65535) angle = 65535;
-							barData.append((char)angle);
-						} catch (NumberFormatException e) {
-							// Invalid angle, skip
-						}
-					}
-					
-					// bit 4: barHatchDistance
-					if ((flags & 0x10) != 0 && hatchDistance != null) {
-						try {
-							int dist = Integer.parseInt(hatchDistance);
-							if (dist < 0) dist = 0;
-							if (dist > 65535) dist = 65535;
-							barData.append((char)dist);
-						} catch (NumberFormatException e) {
-							// Invalid distance, skip
-						}
-					}
-					
-					// bit 5: barImage (字符串，以 ETX 结尾)
-					if ((flags & 0x20) != 0 && image != null) {
-						// No need to escape control characters anymore, length prefix handles it
-						barData.append(image);
-						barData.append((char)3); // ETX: end of image string
-					}
-					
-					// bit 6: barSymbol
-					if ((flags & 0x40) != 0 && fillSymbol != null && fillSymbol.length() > 0) {
-						barData.append(fillSymbol.charAt(0));
-					}
-					
-					// Calculate length and prepend it
-					int barLength = barData.length();
-					if (barLength > 65535) {
-						// Bar too long, skip it
+					// Serialize using helper class
+					if (!GpadSerializer.serializeBarTagBar(serialized, String.valueOf(barNumber), rgba,
+							fillType, hatchAngle, hatchDistance, image, fillSymbol)) {
+						// Serialization failed, skip this bar
 						continue;
 					}
-					serialized.append((char)barLength);
-					serialized.append(barData);
 				}
 				
 				// Store serialized string in styleMap only if we have at least one bar
