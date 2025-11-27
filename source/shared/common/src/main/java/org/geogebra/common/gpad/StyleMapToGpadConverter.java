@@ -1519,58 +1519,40 @@ public class StyleMapToGpadConverter {
 		if (serialized == null || serialized.isEmpty())
 			return null;
 		
-		// Deserialize corners
-		String[] cornerStrings = serialized.split("\u0001", -1);
-		if (cornerStrings.length == 0)
-			return null;
-		
 		StringBuilder sb = new StringBuilder();
-		boolean first = true;
-		for (String cornerStr : cornerStrings) {
-			if (cornerStr.isEmpty())
-				continue;
-			
-			if (!first)
+		boolean[] first = {true}; // Use array to allow modification in lambda
+		
+		// Deserialize using helper class
+		GpadSerializer.deserializeStartPointCorners(serialized, (firstCorner, isAbsolute, cornerData) -> {
+			if (!first[0])
 				sb.append(" | ");
-			first = false;
-			
-			// Parse corner format: [absolute byte][type byte][content]
-			if (cornerStr.length() < 2)
-				continue; // Invalid format
-			
-			// (1) Parse absolute byte
-			char absoluteByte = cornerStr.charAt(0);
-			boolean isAbsolute = (absoluteByte == '\u0002');
-			
-			// (2) Parse type byte
-			char typeByte = cornerStr.charAt(1);
-			boolean isExp = (typeByte == '\u0002');
-			
-			// (3) Parse content
-			String content = cornerStr.substring(2);
+			first[0] = false;
 			
 			// Build corner string
-			if (isExp) {
+			String exp = cornerData[0];
+			if (exp != null) {
 				// Expression-based corner
 				if (isAbsolute)
 					sb.append("absolute \"");
 				else
 					sb.append("\"");
-				sb.append(escapeString(content));
+				sb.append(escapeString(exp));
 				sb.append("\"");
 			} else {
-				// x/y/z type: content is "x,y,z" or "x,y" (z optional)
-				String[] coords = content.split(",", -1);
-				if (coords.length >= 2) {
+				// x/y/z type
+				String x = cornerData[1];
+				String y = cornerData[2];
+				String z = cornerData[3];
+				if (x != null && y != null) {
 					// Coordinate-based corner
 					if (isAbsolute)
 						sb.append("absolute ");
-					sb.append(coords[0]).append(" ").append(coords[1]);
-					if (coords.length >= 3 && !coords[2].isEmpty())
-						sb.append(" ").append(coords[2]);
+					sb.append(x).append(" ").append(y);
+					if (z != null)
+						sb.append(" ").append(z);
 				}
 			}
-		}
+		});
 		
 		return sb.toString();
 	}
@@ -1663,128 +1645,81 @@ public class StyleMapToGpadConverter {
 		if (serialized == null || serialized.isEmpty())
 			return null;
 		
-		// Deserialize _barTags and convert to gpad format
-		// Format: [length1 char][bar1 data][length2 char][bar2 data]...
-		// Each bar: [length char][barNumber char][flags char][属性值序列]
 		StringBuilder sb = new StringBuilder();
-		boolean firstBar = true;
+		boolean[] firstBar = {true}; // Use array to allow modification in lambda
 		
-		// Read bars by length prefix
-		int pos = 0;
-		while (pos < serialized.length()) {
-			if (pos + 1 > serialized.length())
-				break; // Need at least length char
-			
-			// Read length
-			int barLength = (int)serialized.charAt(pos++);
-			if (barLength <= 0 || barLength > 65535)
-				break; // Invalid length
-			
-			if (pos + barLength > serialized.length())
-				break; // Not enough data for this bar
-			
-			// Extract bar data
-			String barStr = serialized.substring(pos, pos + barLength);
-			pos += barLength;
-			
-			if (barStr.length() < 2)
-				continue; // Invalid format (need at least barNumber and flags)
-			
-			if (!firstBar)
+		// Deserialize using helper class
+		GpadSerializer.deserializeBarTags(serialized, (barNumber, rgba, fillTypeXML, hatchAngle,
+				hatchDistance, image, fillSymbol) -> {
+			if (!firstBar[0])
 				sb.append(" | ");
-			firstBar = false;
+			firstBar[0] = false;
 			
-			// (1) Parse barNumber
-			char barNumberChar = barStr.charAt(0);
-			int barNumber = (int)barNumberChar;
 			sb.append("bar=").append(barNumber);
-			
-			// (2) Parse flags
-			char flags = barStr.charAt(1);
-			int posB = 2; // Start position for reading attribute values
 			boolean firstAttr = true;
 			
-			// (3) Parse attribute values according to flags
-			// bit 0: barColor (r, g, b)
-			int r = -1, g = -1, b = -1, alphaInt = -1;
-			if ((flags & 0x01) != 0) {
-				if (posB + 3 > barStr.length())
-					continue; // Invalid format
-				r = (int)barStr.charAt(posB++);
-				g = (int)barStr.charAt(posB++);
-				b = (int)barStr.charAt(posB++);
-			}
-			
-			// bit 1: barAlpha
-			if ((flags & 0x02) != 0) {
-				if (posB >= barStr.length())
-					continue; // Invalid format
-				alphaInt = (int)barStr.charAt(posB++);
-			}
-			
 			// Output color (with alpha if present)
-			if (r >= 0 && g >= 0 && b >= 0) {
+			if (rgba[0] >= 0 && rgba[1] >= 0 && rgba[2] >= 0) {
 				if (!firstAttr)
 					sb.append(" ");
-				if (alphaInt >= 0) {
+				if (rgba[3] >= 0) {
 					// Include alpha in hex color
-					sb.append(String.format("#%02X%02X%02X%02X", r, g, b, alphaInt));
+					sb.append(String.format("#%02X%02X%02X%02X", rgba[0], rgba[1], rgba[2], rgba[3]));
 				} else {
 					// No alpha
-					sb.append(String.format("#%02X%02X%02X", r, g, b));
+					sb.append(String.format("#%02X%02X%02X", rgba[0], rgba[1], rgba[2]));
 				}
 				firstAttr = false;
 			}
 			
 			// bit 2: barFillType
-			if ((flags & 0x04) != 0) {
-				if (posB >= barStr.length())
-					continue; // Invalid format
-				int fillType = (int)barStr.charAt(posB++);
-				String fillTypeGpad = GpadStyleMaps.FILL_TYPE_REVERSE_MAP.get(String.valueOf(fillType));
-				if (fillTypeGpad != null && fillType != 0) { // 0 is STANDARD, omit it
-					if (!firstAttr)
-						sb.append(" ");
-					sb.append("fill=").append(fillTypeGpad);
-					firstAttr = false;
+			if (fillTypeXML != null) {
+				try {
+					int fillType = Integer.parseInt(fillTypeXML);
+					String fillTypeGpad = GpadStyleMaps.FILL_TYPE_REVERSE_MAP.get(fillTypeXML);
+					if (fillTypeGpad != null && fillType != 0) { // 0 is STANDARD, omit it
+						if (!firstAttr)
+							sb.append(" ");
+						sb.append("fill=").append(fillTypeGpad);
+						firstAttr = false;
+					}
+				} catch (NumberFormatException e) {
+					// Invalid fillType, ignore
 				}
 			}
 			
 			// bit 3: barHatchAngle
-			if ((flags & 0x08) != 0) {
-				if (posB >= barStr.length())
-					continue; // Invalid format
-				int angle = (int)barStr.charAt(posB++);
-				if (angle != 45) { // Not default
-					if (!firstAttr)
-						sb.append(" ");
-					sb.append("angle=").append(angle);
-					firstAttr = false;
+			if (hatchAngle != null) {
+				try {
+					int angle = Integer.parseInt(hatchAngle);
+					if (angle != 45) { // Not default
+						if (!firstAttr)
+							sb.append(" ");
+						sb.append("angle=").append(angle);
+						firstAttr = false;
+					}
+				} catch (NumberFormatException e) {
+					// Invalid angle, ignore
 				}
 			}
 			
 			// bit 4: barHatchDistance
-			if ((flags & 0x10) != 0) {
-				if (posB >= barStr.length())
-					continue; // Invalid format
-				int dist = (int)barStr.charAt(posB++);
-				if (dist != 10) { // Not default
-					if (!firstAttr)
-						sb.append(" ");
-					sb.append("dist=").append(dist);
-					firstAttr = false;
+			if (hatchDistance != null) {
+				try {
+					int dist = Integer.parseInt(hatchDistance);
+					if (dist != 10) { // Not default
+						if (!firstAttr)
+							sb.append(" ");
+						sb.append("dist=").append(dist);
+						firstAttr = false;
+					}
+				} catch (NumberFormatException e) {
+					// Invalid distance, ignore
 				}
 			}
 			
-			// bit 5: barImage (字符串，以 ETX 结尾)
-			if ((flags & 0x20) != 0) {
-				int etxPos = barStr.indexOf('\u0003', posB);
-				if (etxPos < 0)
-					continue; // Invalid format (no ETX found)
-				
-				String image = barStr.substring(posB, etxPos);
-				posB = etxPos + 1;
-				
+			// bit 5: barImage
+			if (image != null) {
 				if (!firstAttr)
 					sb.append(" ");
 				sb.append("fill=image image=");
@@ -1797,22 +1732,18 @@ public class StyleMapToGpadConverter {
 			}
 			
 			// bit 6: barSymbol
-			if ((flags & 0x40) != 0) {
-				if (posB >= barStr.length())
-					continue; // Invalid format
-				char symbol = barStr.charAt(posB++);
-				
+			if (fillSymbol != null) {
 				if (!firstAttr)
 					sb.append(" ");
 				sb.append("fill=symbols symbol=");
 				// Escape if needed
-				if (containsSpecialChars(String.valueOf(symbol)))
-					sb.append("\"").append(symbol).append("\"");
+				if (containsSpecialChars(fillSymbol))
+					sb.append("\"").append(fillSymbol).append("\"");
 				else
-					sb.append(symbol);
+					sb.append(fillSymbol);
 				firstAttr = false;
 			}
-		}
+		});
 		
 		String result = sb.toString();
 		return result.isEmpty() ? null : result;
