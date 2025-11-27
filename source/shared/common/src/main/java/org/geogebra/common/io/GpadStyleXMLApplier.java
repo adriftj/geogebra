@@ -633,10 +633,8 @@ public class GpadStyleXMLApplier {
 					}
 				}
 			}
-			else {
-				// Fill missing required attributes before applying
+			else // Fill missing required attributes before applying
 				attrs = fillRequiredAttributes(attrs, false, tagName, geo);
-			}
 
 			// Special handling for startPoint: deserialize _corners and apply immediately
 			if ("startPoint".equals(tagName)) {
@@ -645,8 +643,12 @@ public class GpadStyleXMLApplier {
 					deserializeAndApplyStartPointCorners(serialized, xmlHandler, myXMLHandler.errors);
 				}
 			}
-			else
+			// Special handling for coords: map x,y,z,w to ox,oy,oz,ow for 3D objects
+			else {
+				if ("coords".equals(tagName))
+					attrs = mapCoordsFor3DObjects(geo, attrs);
 				xmlHandler.startGeoElement(tagName, attrs, myXMLHandler.errors);
+			}
 		}
 
 		xmlHandler.processLists(); // Process deferred lists (e.g., minMaxList for slider min/max)
@@ -805,5 +807,43 @@ public class GpadStyleXMLApplier {
 			// Apply immediately (no need to fill required attributes, startPoint has none)
 			xmlHandler.startGeoElement("startPoint", corner, errors);
 		}
+	}
+	
+	/**
+	 * Maps coords attributes from GPAD format (x, y, z, w) to 3D object format (ox, oy, oz, ow).
+	 * For 3D objects like GeoConic3D and GeoLine3D, the origin coordinates use ox/oy/oz/ow instead of x/y/z/w.
+	 * 
+	 * @param geo GeoElement to check type
+	 * @param attrs coords attributes from GPAD (may contain x, y, z, w)
+	 * @return mapped attributes (ox, oy, oz, ow for 3D objects, or original attrs for 2D objects)
+	 */
+	private static LinkedHashMap<String, String> mapCoordsFor3DObjects(GeoElement geo, LinkedHashMap<String, String> attrs) {
+		if (attrs == null)
+			return attrs;
+		
+		// Check if this is a 3D object that uses ox/oy/oz/ow
+		boolean needsMapping = geo instanceof org.geogebra.common.geogebra3D.kernel3D.geos.GeoConic3D
+				|| geo instanceof org.geogebra.common.geogebra3D.kernel3D.geos.GeoLine3D;
+		
+		if (!needsMapping)
+			return attrs; // 2D objects use x, y, z directly
+		
+		// Check if mapping is needed (if ox already exists, no need to map)
+		if (attrs.containsKey("ox"))
+			return attrs; // Already in 3D format
+		
+		// Map x, y, z, w to ox, oy, oz, ow
+		LinkedHashMap<String, String> mapped = new LinkedHashMap<>(attrs);
+		String x = mapped.remove("x");
+		String y = mapped.remove("y");
+		String z = mapped.remove("z");
+		String w = mapped.remove("w");
+		
+		if (x != null) mapped.put("ox", x);
+		if (y != null) mapped.put("oy", y);
+		if (z != null) mapped.put("oz", z);
+		if (w != null) mapped.put("ow", w);
+		
+		return mapped;
 	}
 }

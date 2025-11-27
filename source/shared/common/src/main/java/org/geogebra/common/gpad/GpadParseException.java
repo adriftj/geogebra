@@ -69,3 +69,4 @@ public class GpadParseException extends Exception {
 		return "Gpad parse error: " + getMessage();
 	}
 }
+

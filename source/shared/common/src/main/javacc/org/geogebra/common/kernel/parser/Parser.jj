@@ -921,6 +921,8 @@ TOKEN : {
  < GK_VALUE_equal: "=" > |
  < GK_VALUE_star: "*" > |
  < GK_VALUE_slash: "/" > |
+ < GK_coords_v: "v" > |
+ < GK_coords_w: "w" > |
  < GK_VALUE_float: ("-")? (["0"-"9"])+("." (["0"-"9"])+)? >
 }
 
@@ -2409,6 +2411,7 @@ void gpadStyleSheetKeyValue(GpadStyleSheet styleSheet) :
         gpadStyleSheetPropertyFloat(styleSheet) | // Float key
         gpadStyleSheetPropertyStr(styleSheet) | // String key
         gpadStyleSheetPropertyXYCoords(styleSheet) | // XYCoords key
+        gpadStyleSheetPropertyCoords(styleSheet) | // coords key
         gpadStyleSheetPropertyRGBA(styleSheet) | // rgba key #rrggbbaa
         gpadStyleSheetPropertyAnimation(styleSheet) | // animation key
         gpadStyleSheetPropertyCheckbox(styleSheet) | // checkbox key
@@ -2567,6 +2570,74 @@ void gpadStyleSheetPropertyXYCoords(GpadStyleSheet styleSheet) :
         java.util.LinkedHashMap<String, String> attrs = new java.util.LinkedHashMap<>();
         attrs.put("x", xToken.image);
         attrs.put("y", yToken.image);
+        styleSheet.setProperty(converted[0], attrs);
+    }
+}
+
+/**
+ * Parses coords property
+ * Syntax: coords: x y [z] [w] [v=vx vy vz [vw]] [w=wx wy wz];
+ * Parts must appear in order: base coords, optional v=, optional w=
+ * Defaults: z=1.0, w=1.0, vw=0.0
+ */
+void gpadStyleSheetPropertyCoords(GpadStyleSheet styleSheet) :
+{
+    Token keyToken;
+    Token xToken, yToken, zToken = null, wToken = null;
+    Token vxToken = null, vyToken = null, vzToken = null, vwToken = null;
+    Token wxToken = null, wyToken = null, wzToken = null;
+    String[] converted;
+}
+{
+    keyToken = <GK_coords> <GK_COLON> { token_source.SwitchTo(GK_VALUE_BLOCK); }
+    // Part 1: x y [z] [w]
+    xToken = <GK_VALUE_float> 
+    yToken = <GK_VALUE_float>
+    (zToken = <GK_VALUE_float>)?
+    (wToken = <GK_VALUE_float>)?
+    
+    // Part 2 (optional): v=vx vy vz [vw]
+    (
+        <GK_coords_v> <GK_VALUE_equal>
+        vxToken = <GK_VALUE_float>
+        vyToken = <GK_VALUE_float>
+        vzToken = <GK_VALUE_float>
+        (vwToken = <GK_VALUE_float>)?
+        
+        // Part 3 (optional, only if Part 2 exists): w=wx wy wz
+        (
+            <GK_coords_w> <GK_VALUE_equal>
+            wxToken = <GK_VALUE_float>
+            wyToken = <GK_VALUE_float>
+            wzToken = <GK_VALUE_float>
+        )?
+    )?
+    
+    {
+        converted = convertPropertyKey(keyToken.image);
+        java.util.LinkedHashMap<String, String> attrs = new java.util.LinkedHashMap<>();
+        
+        // Part 1: x, y, z (default 1.0), w (default 1.0)
+        attrs.put("x", xToken.image);
+        attrs.put("y", yToken.image);
+        attrs.put("z", zToken != null ? zToken.image : "1.0");
+        attrs.put("w", wToken != null ? wToken.image : "1.0");
+        
+        // Part 2: vx, vy, vz, vw (default 0.0)
+        if (vxToken != null) {
+            attrs.put("vx", vxToken.image);
+            attrs.put("vy", vyToken.image);
+            attrs.put("vz", vzToken.image);
+            attrs.put("vw", vwToken != null ? vwToken.image : "0.0");
+            
+            // Part 3: wx, wy, wz (only if Part 2 exists)
+            if (wxToken != null) {
+                attrs.put("wx", wxToken.image);
+                attrs.put("wy", wyToken.image);
+                attrs.put("wz", wzToken.image);
+            }
+        }
+        
         styleSheet.setProperty(converted[0], attrs);
     }
 }

@@ -171,6 +171,10 @@ public class StyleMapToGpadConverter {
 			// startPoint: absolute x y z | "expA"
 			convertedValue = convertStartPoint(attrs);
 			break;
+		case "coords":
+			// coords: x y [z] [w] [v=vx vy vz [vw]] [w=wx wy wz]
+			convertedValue = convertCoords(attrs);
+			break;
 		case "font":
 			// font: serif size=0.5 plain; or font: ~serif size=2 italic bold;
 			convertedValue = convertFont(attrs);
@@ -1564,6 +1568,78 @@ public class StyleMapToGpadConverter {
 			}
 		}
 		
+		return sb.toString();
+	}
+
+	/**
+	 * Converts coords XML attributes to Gpad format.
+	 * Syntax: coords: x y [z] [w] [v=vx vy vz [vw] [w=wx wy wz]];
+	 * Defaults: z=1.0, w=1.0, vw=0.0
+	 * 
+	 * For 3D objects (GeoConic3D, GeoLine3D), uses ox/oy/oz/ow instead of x/y/z/w.
+	 * 
+	 * @param attrs coords attributes map
+	 * @return Gpad coords string (e.g., "2.1 3.2" or "2.3 4.1 3.5 2.1 v=1.1 2.3 2.4 w=1.1 2.3 3.3")
+	 */
+	private String convertCoords(LinkedHashMap<String, String> attrs) {
+		if (attrs == null || attrs.isEmpty())
+			return null;
+
+		StringBuilder sb = new StringBuilder();
+
+		// Part 1: x y [z] [w] or ox oy [oz] [ow] for 3D objects
+		String x = attrs.get("x");
+		String y = attrs.get("y");
+		// Check for 3D format (ox, oy, oz, ow)
+		if (x == null && attrs.containsKey("ox")) {
+			x = attrs.get("ox");
+			y = attrs.get("oy");
+		}
+		if (x == null || y == null)
+			return null; // x/ox and y/oy are required
+
+		sb.append(x).append(" ").append(y);
+
+		// Check for 3D format (oz, ow) or 2D format (z, w)
+		String z = attrs.get("z");
+		String w = attrs.get("w");
+		if (z == null && attrs.containsKey("oz")) {
+			z = attrs.get("oz");
+			w = attrs.get("ow");
+		}
+		boolean zIsDefault = z == null || "1.0".equals(z);
+		boolean wIsDefault = w == null || "1.0".equals(w);
+		
+		// Include z if it's not default, or if w is present and not default
+		if (!zIsDefault || (!wIsDefault && w != null)) {
+			sb.append(" ").append(z != null ? z : "1.0");
+			// Include w if it's not default
+			if (!wIsDefault && w != null) {
+				sb.append(" ").append(w);
+			}
+		}
+
+		// Part 2 (optional): v=vx vy vz [vw]
+		String vx = attrs.get("vx");
+		String vy = attrs.get("vy");
+		String vz = attrs.get("vz");
+		String vw = attrs.get("vw");
+		if (vx != null && vy != null && vz != null) {
+			sb.append(" v=").append(vx).append(" ").append(vy).append(" ").append(vz);
+			// Only include vw if it's not default (0.0)
+			if (vw != null && !"0.0".equals(vw)) {
+				sb.append(" ").append(vw);
+			}
+
+			// Part 3 (optional, only if Part 2 exists): w=wx wy wz
+			String wx = attrs.get("wx");
+			String wy = attrs.get("wy");
+			String wz = attrs.get("wz");
+			if (wx != null && wy != null && wz != null) {
+				sb.append(" w=").append(wx).append(" ").append(wy).append(" ").append(wz);
+			}
+		}
+
 		return sb.toString();
 	}
 }

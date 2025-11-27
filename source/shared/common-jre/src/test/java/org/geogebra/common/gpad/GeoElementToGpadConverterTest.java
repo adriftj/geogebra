@@ -64,3 +64,4 @@ public class GeoElementToGpadConverterTest extends BaseUnitTest {
 		assertTrue(gpad.isEmpty());
 	}
 }
+

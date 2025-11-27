@@ -807,8 +807,6 @@ public class GeoNumeric extends GeoElement
 	@Override
 	protected void getStyleXML(StringBuilder sb) {
 		XMLBuilder.appendSymbolicMode(sb, this, false);
-		if (isRandom()) // Include value element if random is set (needed for Gpad style conversion)
-			getValueXML(sb, value);
 		// if number is drawable then we need to save visual options too
 		if (isDrawable || isSliderable()) {
 			// save slider info before show to have min and max set
