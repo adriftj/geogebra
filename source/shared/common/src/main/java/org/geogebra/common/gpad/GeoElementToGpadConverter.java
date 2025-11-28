@@ -32,48 +32,57 @@ public class GeoElementToGpadConverter {
 	}
 
 	/**
-	 * Converts a GeoElement to Gpad format.
+	 * Extracts style map from a GeoElement's XML.
 	 * 
-	 * @param geo GeoElement to convert
-	 * @return Gpad string representation
+	 * @param geo GeoElement to extract styles from
+	 * @return style map, or null if extraction fails or no styles found
 	 */
-	public String toGpad(GeoElement geo) {
-		if (geo == null)
-			return "";
-
-		StringBuilder sb = new StringBuilder();
+	public Map<String, LinkedHashMap<String, String>> extractStyleMap(GeoElement geo) {
+		if (geo == null) {
+			return null;
+		}
+		
 		// Use getXML() instead of getStyleXML() to include coords and other tags
 		// getStyleXML() only includes style properties, not data like coords
 		String fullXML = geo.getXML();
 		// Extract only the <element>...</element> part for parsing
 		// QDParser may have issues with <expression> tags
-		String elementXML = extractElementXML(fullXML);
+		String elementXML = GpadHelper.extractElementXML(fullXML);
+		if (elementXML == null || elementXML.trim().isEmpty()) {
+			return null;
+		}
+		
 		// Parse XML to get style map
-		Map<String, LinkedHashMap<String, String>> styleMap = null;
-		if (elementXML != null && !elementXML.trim().isEmpty()) {
-			try {
-				styleMap = xmlParser.parse(elementXML);
-			} catch (GpadParseException e) {
-				// If parsing fails, continue without styles
-			}
+		try {
+			return xmlParser.parse(elementXML);
+		} catch (GpadParseException e) {
+			// If parsing fails, return null
+			return null;
 		}
+	}
 
-		String styleSheetName = null;
-		if (styleMap != null && !styleMap.isEmpty()) {
-			styleSheetName = generateStyleSheetName(geo);
-			String objectType = geo.getTypeString();
-			
-			String styleSheetGpad = styleConverter.convert(styleSheetName, styleMap, objectType);
-			if (styleSheetGpad != null && !styleSheetGpad.isEmpty()) {
-				sb.append(styleSheetGpad);
-				sb.append("\n");
-			}
+	/**
+	 * Extracts style sheet content string (without name) from a GeoElement's XML.
+	 * Returns only the content part "{ ... }" without the "@name = " prefix.
+	 * 
+	 * @param geo GeoElement to extract styles from
+	 * @return style sheet content string in format "{ ... }", or null if extraction fails or no styles found
+	 */
+	public String extractStyleSheetContent(GeoElement geo) {
+		Map<String, LinkedHashMap<String, String>> styleMap = extractStyleMap(geo);
+		if (styleMap == null || styleMap.isEmpty()) {
+			return null;
 		}
+		
+		String objectType = geo.getTypeString();
+		return styleConverter.convertToContentOnly(styleMap, objectType);
+	}
 
+	public boolean buildCommand(StringBuilder sb, GeoElement geo, String styleSheetName) {
 		// Extract command definition
 		String command = extractCommand(geo);
 		if (command == null || command.isEmpty())
-			return "";
+			return false;
 
 		// Build output part
 		String label = geo.getLabelSimple();
@@ -95,7 +104,29 @@ public class GeoElementToGpadConverter {
 
 		// Add command
 		sb.append(" = ").append(command).append(";");
-		return sb.toString();
+		return true;
+	}
+
+	/**
+	 * Converts a GeoElement to Gpad format.
+	 * 
+	 * @param geo GeoElement to convert
+	 * @return Gpad string representation
+	 */
+	public String toGpad(GeoElement geo) {
+		if (geo != null) {
+			StringBuilder sb = new StringBuilder();
+			String styleSheetGpad = extractStyleSheetContent(geo);
+			String styleSheetName = generateStyleSheetName(geo);
+			if (styleSheetGpad != null && !styleSheetGpad.isEmpty()) {
+				sb.append("@").append(styleSheetName).append(" = ");
+				sb.append(styleSheetGpad);
+				sb.append("\n");
+			}
+			if (buildCommand(sb, geo, styleSheetName))
+				return sb.toString();
+		}
+		return "";
 	}
 
 	/**
@@ -115,41 +146,6 @@ public class GeoElementToGpadConverter {
 	}
 
 
-	/**
-	 * Extracts the <element>...</element> part from full XML.
-	 * This is needed because QDParser may have issues with <expression> tags.
-	 * 
-	 * @param fullXML full XML string
-	 * @return element XML string, or null if not found
-	 */
-	private String extractElementXML(String fullXML) {
-		if (fullXML == null || fullXML.trim().isEmpty())
-			return null;
-		
-		int startIdx = fullXML.indexOf("<element");
-		if (startIdx < 0)
-			return null;
-		
-		// Find the matching closing tag
-		int depth = 0;
-		int idx = startIdx;
-		while (idx < fullXML.length()) {
-			if (fullXML.startsWith("<element", idx)) {
-				depth++;
-				idx = fullXML.indexOf(">", idx) + 1;
-			} else if (fullXML.startsWith("</element>", idx)) {
-				depth--;
-				if (depth == 0) {
-					return fullXML.substring(startIdx, idx + "</element>".length());
-				}
-				idx += "</element>".length();
-			} else {
-				idx++;
-			}
-		}
-		
-		return null; // No matching closing tag found
-	}
 
 	/**
 	 * Extracts command definition from GeoElement.

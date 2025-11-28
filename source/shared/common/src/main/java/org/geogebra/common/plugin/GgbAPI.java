@@ -318,7 +318,6 @@ public abstract class GgbAPI implements JavaScriptAPI {
 				lastError = t.getClass().getSimpleName();
 			}
 			Log.error("Gpad unexpected error: " + lastError);
-			Log.debug(t);
 			return null;
 		}
 	}
@@ -365,6 +364,22 @@ public abstract class GgbAPI implements JavaScriptAPI {
 			Log.error("XML to Gpad conversion error: " + e.getMessage());
 			return null;
 		}
+	}
+
+	/**
+	 * Converts the entire construction to Gpad format.
+	 * Enumerates all construction elements in order and converts them to gpad format.
+	 * 
+	 * @param mergeStylesheets whether to merge identical stylesheets
+	 * @return Gpad string representation of the entire construction
+	 */
+	public synchronized String constructionToGpad(boolean mergeStylesheets) {
+		if (construction == null)
+			return "";
+		
+		org.geogebra.common.gpad.ConstructionToGpadConverter converter = 
+				new org.geogebra.common.gpad.ConstructionToGpadConverter(construction, mergeStylesheets);
+		return converter.toGpad();
 	}
 
 	/**

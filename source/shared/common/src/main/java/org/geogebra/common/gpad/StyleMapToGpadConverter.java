@@ -1,6 +1,5 @@
 package org.geogebra.common.gpad;
 
-import java.util.regex.Pattern;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.geogebra.common.kernel.parser.Parser;
@@ -15,6 +14,8 @@ import org.geogebra.common.kernel.parser.Token;
 public class StyleMapToGpadConverter {
 	/**
 	 * Converts a style map to Gpad style sheet format.
+	 * Note: The returned format is "@name = { ... }" (NO semicolon at the end).
+	 * Stylesheet definitions do not end with semicolon, unlike command/expression instructions.
 	 * 
 	 * @param name
 	 *            style sheet name (without @ prefix)
@@ -22,14 +23,54 @@ public class StyleMapToGpadConverter {
 	 *            map from XML tag names to attribute maps
 	 * @param objectType
 	 *            object type name (e.g., "Button", "Numeric"), can be null
-	 * @return Gpad style sheet string, or null if styleMap is empty
+	 * @return Gpad style sheet string in format "@name = { ... }" (no semicolon), or null if styleMap is empty
 	 */
 	public String convert(String name, Map<String, LinkedHashMap<String, String>> styleMap, String objectType) {
 		if (styleMap == null || styleMap.isEmpty())
 			return null;
 
 		StringBuilder sb = new StringBuilder();
-		sb.append("@").append(name).append(" = {");
+		sb.append("@").append(name).append(" = ");
+		buildStyleSheetContent(sb, styleMap, objectType);
+		return sb.toString();
+	}
+
+	/**
+	 * Converts a style map to Gpad style sheet content only (without name).
+	 * Returns only the content part "{ ... }" without the "@name = " prefix.
+	 * This is useful for comparing stylesheet contents when merging identical stylesheets.
+	 * 
+	 * @param styleMap
+	 *            map from XML tag names to attribute maps
+	 * @param objectType
+	 *            object type name (e.g., "Button", "Numeric"), can be null
+	 * @return Gpad style sheet content string in format "{ ... }" (no name, no semicolon), or null if styleMap is empty
+	 */
+	public String convertToContentOnly(Map<String, LinkedHashMap<String, String>> styleMap, String objectType) {
+		if (styleMap == null || styleMap.isEmpty())
+			return null;
+
+		StringBuilder sb = new StringBuilder();
+		buildStyleSheetContent(sb, styleMap, objectType);
+		return sb.toString();
+	}
+
+	/**
+	 * Builds the Gpad style sheet content part "{ ... }" from a style map and appends it to the given StringBuilder.
+	 * This is the common logic used by both convert() and convertToContentOnly().
+	 * 
+	 * @param sb
+	 *            StringBuilder to append the content to
+	 * @param styleMap
+	 *            map from XML tag names to attribute maps
+	 * @param objectType
+	 *            object type name (e.g., "Button", "Numeric"), can be null
+	 */
+	private void buildStyleSheetContent(StringBuilder sb, Map<String, LinkedHashMap<String, String>> styleMap, String objectType) {
+		if (styleMap == null || styleMap.isEmpty())
+			return;
+
+		sb.append("{");
 
 		boolean first = true;
 		for (Map.Entry<String, LinkedHashMap<String, String>> entry : styleMap.entrySet()) {
@@ -59,7 +100,6 @@ public class StyleMapToGpadConverter {
 		}
 
 		sb.append(" }");
-		return sb.toString();
 	}
 
 	/**
@@ -397,9 +437,9 @@ public class StyleMapToGpadConverter {
 			b = Math.max(0, Math.min(255, b));
 
 			StringBuilder sb = new StringBuilder("#");
-			sb.append(String.format("%02X", r));
-			sb.append(String.format("%02X", g));
-			sb.append(String.format("%02X", b));
+			sb.append(toHex2Digits(r));
+			sb.append(toHex2Digits(g));
+			sb.append(toHex2Digits(b));
 
 			if (alphaStr != null) {
 				double alpha;
@@ -416,7 +456,7 @@ public class StyleMapToGpadConverter {
 					// Convert alpha from 0.0-1.0 to 0-255
 					int alphaInt = (int) Math.round(alpha * 255);
 					alphaInt = Math.max(0, Math.min(255, alphaInt));
-					sb.append(String.format("%02X", alphaInt));
+					sb.append(toHex2Digits(alphaInt));
 				}
 			}
 
@@ -768,11 +808,34 @@ public class StyleMapToGpadConverter {
     // 特殊字符：分号、双引号、右大括号、空格、制表符、回车、换行
     // 这些字符在 GK_STR 值和 objColor 表达式中必须用引号括起来
     // 注意：逗号不需要在此检测，因为语法分析可以处理包含逗号的合法表达式（如函数参数）
-    private static final Pattern SPECIAL_CHARS_PATTERN = Pattern.compile("[;\"}\t \r\n]");
-
 	private static boolean containsSpecialChars(String text) {
-        return SPECIAL_CHARS_PATTERN.matcher(text).find();
-    }
+		if (text == null || text.isEmpty()) {
+			return false;
+		}
+		for (int i = 0; i < text.length(); i++) {
+			char c = text.charAt(i);
+			if (c == ';' || c == '"' || c == '}' || c == '\t' || c == ' ' || c == '\r' || c == '\n') {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Converts an integer (0-255) to a 2-digit uppercase hex string.
+	 * GWT-compatible replacement for String.format("%02X", value).
+	 * 
+	 * @param value the integer value (0-255)
+	 * @return 2-digit hex string (e.g., "FF", "0A")
+	 */
+	private static String toHex2Digits(int value) {
+		value = Math.max(0, Math.min(255, value));
+		char[] hexChars = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
+		StringBuilder sb = new StringBuilder(2);
+		sb.append(hexChars[(value >> 4) & 0xF]);
+		sb.append(hexChars[value & 0xF]);
+		return sb.toString();
+	}
 
 	/**
 	 * Converts boundingBox XML attributes to Gpad format.
@@ -1662,12 +1725,13 @@ public class StyleMapToGpadConverter {
 			if (rgba[0] >= 0 && rgba[1] >= 0 && rgba[2] >= 0) {
 				if (!firstAttr)
 					sb.append(" ");
+				sb.append("#");
+				sb.append(toHex2Digits(rgba[0]));
+				sb.append(toHex2Digits(rgba[1]));
+				sb.append(toHex2Digits(rgba[2]));
 				if (rgba[3] >= 0) {
 					// Include alpha in hex color
-					sb.append(String.format("#%02X%02X%02X%02X", rgba[0], rgba[1], rgba[2], rgba[3]));
-				} else {
-					// No alpha
-					sb.append(String.format("#%02X%02X%02X", rgba[0], rgba[1], rgba[2]));
+					sb.append(toHex2Digits(rgba[3]));
 				}
 				firstAttr = false;
 			}

@@ -63,8 +63,8 @@ public class GpadParseException extends Exception {
 	@Override
 	public String toString() {
 		if (lineNumber >= 0) {
-			return String.format("Gpad parse error at line %d, column %d: %s",
-					lineNumber, columnNumber, getMessage());
+			// GWT-compatible replacement for String.format
+			return "Gpad parse error at line " + lineNumber + ", column " + columnNumber + ": " + getMessage();
 		}
 		return "Gpad parse error: " + getMessage();
 	}

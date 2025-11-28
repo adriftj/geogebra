@@ -4309,8 +4309,8 @@ void gpadCommandExpression() throws CircularDefinitionException :
 
             for(int i=0; i<geos.length; i++) {
                 GeoElement geo = geos[i];
-                GpadStyleSheet styleSheet = styleSheets.get(i);
-                if (styleSheet != null) {
+                if (i >= 0 && i < styleSheets.size()) {
+                    GpadStyleSheet styleSheet = styleSheets.get(i);
                     try {
                         GpadStyleXMLApplier.apply(styleSheet, geo);
                     } catch (GpadParseException e) {
@@ -4330,13 +4330,14 @@ void gpadCommandExpression() throws CircularDefinitionException :
 
 void gpadLabelStyleSheets(java.util.List<String> labels, java.util.List<GpadStyleSheet> styleSheets) :
 {
-    Token label;
+    String label;
     Token visibilityFlag = null;
     Token styleName;
     GpadStyleSheet styleSheet = null, styleSheet2;
 }
 {
-    label = label() ( visibilityFlag = <MULTIPLY> | visibilityFlag = <TILDE> )?
+    label = gpadGeoLabel()
+    ( visibilityFlag = <MULTIPLY> | visibilityFlag = <TILDE> )?
     (
         (
         (styleName = <GSSLABEL> { styleSheet2 = gpadStyleSheets.get(styleName.image.substring(1)); })
@@ -4350,7 +4351,7 @@ void gpadLabelStyleSheets(java.util.List<String> labels, java.util.List<GpadStyl
         }
     )*
     {
-        labels.add(label.image);
+        labels.add(label);
         if(visibilityFlag != null) {
             styleSheet2 = new GpadStyleSheet("");
             java.util.LinkedHashMap<String, String> attrs = new java.util.LinkedHashMap<>();
@@ -4363,5 +4364,27 @@ void gpadLabelStyleSheets(java.util.List<String> labels, java.util.List<GpadStyl
                 styleSheet.mergeFrom(styleSheet2);
         }
         styleSheets.add(styleSheet);
+    }
+}
+
+String gpadGeoLabel() :
+{
+    Token tok;
+    String label;
+}
+{
+    (
+        tok = <SPREADSHEET_LABEL> { label = tok.image; }
+    |
+        tok = <LABEL> { label = tok.image; }
+    |
+        tok = <FUNCTION_LABEL> <VARX> [ "," <VARY> [ "," <VARZ> ] ] ")"
+        {
+            label =  tok.image;
+            label = label.substring(label.length()-1);
+        }
+    )
+    {
+        return label;
     }
 }
