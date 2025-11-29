@@ -86,7 +86,6 @@ public class ConstructionToGpadConverter {
 	private void processCommand(AlgoElement algo, StringBuilder sb) {
 		// Collect output objects with labels
 		java.util.List<GeoElement> outputGeos = new java.util.ArrayList<>();
-		java.util.List<String> outputLabels = new java.util.ArrayList<>();
 		java.util.List<String> styleSheetNames = new java.util.ArrayList<>();
 
 		for (int i = 0; i < algo.getOutputLength(); i++) {
@@ -94,21 +93,7 @@ public class ConstructionToGpadConverter {
 			if (outputGeo == null)
 				continue;
 
-			if (!outputGeo.isLabelSet()) {
-				Log.error("Output object at index " + i + " of command " 
-					+ algo.getClassName() + " has no label, skipping");
-				continue;
-			}
-
-			String label = outputGeo.getLabel(myTPL);
-			if (label == null || label.isEmpty()) {
-				Log.error("Output object at index " + i + " of command " 
-					+ algo.getClassName() + " has empty label, skipping");
-				continue;
-			}
-
 			outputGeos.add(outputGeo);
-			outputLabels.add(label);
 
 			// Generate stylesheet for output object
 			String styleSheetName = generateStyleSheetForOutput(outputGeo);
@@ -129,22 +114,12 @@ public class ConstructionToGpadConverter {
 		// Generate command instruction
 		// Format: label1, label2, ... = CommandName(input1, input2, ...);
 		boolean first = true;
-		for (int i = 0; i < outputLabels.size(); i++) {
+		for (int i = 0; i < outputGeos.size(); i++) {
 			if (!first)
 				sb.append(", ");
 			first = false;
 
-			String label = outputLabels.get(i);
-			sb.append(label);
-
-			// Add visibility flags
-			GeoElement outputGeo = outputGeos.get(i);
-			boolean hideObject = !outputGeo.isSetEuclidianVisible();
-			boolean hideLabel = !outputGeo.isLabelVisible();
-			if (hideObject)
-				sb.append("*");
-			else if (hideLabel)
-				sb.append("~");
+			GeoElementToGpadConverter.buildOutputLabel(sb, outputGeos.get(i));
 
 			// Add stylesheet reference
 			String styleSheetName = styleSheetNames.get(i);
@@ -185,17 +160,6 @@ public class ConstructionToGpadConverter {
 			return;
 		}
 
-		if (!outputGeo.isLabelSet()) {
-			Log.error("Expression output has no label, skipping");
-			return;
-		}
-
-		String label = outputGeo.getLabel(myTPL);
-		if (label == null || label.isEmpty()) {
-			Log.error("Expression output has empty label, skipping");
-			return;
-		}
-
 		// Generate stylesheet for output object
 		String styleSheetName = generateStyleSheetForOutput(outputGeo);
 
@@ -204,15 +168,7 @@ public class ConstructionToGpadConverter {
 
 		// Generate expression instruction
 		// Format: label = expString;
-		sb.append(label);
-
-		// Add visibility flags
-		boolean hideObject = !outputGeo.isSetEuclidianVisible();
-		boolean hideLabel = !outputGeo.isLabelVisible();
-		if (hideObject)
-			sb.append("*");
-		else if (hideLabel)
-			sb.append("~");
+		GeoElementToGpadConverter.buildOutputLabel(sb, outputGeo);
 
 		// Add stylesheet reference
 		if (styleSheetName != null)
@@ -259,9 +215,8 @@ public class ConstructionToGpadConverter {
 		appendStyleSheetDefinitionIfNeeded(sb, geo, styleSheetName);
 
 		// Build command using GeoElementToGpadConverter
-		if (GeoElementToGpadConverter.buildCommand(sb, geo, styleSheetName)) {
+		if (GeoElementToGpadConverter.buildCommand(sb, geo, styleSheetName))
 			sb.append("\n");
-		}
 
 		// Add to processed set
 		processedOutputs.add(geo);
@@ -341,4 +296,3 @@ public class ConstructionToGpadConverter {
 		return "@" + styleSheetName + " = " + contentOnly;
 	}
 }
-

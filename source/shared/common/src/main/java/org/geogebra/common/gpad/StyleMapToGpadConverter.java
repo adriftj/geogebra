@@ -31,7 +31,8 @@ public class StyleMapToGpadConverter {
 
 		StringBuilder sb = new StringBuilder();
 		sb.append("@").append(name).append(" = ");
-		buildStyleSheetContent(sb, styleMap, objectType);
+		if (!buildStyleSheetContent(sb, styleMap, objectType))
+			return null;
 		return sb.toString();
 	}
 
@@ -51,7 +52,8 @@ public class StyleMapToGpadConverter {
 			return null;
 
 		StringBuilder sb = new StringBuilder();
-		buildStyleSheetContent(sb, styleMap, objectType);
+		if (!buildStyleSheetContent(sb, styleMap, objectType))
+			return null;
 		return sb.toString();
 	}
 
@@ -66,9 +68,9 @@ public class StyleMapToGpadConverter {
 	 * @param objectType
 	 *            object type name (e.g., "Button", "Numeric"), can be null
 	 */
-	private static void buildStyleSheetContent(StringBuilder sb, Map<String, LinkedHashMap<String, String>> styleMap, String objectType) {
+	private static boolean buildStyleSheetContent(StringBuilder sb, Map<String, LinkedHashMap<String, String>> styleMap, String objectType) {
 		if (styleMap == null || styleMap.isEmpty())
-			return;
+			return false;
 
 		sb.append("{");
 
@@ -99,7 +101,10 @@ public class StyleMapToGpadConverter {
 			}
 		}
 
+		if (sb.length()==1)
+			return false;
 		sb.append(" }");
+		return true;
 	}
 
 	/**

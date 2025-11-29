@@ -91,10 +91,11 @@ public class ConstructionToGpadConverterTest extends BaseUnitTest {
 		assertTrue("Should contain label c", outputGpad.contains("c"));
 		
 		// Verify expression is present (c should be an expression)
-		// Note: The format may be "c = a + b" or "c* @cStyle = a + b" (with visibility flags and stylesheet)
-		// So we check for both label c and the expression "a + b"
+		// Note: Since c is a numeric expression (not drawable in geometry view), it won't have "*" or "~" suffixes
+		// The format is "c @cStyle = a + b" (with stylesheet) or "c = a + b" (without stylesheet)
+		// So we check for label c, followed by optional stylesheet reference, then "=" and the expression "a + b"
 		assertTrue("Should contain expression for c", 
-			(outputGpad.contains("c =") || outputGpad.contains("c=") || outputGpad.contains("c*") || outputGpad.contains("c~"))
+			(outputGpad.contains("c @") || outputGpad.contains("c =") || outputGpad.contains("c="))
 			&& outputGpad.contains("a + b"));
 	}
 
@@ -143,15 +144,19 @@ public class ConstructionToGpadConverterTest extends BaseUnitTest {
 		assertTrue("Should contain label a", outputGpad.contains("a"));
 		assertTrue("Should contain label c", outputGpad.contains("c"));
 		
-		// Verify stylesheet is generated for expression output
-		assertTrue("Should contain stylesheet for c", 
-			outputGpad.contains("@cStyle") || outputGpad.contains("@style"));
+		// Note: Since c is a numeric expression (not drawable in geometry view, no slider created),
+		// lineStyle cannot be applied to it. The stylesheet @cStyle will be empty after conversion
+		// and will be omitted, so @cStyle should NOT be present in the output.
+		// This is expected behavior: lineStyle only applies to drawable objects in geometry view.
+		assertTrue("Should NOT contain @cStyle (lineStyle cannot apply to non-drawable numeric expressions)", 
+			!outputGpad.contains("@cStyle"));
 		
 		// Verify expression is present
-		// Note: The format may be "c @cStyle = a + 5" or "c* @cStyle = a + 5" (with visibility flags)
-		// So we check for both label c and the expression "a + 5"
+		// Note: Since c is a numeric expression (not drawable in geometry view), it won't have "*" or "~" suffixes
+		// The format is "c = a + 5" (without stylesheet, since lineStyle was omitted)
+		// So we check for label c, followed by "=" and the expression "a + 5"
 		assertTrue("Should contain expression", 
-			(outputGpad.contains("c =") || outputGpad.contains("c=") || outputGpad.contains("c*") || outputGpad.contains("c~"))
+			(outputGpad.contains("c =") || outputGpad.contains("c="))
 			&& outputGpad.contains("a + 5"));
 	}
 

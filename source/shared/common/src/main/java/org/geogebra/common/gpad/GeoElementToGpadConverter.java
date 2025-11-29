@@ -10,6 +10,7 @@ import org.geogebra.common.kernel.geos.GeoButton;
 import org.geogebra.common.kernel.geos.GeoElement;
 import org.geogebra.common.kernel.geos.GeoFunction;
 import org.geogebra.common.kernel.geos.GeoNumeric;
+import org.geogebra.common.util.debug.Log;
 
 /**
  * Converts GeoElement objects to Gpad format.
@@ -28,33 +29,37 @@ public class GeoElementToGpadConverter {
 	}
 
 	/**
-	 * Extracts style map from a GeoElement's XML.
+	 * Extracts the <element>...</element> part from full XML.
+	 * This is needed because QDParser may have issues with <expression> tags.
 	 * 
-	 * @param geo GeoElement to extract styles from
-	 * @return style map, or null if extraction fails or no styles found
+	 * @param fullXML full XML string
+	 * @return element XML string, or null if not found
 	 */
-	public static Map<String, LinkedHashMap<String, String>> extractStyleMap(GeoElement geo) {
-		if (geo == null)
+	private static String extractElementXML(String fullXML) {
+		if (fullXML == null || fullXML.trim().isEmpty())
 			return null;
 		
-		// Use getXML() instead of getStyleXML() to include coords and other tags
-		// getStyleXML() only includes style properties, not data like coords
-		String fullXML = geo.getXML();
-		// Extract only the <element>...</element> part for parsing
-		// QDParser may have issues with <expression> tags
-		String elementXML = GpadHelper.extractElementXML(fullXML);
-		if (elementXML == null || elementXML.trim().isEmpty()) {
+		int startIdx = fullXML.indexOf("<element");
+		if (startIdx < 0)
 			return null;
+		
+		// Find the matching closing tag
+		int depth = 0;
+		int idx = startIdx;
+		while (idx < fullXML.length()) {
+			if (fullXML.startsWith("<element", idx)) {
+				depth++;
+				idx = fullXML.indexOf(">", idx) + 1;
+			} else if (fullXML.startsWith("</element>", idx)) {
+				depth--;
+				if (depth == 0)
+					return fullXML.substring(startIdx, idx + "</element>".length());
+				idx += "</element>".length();
+			} else
+				idx++;
 		}
 		
-		// Parse XML to get style map
-		XMLToStyleMapParser xmlParser = new XMLToStyleMapParser();
-		try {
-			return xmlParser.parse(elementXML);
-		} catch (GpadParseException e) {
-			// If parsing fails, return null
-			return null;
-		}
+		return null; // No matching closing tag found
 	}
 
 	/**
@@ -65,12 +70,56 @@ public class GeoElementToGpadConverter {
 	 * @return style sheet content string in format "{ ... }", or null if extraction fails or no styles found
 	 */
 	public static String extractStyleSheetContent(GeoElement geo) {
-		Map<String, LinkedHashMap<String, String>> styleMap = extractStyleMap(geo);
-		if (styleMap == null || styleMap.isEmpty())
+		if (geo == null)
 			return null;
 		
-		String objectType = geo.getTypeString();
-		return StyleMapToGpadConverter.convertToContentOnly(styleMap, objectType);
+		// Use getXML() instead of getStyleXML() to include coords and other tags
+		// getStyleXML() only includes style properties, not data like coords
+		String fullXML = geo.getXML();
+		// Extract only the <element>...</element> part for parsing
+		// QDParser may have issues with <expression> tags
+		String elementXML = extractElementXML(fullXML);
+		if (elementXML == null || elementXML.trim().isEmpty())
+			return null;
+		
+		// Parse XML to get style map
+		XMLToStyleMapParser xmlParser = new XMLToStyleMapParser();
+		try {
+			Map<String, LinkedHashMap<String, String>> styleMap = xmlParser.parse(elementXML);
+			if (styleMap == null || styleMap.isEmpty())
+				return null;
+			return StyleMapToGpadConverter.convertToContentOnly(styleMap, geo.getTypeString());
+		} catch (GpadParseException e) {
+			// If parsing fails, return null
+			return null;
+		}
+	}
+
+	public static boolean buildOutputLabel(StringBuilder sb, GeoElement geo) {
+		String label = geo.getLabel(myTPL);
+		if (label == null || label.isEmpty()) {
+			Log.error("Geo has empty label, skipping");
+			return false;
+		}
+
+		// Build output specification
+		sb.append(label);
+		
+		// Only add visibility suffixes for objects that can be shown in EuclidianView
+		// Objects that don't show in geometry view (e.g., GeoNumeric without slider,
+		// GeoScriptAction, GeoCasCell, etc.) should not have "*" or "~" suffixes
+		if (geo.isEuclidianShowable()) {
+			// Determine visibility flags
+			boolean hideObject = !geo.isSetEuclidianVisible();
+			boolean hideLabel = !geo.isLabelVisible();
+
+			if (hideObject)
+				sb.append("*");
+			else if (hideLabel)
+				sb.append("~");
+		}
+		
+		return true;
 	}
 
 	public static boolean buildCommand(StringBuilder sb, GeoElement geo, String styleSheetName) {
@@ -79,19 +128,8 @@ public class GeoElementToGpadConverter {
 		if (command == null || command.isEmpty())
 			return false;
 
-		// Build output part
-		String label = geo.getLabelSimple();
-
-		// Determine visibility flags
-		boolean hideObject = !geo.isSetEuclidianVisible();
-		boolean hideLabel = !geo.isLabelVisible();
-
-		// Build output specification
-		sb.append(label);
-		if (hideObject)
-			sb.append("*");
-		else if (hideLabel)
-			sb.append("~");
+		if (!buildOutputLabel(sb, geo))
+			return false;
 
 		// Add style sheet reference if available
 		if (styleSheetName != null)
