@@ -25,7 +25,7 @@ public class StyleMapToGpadConverter {
 	 *            object type name (e.g., "Button", "Numeric"), can be null
 	 * @return Gpad style sheet string in format "@name = { ... }" (no semicolon), or null if styleMap is empty
 	 */
-	public String convert(String name, Map<String, LinkedHashMap<String, String>> styleMap, String objectType) {
+	public static String convert(String name, Map<String, LinkedHashMap<String, String>> styleMap, String objectType) {
 		if (styleMap == null || styleMap.isEmpty())
 			return null;
 
@@ -46,7 +46,7 @@ public class StyleMapToGpadConverter {
 	 *            object type name (e.g., "Button", "Numeric"), can be null
 	 * @return Gpad style sheet content string in format "{ ... }" (no name, no semicolon), or null if styleMap is empty
 	 */
-	public String convertToContentOnly(Map<String, LinkedHashMap<String, String>> styleMap, String objectType) {
+	public static String convertToContentOnly(Map<String, LinkedHashMap<String, String>> styleMap, String objectType) {
 		if (styleMap == null || styleMap.isEmpty())
 			return null;
 
@@ -66,7 +66,7 @@ public class StyleMapToGpadConverter {
 	 * @param objectType
 	 *            object type name (e.g., "Button", "Numeric"), can be null
 	 */
-	private void buildStyleSheetContent(StringBuilder sb, Map<String, LinkedHashMap<String, String>> styleMap, String objectType) {
+	private static void buildStyleSheetContent(StringBuilder sb, Map<String, LinkedHashMap<String, String>> styleMap, String objectType) {
 		if (styleMap == null || styleMap.isEmpty())
 			return;
 
@@ -111,7 +111,7 @@ public class StyleMapToGpadConverter {
 	 * @param objectType object type name (e.g., "Button", "Numeric")
 	 * @return Gpad property string, or null if should be omitted
 	 */
-	private String convertValueElement(LinkedHashMap<String, String> attrs, String objectType) {
+	private static String convertValueElement(LinkedHashMap<String, String> attrs, String objectType) {
 		if (attrs == null || attrs.isEmpty())
 			return null;
 
@@ -133,7 +133,7 @@ public class StyleMapToGpadConverter {
 	 * @param objectType object type name (e.g., "Button", "Numeric"), can be null
 	 * @return Gpad property string (e.g., "lineStyle: thickness=4 opacity=178")
 	 */
-	private String convertPropertyToGpad(String tagName, LinkedHashMap<String, String> attrs, String objectType) {
+	private static String convertPropertyToGpad(String tagName, LinkedHashMap<String, String> attrs, String objectType) {
 		String prop = convertSimplePropertyToGpad(tagName, attrs);
 		if (prop == null)
 			return null;
@@ -250,7 +250,7 @@ public class StyleMapToGpadConverter {
 	 * @param attrs animation attributes
 	 * @return Gpad animation string (e.g., "play +0.2 speed=2" or "=0.5 speed=\"1+1\"")
 	 */
-	private String convertAnimation(LinkedHashMap<String, String> attrs) {
+	private static String convertAnimation(LinkedHashMap<String, String> attrs) {
 		if (attrs == null || attrs.isEmpty())
 			return "";
 
@@ -329,7 +329,7 @@ public class StyleMapToGpadConverter {
 	 * @param value the string to check
 	 * @return true if the string is an expression, false if it's a plain number
 	 */
-	private boolean isNotSimpleNumber(String value) {
+	private static boolean isNotSimpleNumber(String value) {
 		if (value == null || value.isEmpty())
 			return false;
 		
@@ -347,7 +347,7 @@ public class StyleMapToGpadConverter {
 	 *            lineStyle attributes map
 	 * @return Gpad lineStyle string
 	 */
-	private String convertLineStyle(LinkedHashMap<String, String> attrs) {
+	private static String convertLineStyle(LinkedHashMap<String, String> attrs) {
 		if (attrs == null || attrs.isEmpty())
 			return "";
 
@@ -424,7 +424,7 @@ public class StyleMapToGpadConverter {
 	 * @param alphaStr alpha value as string (0.0-1.0), can be null
 	 * @return hex color string (e.g., "#FF0000" or "#FF0000FF"), or "#000000" on parse error
 	 */
-	private String convertRgbToHex(String rStr, String gStr, String bStr, String alphaStr) {
+	private static String convertRgbToHex(String rStr, String gStr, String bStr, String alphaStr) {
 		try {
 			// Convert r, g, b to hex
 			int r = rStr == null ? 0 : Integer.parseInt(rStr);
@@ -474,7 +474,7 @@ public class StyleMapToGpadConverter {
 	 *            color attributes map
 	 * @return hex color string (e.g., "#FF0000" or "#FF0000FF")
 	 */
-	private String convertColorToHex(LinkedHashMap<String, String> attrs) {
+	private static String convertColorToHex(LinkedHashMap<String, String> attrs) {
 		if (attrs == null || attrs.isEmpty())
 			return "";
 
@@ -496,7 +496,7 @@ public class StyleMapToGpadConverter {
 	 * @param attrs objColor attributes map
 	 * @return Gpad objColor string (e.g., "#FF0000" or "rgb(x, y, z) fill=hatch angle=45")
 	 */
-	private String convertObjColor(LinkedHashMap<String, String> attrs) {
+	private static String convertObjColor(LinkedHashMap<String, String> attrs) {
 		if (attrs == null || attrs.isEmpty())
 			return "";
 
@@ -667,7 +667,7 @@ public class StyleMapToGpadConverter {
 	 * @param str the string to escape
 	 * @return the escaped string
 	 */
-	private String escapeString(String str) {
+	private static String escapeString(String str) {
 		return str.replace("\\", "\\\\")
 				  .replace("\"", "\\\"")
 				  .replace("\n", "\\n")
@@ -682,7 +682,7 @@ public class StyleMapToGpadConverter {
 	 * @param expr the expression to simplify
 	 * @return simplified expression (either as-is or quoted with escapes)
 	 */
-	private String simplifyExpression(String expr) {
+	private static String simplifyExpression(String expr) {
 		if (expr == null || expr.isEmpty())
 			return "";
 
@@ -724,7 +724,7 @@ public class StyleMapToGpadConverter {
 	 * @return Gpad 格式的字符串（如 "angleStyle: 0-360" 或 "caption: \"text\""）
 	 *         返回空串表示不是简单xml元素，返回null表示省略此样式
 	 */
-	private String convertSimplePropertyToGpad(String xmlTagName, LinkedHashMap<String, String> attrs) {
+	private static String convertSimplePropertyToGpad(String xmlTagName, LinkedHashMap<String, String> attrs) {
 		// 检查是否需要通过名字映射转换（XML 元素名 -> Gpad 属性名）
 		String gpadName = GpadStyleMaps.XML_TO_GPAD_NAME_MAP.get(xmlTagName);
 		if (gpadName == null)
@@ -845,7 +845,7 @@ public class StyleMapToGpadConverter {
 	 * @param attrs boundingBox attributes map
 	 * @return Gpad boundingBox string (e.g., "width=100 height=200")
 	 */
-	private String convertBoundingBox(LinkedHashMap<String, String> attrs) {
+	private static String convertBoundingBox(LinkedHashMap<String, String> attrs) {
 		if (attrs == null || attrs.isEmpty())
 			return "";
 
@@ -887,7 +887,7 @@ public class StyleMapToGpadConverter {
 	 * @param attrs contentSize attributes map
 	 * @return Gpad contentSize string (e.g., "width=100.5 height=200.3")
 	 */
-	private String convertContentSize(LinkedHashMap<String, String> attrs) {
+	private static String convertContentSize(LinkedHashMap<String, String> attrs) {
 		if (attrs == null || attrs.isEmpty())
 			return "";
 
@@ -921,7 +921,7 @@ public class StyleMapToGpadConverter {
 	 * @param attrs tempUserInput attributes map
 	 * @return Gpad tempUserInput string (e.g., "eval=\"x+1\" display=\"x + 1\"")
 	 */
-	private String convertTempUserInput(LinkedHashMap<String, String> attrs) {
+	private static String convertTempUserInput(LinkedHashMap<String, String> attrs) {
 		if (attrs == null || attrs.isEmpty())
 			return "";
 
@@ -955,7 +955,7 @@ public class StyleMapToGpadConverter {
 	 * @param attrs cropBox attributes map
 	 * @return Gpad cropBox string (e.g., "x=10 y=20 width=100 height=200 cropped")
 	 */
-	private String convertCropBox(LinkedHashMap<String, String> attrs) {
+	private static String convertCropBox(LinkedHashMap<String, String> attrs) {
 		if (attrs == null || attrs.isEmpty())
 			return "";
 
@@ -1017,7 +1017,7 @@ public class StyleMapToGpadConverter {
 	 * @param attrs dimensions attributes map
 	 * @return Gpad dimensions string (e.g., "width=100 height=200 angle=45 scaled")
 	 */
-	private String convertDimensions(LinkedHashMap<String, String> attrs) {
+	private static String convertDimensions(LinkedHashMap<String, String> attrs) {
 		if (attrs == null || attrs.isEmpty())
 			return "";
 
@@ -1088,7 +1088,7 @@ public class StyleMapToGpadConverter {
 	 * @param attrs font attributes map
 	 * @return Gpad font string (e.g., "serif *0.5 plain" or "~serif *2 italic bold")
 	 */
-	private String convertFont(LinkedHashMap<String, String> attrs) {
+	private static String convertFont(LinkedHashMap<String, String> attrs) {
 		if (attrs == null || attrs.isEmpty())
 			return "";
 
@@ -1159,7 +1159,7 @@ public class StyleMapToGpadConverter {
 	 * @param attrs show attributes (object, label, ev)
 	 * @return Gpad show string (e.g., "~label ~ev1 ev2 plane ~3d")
 	 */
-	private String convertShow(LinkedHashMap<String, String> attrs) {
+	private static String convertShow(LinkedHashMap<String, String> attrs) {
 		if (attrs == null || attrs.isEmpty())
 			return "";
 
@@ -1261,7 +1261,7 @@ public class StyleMapToGpadConverter {
 	 * @param attrs slider attributes
 	 * @return Gpad slider string (e.g., "min=0 max=10 width=200 x=100 y=200 vertical algebra @screen fixed")
 	 */
-	private String convertSlider(LinkedHashMap<String, String> attrs) {
+	private static String convertSlider(LinkedHashMap<String, String> attrs) {
 		if (attrs == null || attrs.isEmpty())
 			return null;
 
@@ -1395,7 +1395,7 @@ public class StyleMapToGpadConverter {
 	 * @param attrs tableview attributes
 	 * @return Gpad tableview string (e.g., "2 points" or "~points")
 	 */
-	private String convertTableView(LinkedHashMap<String, String> attrs) {
+	private static String convertTableView(LinkedHashMap<String, String> attrs) {
 		if (attrs == null || attrs.isEmpty())
 			return null;
 
@@ -1465,7 +1465,7 @@ public class StyleMapToGpadConverter {
 	 * @param attrs spreadsheetTrace attributes map
 	 * @return Gpad spreadsheetTrace string, or null if should be omitted
 	 */
-	private String convertSpreadsheetTrace(LinkedHashMap<String, String> attrs) {
+	private static String convertSpreadsheetTrace(LinkedHashMap<String, String> attrs) {
 		if (attrs == null || attrs.isEmpty())
 			return null;
 
@@ -1574,7 +1574,7 @@ public class StyleMapToGpadConverter {
 	 * @param attrs startPoint attributes
 	 * @return Gpad property string (e.g., "startPoint: absolute 1 2 | \"A\" ~absolute")
 	 */
-	private String convertStartPoint(LinkedHashMap<String, String> attrs) {
+	private static String convertStartPoint(LinkedHashMap<String, String> attrs) {
 		if (attrs == null || !attrs.containsKey("_corners"))
 			return null;
 		
@@ -1630,7 +1630,7 @@ public class StyleMapToGpadConverter {
 	 * @param attrs coords attributes map
 	 * @return Gpad coords string (e.g., "2.1 3.2" or "2.3 4.1 3.5 2.1 v=1.1 2.3 2.4 w=1.1 2.3 3.3")
 	 */
-	private String convertCoords(LinkedHashMap<String, String> attrs) {
+	private static String convertCoords(LinkedHashMap<String, String> attrs) {
 		if (attrs == null || attrs.isEmpty())
 			return null;
 
@@ -1700,7 +1700,7 @@ public class StyleMapToGpadConverter {
 	 * @param attrs barTag attributes map (should contain _barTags serialized string)
 	 * @return Gpad barTag string, or null if should be omitted
 	 */
-	private String convertBarTag(LinkedHashMap<String, String> attrs) {
+	private static String convertBarTag(LinkedHashMap<String, String> attrs) {
 		if (attrs == null || attrs.isEmpty())
 			return null;
 		

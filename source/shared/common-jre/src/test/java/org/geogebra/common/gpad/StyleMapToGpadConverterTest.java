@@ -19,14 +19,13 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 	@Test
 	public void testEqnStyleImplicit() {
 		// Test implicit style conversion
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> implicitAttrs = new LinkedHashMap<>();
 		implicitAttrs.put("style", "implicit");
 		styleMap.put("eqnStyle", implicitAttrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain eqnStyle", gpad.contains("eqnStyle"));
 		assertTrue("Should contain implicit", gpad.contains("implicit"));
@@ -36,7 +35,6 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 	@Test
 	public void testEqnStyleParametricWithParameter() {
 		// Test parametric style with parameter conversion
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> parametricAttrs = new LinkedHashMap<>();
@@ -44,7 +42,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		parametricAttrs.put("parameter", "t");
 		styleMap.put("eqnStyle", parametricAttrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain eqnStyle", gpad.contains("eqnStyle"));
 		assertTrue("Should contain parametric", gpad.contains("parametric"));
@@ -54,14 +52,13 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 	@Test
 	public void testEqnStyleParametricWithoutParameter() {
 		// Test parametric style without parameter conversion
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> parametricNoParamAttrs = new LinkedHashMap<>();
 		parametricNoParamAttrs.put("style", "parametric");
 		styleMap.put("eqnStyle", parametricNoParamAttrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain eqnStyle", gpad.contains("eqnStyle"));
 		assertTrue("Should contain parametric", gpad.contains("parametric"));
@@ -72,7 +69,6 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 	public void testEqnStyleAllValidStyles() {
 		// Test all valid eqnStyle values
 		String[] validStyles = {"implicit", "explicit", "specific", "parametric", "general", "vertex", "conic", "user"};
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		
 		for (String style : validStyles) {
 			Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
@@ -80,7 +76,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 			attrs.put("style", style);
 			styleMap.put("eqnStyle", attrs);
 			
-			String gpad = converter.convert("test", styleMap, null);
+			String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 			assertNotNull("Style " + style + " should convert", gpad);
 			assertTrue("Should contain eqnStyle for " + style, gpad.contains("eqnStyle"));
 			assertTrue("Should contain " + style, gpad.contains(style));
@@ -91,7 +87,6 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 	public void testEqnStyleParametricWithDifferentParameters() {
 		// Test parametric style with different parameter values
 		String[] parameters = {"t", "T", "s", "u", "v"};
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		
 		for (String param : parameters) {
 			Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
@@ -100,7 +95,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 			attrs.put("parameter", param);
 			styleMap.put("eqnStyle", attrs);
 			
-			String gpad = converter.convert("test", styleMap, null);
+			String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 			assertNotNull("Parameter " + param + " should convert", gpad);
 			assertTrue("Should contain parametric=" + param, gpad.contains("parametric=" + param));
 		}
@@ -109,26 +104,23 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 	@Test
 	public void testEmptyStyleMap() {
 		// Test empty style map
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertTrue("Empty style map should return null", gpad == null);
 	}
 
 	@Test
 	public void testNullStyleMap() {
 		// Test null style map
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		
-		String gpad = converter.convert("test", null, null);
+		String gpad = StyleMapToGpadConverter.convert("test", null, null);
 		assertTrue("Null style map should return null", gpad == null);
 	}
 
 	@Test
 	public void testMultipleProperties() {
 		// Test style map with multiple properties including eqnStyle
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		// Add eqnStyle
@@ -141,7 +133,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		pointSizeAttrs.put("val", "5");
 		styleMap.put("pointSize", pointSizeAttrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain eqnStyle", gpad.contains("eqnStyle"));
 		assertTrue("Should not contain pointSize", !gpad.contains("pointSize")); // 因为取了默认值被省略了
@@ -152,7 +144,6 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 	@Test
 	public void testAnimationAllDefaults() {
 		// Test animation with all default values (should not output animation property)
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> animAttrs = new LinkedHashMap<>();
@@ -162,7 +153,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		animAttrs.put("speed", "1");
 		styleMap.put("animation", animAttrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		// When all values are default, animation property should not be output
 		assertTrue("Should not contain animation when all defaults", gpad == null || !gpad.contains("animation"));
 	}
@@ -170,14 +161,13 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 	@Test
 	public void testAnimationOnlyPlaying() {
 		// Test animation with only playing=true
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> animAttrs = new LinkedHashMap<>();
 		animAttrs.put("playing", "true");
 		styleMap.put("animation", animAttrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain animation", gpad.contains("animation"));
 		assertTrue("Should contain play", gpad.contains("play"));
@@ -186,7 +176,6 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 	@Test
 	public void testAnimationOnlyTypeIncreasing() {
 		// Test animation with only type=1 (INCREASING), step is default
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> animAttrs = new LinkedHashMap<>();
@@ -194,7 +183,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		animAttrs.put("step", "0.1");
 		styleMap.put("animation", animAttrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain animation", gpad.contains("animation"));
 		assertTrue("Should contain + prefix", gpad.contains("+"));
@@ -205,7 +194,6 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 	@Test
 	public void testAnimationOnlyTypeDecreasing() {
 		// Test animation with only type=2 (DECREASING), step is default
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> animAttrs = new LinkedHashMap<>();
@@ -213,7 +201,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		animAttrs.put("step", "0.1");
 		styleMap.put("animation", animAttrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain animation", gpad.contains("animation"));
 		assertTrue("Should contain - prefix", gpad.contains(" -"));
@@ -222,7 +210,6 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 	@Test
 	public void testAnimationOnlyTypeIncreasingOnce() {
 		// Test animation with only type=3 (INCREASING_ONCE), step is default
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> animAttrs = new LinkedHashMap<>();
@@ -230,7 +217,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		animAttrs.put("step", "0.1");
 		styleMap.put("animation", animAttrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain animation", gpad.contains("animation"));
 		// Should contain = but not speed=, and not contain step value
@@ -242,7 +229,6 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 	@Test
 	public void testAnimationOnlyStep() {
 		// Test animation with only step (non-default), type is default
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> animAttrs = new LinkedHashMap<>();
@@ -250,7 +236,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		animAttrs.put("step", "0.2");
 		styleMap.put("animation", animAttrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain animation", gpad.contains("animation"));
 		assertTrue("Should contain 0.2", gpad.contains("0.2"));
@@ -260,14 +246,13 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 	@Test
 	public void testAnimationOnlySpeed() {
 		// Test animation with only speed (non-default)
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> animAttrs = new LinkedHashMap<>();
 		animAttrs.put("speed", "2");
 		styleMap.put("animation", animAttrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain animation", gpad.contains("animation"));
 		assertTrue("Should contain speed=2", gpad.contains("speed=2"));
@@ -276,7 +261,6 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 	@Test
 	public void testAnimationTypeAndStep() {
 		// Test animation with type and step (both non-default)
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> animAttrs = new LinkedHashMap<>();
@@ -284,7 +268,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		animAttrs.put("step", "0.2");
 		styleMap.put("animation", animAttrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain animation", gpad.contains("animation"));
 		assertTrue("Should contain +0.2", gpad.contains("+0.2"));
@@ -293,7 +277,6 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 	@Test
 	public void testAnimationAllProperties() {
 		// Test animation with all properties (non-default)
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> animAttrs = new LinkedHashMap<>();
@@ -303,7 +286,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		animAttrs.put("speed", "3");
 		styleMap.put("animation", animAttrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain animation", gpad.contains("animation"));
 		assertTrue("Should contain play", gpad.contains("play"));
@@ -314,14 +297,13 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 	@Test
 	public void testAnimationStepExpression() {
 		// Test animation with step as expression (should be quoted)
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> animAttrs = new LinkedHashMap<>();
 		animAttrs.put("step", "1+1");
 		styleMap.put("animation", animAttrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain animation", gpad.contains("animation"));
 		assertTrue("Should contain quoted expression", gpad.contains("\"1+1\""));
@@ -330,14 +312,13 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 	@Test
 	public void testAnimationSpeedExpression() {
 		// Test animation with speed as expression (should be quoted)
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> animAttrs = new LinkedHashMap<>();
 		animAttrs.put("speed", "2*3");
 		styleMap.put("animation", animAttrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain animation", gpad.contains("animation"));
 		assertTrue("Should contain quoted expression", gpad.contains("speed=\"2*3\""));
@@ -346,14 +327,13 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 	@Test
 	public void testAnimationStepNumericNotQuoted() {
 		// Test animation with step as plain number (should not be quoted)
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> animAttrs = new LinkedHashMap<>();
 		animAttrs.put("step", "0.25");
 		styleMap.put("animation", animAttrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain animation", gpad.contains("animation"));
 		assertTrue("Should contain 0.25", gpad.contains("0.25"));
@@ -363,14 +343,13 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 	@Test
 	public void testAnimationSpeedNumericNotQuoted() {
 		// Test animation with speed as plain number (should not be quoted)
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> animAttrs = new LinkedHashMap<>();
 		animAttrs.put("speed", "2.5");
 		styleMap.put("animation", animAttrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain animation", gpad.contains("animation"));
 		assertTrue("Should contain speed=2.5", gpad.contains("speed=2.5"));
@@ -380,7 +359,6 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 	@Test
 	public void testAnimationTypeWithStepExpression() {
 		// Test animation with type and step as expression
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> animAttrs = new LinkedHashMap<>();
@@ -388,7 +366,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		animAttrs.put("step", "a+b");
 		styleMap.put("animation", animAttrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain animation", gpad.contains("animation"));
 		assertTrue("Should contain + prefix", gpad.contains("+"));
@@ -398,13 +376,12 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 	@Test
 	public void testAnimationEmptyAttrs() {
 		// Test animation with empty attributes (should not output animation property)
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> animAttrs = new LinkedHashMap<>();
 		styleMap.put("animation", animAttrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		// When attributes are empty, animation property should not be output
 		assertTrue("Should not contain animation when attrs empty", gpad == null || !gpad.contains("animation"));
 	}
@@ -412,14 +389,13 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 	@Test
 	public void testCheckboxWithFixedTrue() {
 		// Test checkbox with fixed="true": should output both "checkbox;" and "fixed;"
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> checkboxAttrs = new LinkedHashMap<>();
 		checkboxAttrs.put("fixed", "true");
 		styleMap.put("checkbox", checkboxAttrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain checkbox", gpad.contains("checkbox"));
 		assertTrue("Should contain fixed", gpad.contains("fixed"));
@@ -428,14 +404,13 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 	@Test
 	public void testCheckboxWithFixedFalse() {
 		// Test checkbox with fixed="false": should only output "checkbox;" (fixed is default false, so omitted)
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> checkboxAttrs = new LinkedHashMap<>();
 		checkboxAttrs.put("fixed", "false");
 		styleMap.put("checkbox", checkboxAttrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain checkbox", gpad.contains("checkbox"));
 		assertTrue("Should not contain fixed (default false, omitted)", !gpad.contains("fixed"));
@@ -444,13 +419,12 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 	@Test
 	public void testCheckboxWithoutFixed() {
 		// Test checkbox without fixed attribute: should only output "checkbox;" (fixed defaults to false)
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> checkboxAttrs = new LinkedHashMap<>();
 		styleMap.put("checkbox", checkboxAttrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain checkbox", gpad.contains("checkbox"));
 		assertTrue("Should not contain fixed (default false, omitted)", !gpad.contains("fixed"));
@@ -459,7 +433,6 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 	@Test
 	public void testCheckboxWithFixedTrueAndOtherProperties() {
 		// Test checkbox with fixed="true" along with other properties
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> checkboxAttrs = new LinkedHashMap<>();
@@ -470,7 +443,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		traceAttrs.put("val", "true");
 		styleMap.put("trace", traceAttrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain checkbox", gpad.contains("checkbox"));
 		assertTrue("Should contain fixed", gpad.contains("fixed"));
@@ -481,7 +454,6 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 
 	@Test
 	public void testBoundingBoxBasic() {
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -489,7 +461,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		attrs.put("height", "200");
 		styleMap.put("boundingBox", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain boundingBox", gpad.contains("boundingBox"));
 		assertTrue("Should contain width=100", gpad.contains("width=100"));
@@ -499,7 +471,6 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 	@Test
 	public void testBoundingBoxWithFloatIgnoresDecimal() {
 		// Test that decimal part is ignored when converting from XML
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -507,7 +478,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		attrs.put("height", "200.9");
 		styleMap.put("boundingBox", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain width=100 (decimal ignored)", gpad.contains("width=100"));
 		assertTrue("Should contain height=200 (decimal ignored)", gpad.contains("height=200"));
@@ -517,14 +488,13 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 
 	@Test
 	public void testBoundingBoxOnlyWidth() {
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
 		attrs.put("width", "100");
 		styleMap.put("boundingBox", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain boundingBox", gpad.contains("boundingBox"));
 		assertTrue("Should contain width=100", gpad.contains("width=100"));
@@ -533,14 +503,13 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 
 	@Test
 	public void testBoundingBoxOnlyHeight() {
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
 		attrs.put("height", "200");
 		styleMap.put("boundingBox", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain boundingBox", gpad.contains("boundingBox"));
 		assertTrue("Should contain height=200", gpad.contains("height=200"));
@@ -551,7 +520,6 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 
 	@Test
 	public void testContentSizeBasic() {
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -559,7 +527,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		attrs.put("height", "200.3");
 		styleMap.put("contentSize", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain contentSize", gpad.contains("contentSize"));
 		assertTrue("Should contain width=100.5", gpad.contains("width=100.5"));
@@ -569,7 +537,6 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 	@Test
 	public void testContentSizeWithInteger() {
 		// Test with integer values (should preserve as-is)
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -577,7 +544,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		attrs.put("height", "200");
 		styleMap.put("contentSize", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain width=100", gpad.contains("width=100"));
 		assertTrue("Should contain height=200", gpad.contains("height=200"));
@@ -585,14 +552,13 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 
 	@Test
 	public void testContentSizeOnlyWidth() {
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
 		attrs.put("width", "100.5");
 		styleMap.put("contentSize", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain contentSize", gpad.contains("contentSize"));
 		assertTrue("Should contain width=100.5", gpad.contains("width=100.5"));
@@ -603,7 +569,6 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 
 	@Test
 	public void testCropBoxBasic() {
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -614,7 +579,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		attrs.put("cropped", "true");
 		styleMap.put("cropBox", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain cropBox", gpad.contains("cropBox"));
 		assertTrue("Should contain x=10", gpad.contains("x=10"));
@@ -628,7 +593,6 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 	@Test
 	public void testCropBoxWithCroppedFalse() {
 		// Test with cropped=false (should not output, as it's the default value)
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -639,7 +603,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		attrs.put("cropped", "false");
 		styleMap.put("cropBox", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should not contain cropped (default value)", !gpad.contains("cropped"));
 		assertTrue("Should not contain ~cropped (default value)", !gpad.contains("~cropped"));
@@ -647,7 +611,6 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 
 	@Test
 	public void testCropBoxWithFloatValues() {
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -658,7 +621,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		attrs.put("cropped", "true");
 		styleMap.put("cropBox", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain x=10.5", gpad.contains("x=10.5"));
 		assertTrue("Should contain y=20.7", gpad.contains("y=20.7"));
@@ -669,7 +632,6 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 	@Test
 	public void testCropBoxWithoutCropped() {
 		// Test without cropped attribute
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -679,7 +641,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		attrs.put("height", "200");
 		styleMap.put("cropBox", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain cropBox", gpad.contains("cropBox"));
 		assertTrue("Should not contain cropped", !gpad.contains("cropped"));
@@ -689,7 +651,6 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 
 	@Test
 	public void testDimensionsBasic() {
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -699,7 +660,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		attrs.put("unscaled", "false"); // unscaled=false means scaled=true
 		styleMap.put("dimensions", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain dimensions", gpad.contains("dimensions"));
 		assertTrue("Should contain width=100", gpad.contains("width=100"));
@@ -712,7 +673,6 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 	@Test
 	public void testDimensionsWithUnscaledTrue() {
 		// Test with unscaled=true (should not output, as it's the default value)
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -721,7 +681,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		attrs.put("unscaled", "true"); // unscaled=true is default, so should not output
 		styleMap.put("dimensions", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should not contain scaled (default value)", !gpad.contains("scaled"));
 		assertTrue("Should not contain ~scaled (default value)", !gpad.contains("~scaled"));
@@ -729,7 +689,6 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 
 	@Test
 	public void testDimensionsWithFloatValues() {
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -739,7 +698,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		attrs.put("unscaled", "false");
 		styleMap.put("dimensions", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain width=100.5", gpad.contains("width=100.5"));
 		assertTrue("Should contain height=200.3", gpad.contains("height=200.3"));
@@ -749,7 +708,6 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 	@Test
 	public void testDimensionsWithoutAngle() {
 		// Test without angle
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -758,7 +716,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		attrs.put("unscaled", "false");
 		styleMap.put("dimensions", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain dimensions", gpad.contains("dimensions"));
 		assertTrue("Should not contain angle", !gpad.contains("angle"));
@@ -767,7 +725,6 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 	@Test
 	public void testDimensionsWithAngleZero() {
 		// Test with angle=0 (should not output, as it's the default value)
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -777,7 +734,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		attrs.put("unscaled", "false");
 		styleMap.put("dimensions", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain dimensions", gpad.contains("dimensions"));
 		assertTrue("Should not contain angle (default value)", !gpad.contains("angle"));
@@ -786,7 +743,6 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 	@Test
 	public void testDimensionsWithAngleNonZero() {
 		// Test with angle=45 (should output)
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -796,7 +752,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		attrs.put("unscaled", "false");
 		styleMap.put("dimensions", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain angle=45", gpad.contains("angle=45"));
 	}
@@ -804,7 +760,6 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 	@Test
 	public void testDimensionsWithoutScaled() {
 		// Test without unscaled attribute
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -813,7 +768,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		attrs.put("angle", "45");
 		styleMap.put("dimensions", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain dimensions", gpad.contains("dimensions"));
 		assertTrue("Should not contain scaled", !gpad.contains("scaled"));
@@ -825,7 +780,6 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 	@Test
 	public void testCropBoxWithNegativeValues() {
 		// Test conversion with negative values
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -836,7 +790,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		attrs.put("cropped", "true");
 		styleMap.put("cropBox", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain x=-10", gpad.contains("x=-10"));
 		assertTrue("Should contain y=-20", gpad.contains("y=-20"));
@@ -847,7 +801,6 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 	@Test
 	public void testDimensionsWithNegativeValues() {
 		// Test conversion with negative values
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -857,7 +810,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		attrs.put("unscaled", "false");
 		styleMap.put("dimensions", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain width=-100", gpad.contains("width=-100"));
 		assertTrue("Should contain height=-200", gpad.contains("height=-200"));
@@ -867,7 +820,6 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 	@Test
 	public void testContentSizeWithNegativeValues() {
 		// Test conversion with negative values
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -875,7 +827,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		attrs.put("height", "-200.3");
 		styleMap.put("contentSize", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain width=-100.5", gpad.contains("width=-100.5"));
 		assertTrue("Should contain height=-200.3", gpad.contains("height=-200.3"));
@@ -884,7 +836,6 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 	@Test
 	public void testBoundingBoxWithNegativeValues() {
 		// Test conversion with negative values (decimal part ignored)
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -892,7 +843,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		attrs.put("height", "-200.9");
 		styleMap.put("boundingBox", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain width=-100 (decimal ignored)", gpad.contains("width=-100"));
 		assertTrue("Should contain height=-200 (decimal ignored)", gpad.contains("height=-200"));
@@ -905,7 +856,6 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 	@Test
 	public void testFontBasicSerifSizePlain() {
 		// Test font: serif *0.5 plain
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -914,7 +864,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		attrs.put("style", "0");
 		styleMap.put("font", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain font", gpad.contains("font"));
 		assertTrue("Should contain serif", gpad.contains("serif"));
@@ -926,7 +876,6 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 	@Test
 	public void testFontTildeSerifSizeItalicBold() {
 		// Test font: ~serif *2 italic bold
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -935,7 +884,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		attrs.put("style", "3");
 		styleMap.put("font", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain font", gpad.contains("font"));
 		// serif=false is default, so should not output ~serif
@@ -947,7 +896,6 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 	@Test
 	public void testFontSerifOnly() {
 		// Test font with only serif=true
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -956,7 +904,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		attrs.put("style", "0"); // default
 		styleMap.put("font", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain font", gpad.contains("font"));
 		assertTrue("Should contain serif", gpad.contains("serif"));
@@ -967,7 +915,6 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 	@Test
 	public void testFontSizeOnly() {
 		// Test font with only sizeM
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -976,7 +923,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		attrs.put("style", "0"); // default
 		styleMap.put("font", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain font", gpad.contains("font"));
 		assertTrue("Should not contain serif (default false)", !gpad.contains("serif"));
@@ -987,7 +934,6 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 	@Test
 	public void testFontBoldOnly() {
 		// Test font with only bold style
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -996,7 +942,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		attrs.put("style", "1"); // bold
 		styleMap.put("font", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain font", gpad.contains("font"));
 		assertTrue("Should not contain serif", !gpad.contains("serif"));
@@ -1008,7 +954,6 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 	@Test
 	public void testFontItalicOnly() {
 		// Test font with only italic style
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -1017,7 +962,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		attrs.put("style", "2"); // italic
 		styleMap.put("font", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain font", gpad.contains("font"));
 		assertTrue("Should contain italic", gpad.contains("italic"));
@@ -1027,7 +972,6 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 	@Test
 	public void testFontBoldItalic() {
 		// Test font with bold+italic (style=3)
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -1036,7 +980,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		attrs.put("style", "3"); // bold + italic
 		styleMap.put("font", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain font", gpad.contains("font"));
 		assertTrue("Should contain italic bold", gpad.contains("italic bold"));
@@ -1045,7 +989,6 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 	@Test
 	public void testFontAllProperties() {
 		// Test font with all properties
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -1054,7 +997,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		attrs.put("style", "3"); // bold + italic
 		styleMap.put("font", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain font", gpad.contains("font"));
 		assertTrue("Should contain serif", gpad.contains("serif"));
@@ -1065,7 +1008,6 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 	@Test
 	public void testFontSerifFalseOmitted() {
 		// Test that serif=false is omitted (default value)
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -1074,7 +1016,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		attrs.put("style", "0"); // default
 		styleMap.put("font", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		// When all values are default, font property should not be output
 		assertTrue("Should not contain font when all defaults", gpad == null || !gpad.contains("font"));
 	}
@@ -1082,7 +1024,6 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 	@Test
 	public void testFontSizeDefaultOmitted() {
 		// Test that sizeM=1.0 is omitted (default value)
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -1091,7 +1032,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		attrs.put("style", "1"); // bold
 		styleMap.put("font", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain font", gpad.contains("font"));
 		assertTrue("Should not contain size (default 1.0)", !gpad.contains("*"));
@@ -1101,7 +1042,6 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 	@Test
 	public void testFontStylePlainOmitted() {
 		// Test that style=0 (plain) is omitted (default value)
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -1110,7 +1050,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		attrs.put("style", "0"); // plain (default)
 		styleMap.put("font", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain font", gpad.contains("font"));
 		assertTrue("Should contain serif", gpad.contains("serif"));
@@ -1121,7 +1061,6 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 	@Test
 	public void testFontWithFloatSize() {
 		// Test font with float size values
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -1130,7 +1069,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		attrs.put("style", "2"); // italic
 		styleMap.put("font", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain *0.75", gpad.contains("*0.75"));
 		assertTrue("Should contain italic", gpad.contains("italic"));
@@ -1139,7 +1078,6 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 	@Test
 	public void testFontWithLargeSize() {
 		// Test font with large size value
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -1148,7 +1086,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		attrs.put("style", "0"); // default
 		styleMap.put("font", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain *3.5", gpad.contains("*3.5"));
 	}
@@ -1156,13 +1094,12 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 	@Test
 	public void testFontEmptyAttrs() {
 		// Test font with empty attributes (should not output font property)
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
 		styleMap.put("font", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		// When attributes are empty, font property should not be output
 		assertTrue("Should not contain font when attrs empty", gpad == null || !gpad.contains("font"));
 	}
@@ -1170,7 +1107,6 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 	@Test
 	public void testFontWithInvalidStyleValue() {
 		// Test font with invalid style value (should ignore)
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -1179,7 +1115,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		attrs.put("style", "invalid"); // invalid value
 		styleMap.put("font", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain font", gpad.contains("font"));
 		assertTrue("Should contain serif", gpad.contains("serif"));

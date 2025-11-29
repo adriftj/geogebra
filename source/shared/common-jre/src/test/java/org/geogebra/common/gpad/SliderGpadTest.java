@@ -290,7 +290,6 @@ public class SliderGpadTest extends BaseUnitTest {
 
 	@Test
 	public void testConvertSliderMinMaxWidth() {
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> sliderAttrs = new LinkedHashMap<>();
@@ -299,7 +298,7 @@ public class SliderGpadTest extends BaseUnitTest {
 		sliderAttrs.put("width", "200");
 		styleMap.put("slider", sliderAttrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain slider", gpad.contains("slider:"));
 		assertTrue("Should contain min=0", gpad.contains("min=0"));
@@ -309,7 +308,6 @@ public class SliderGpadTest extends BaseUnitTest {
 
 	@Test
 	public void testConvertSliderWithXY() {
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> sliderAttrs = new LinkedHashMap<>();
@@ -320,7 +318,7 @@ public class SliderGpadTest extends BaseUnitTest {
 		sliderAttrs.put("y", "150");
 		styleMap.put("slider", sliderAttrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain slider", gpad.contains("slider:"));
 		assertTrue("Should contain x=100", gpad.contains("x=100"));
@@ -330,7 +328,6 @@ public class SliderGpadTest extends BaseUnitTest {
 
 	@Test
 	public void testConvertSliderWithVertical() {
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> sliderAttrs = new LinkedHashMap<>();
@@ -340,7 +337,7 @@ public class SliderGpadTest extends BaseUnitTest {
 		sliderAttrs.put("horizontal", "false"); // vertical = true
 		styleMap.put("slider", sliderAttrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain slider", gpad.contains("slider:"));
 		assertTrue("Should contain vertical", gpad.contains("vertical"));
@@ -348,7 +345,6 @@ public class SliderGpadTest extends BaseUnitTest {
 
 	@Test
 	public void testConvertSliderWithAlgebra() {
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> sliderAttrs = new LinkedHashMap<>();
@@ -358,7 +354,7 @@ public class SliderGpadTest extends BaseUnitTest {
 		sliderAttrs.put("showAlgebra", "true");
 		styleMap.put("slider", sliderAttrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain slider", gpad.contains("slider:"));
 		assertTrue("Should contain algebra", gpad.contains("algebra"));
@@ -366,7 +362,6 @@ public class SliderGpadTest extends BaseUnitTest {
 
 	@Test
 	public void testConvertSliderWithConstant() {
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> sliderAttrs = new LinkedHashMap<>();
@@ -376,7 +371,7 @@ public class SliderGpadTest extends BaseUnitTest {
 		sliderAttrs.put("arbitraryConstant", "true");
 		styleMap.put("slider", sliderAttrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain slider", gpad.contains("slider:"));
 		assertTrue("Should contain constant", gpad.contains("constant"));
@@ -384,7 +379,6 @@ public class SliderGpadTest extends BaseUnitTest {
 
 	@Test
 	public void testConvertSliderWithExpressionMinMax() {
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> sliderAttrs = new LinkedHashMap<>();
@@ -393,7 +387,7 @@ public class SliderGpadTest extends BaseUnitTest {
 		sliderAttrs.put("width", "200");
 		styleMap.put("slider", sliderAttrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain slider", gpad.contains("slider:"));
 		assertTrue("Should contain min=-5", gpad.contains("min=-5"));
@@ -402,7 +396,6 @@ public class SliderGpadTest extends BaseUnitTest {
 
 	@Test
 	public void testConvertSliderWithFixed() {
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> sliderAttrs = new LinkedHashMap<>();
@@ -412,7 +405,7 @@ public class SliderGpadTest extends BaseUnitTest {
 		sliderAttrs.put("fixed", "true");
 		styleMap.put("slider", sliderAttrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain slider", gpad.contains("slider:"));
 		// fixed should be in slider output (independent property)
@@ -422,7 +415,6 @@ public class SliderGpadTest extends BaseUnitTest {
 
 	@Test
 	public void testConvertSliderWithScreen() {
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> sliderAttrs = new LinkedHashMap<>();
@@ -434,7 +426,7 @@ public class SliderGpadTest extends BaseUnitTest {
 		sliderAttrs.put("y", "200");
 		styleMap.put("slider", sliderAttrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain slider", gpad.contains("slider:"));
 		// @screen should be in slider output (independent property)

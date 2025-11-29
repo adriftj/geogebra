@@ -526,10 +526,9 @@ public class StartPointTest extends BaseUnitTest {
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
 		attrs.put("_corners", "\u0003\u0002A"); // false absolute, exp type, content "A"
 		
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		styleMap.put("startPoint", attrs);
-		String converted = converter.convert("style", styleMap, null);
+		String converted = StyleMapToGpadConverter.convert("style", styleMap, null);
 		
 		assertNotNull(converted);
 		assertTrue(converted.contains("startPoint:"));
@@ -542,10 +541,9 @@ public class StartPointTest extends BaseUnitTest {
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
 		attrs.put("_corners", "\u0003\u0003100,200"); // false absolute, x/y/z type, content "100,200"
 		
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		styleMap.put("startPoint", attrs);
-		String converted = converter.convert("style", styleMap, null);
+		String converted = StyleMapToGpadConverter.convert("style", styleMap, null);
 		
 		assertNotNull(converted);
 		assertTrue(converted.contains("startPoint:"));
@@ -559,10 +557,9 @@ public class StartPointTest extends BaseUnitTest {
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
 		attrs.put("_corners", "\u0002\u0003150,250"); // true absolute, x/y/z type, content "150,250"
 		
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		styleMap.put("startPoint", attrs);
-		String converted = converter.convert("style", styleMap, null);
+		String converted = StyleMapToGpadConverter.convert("style", styleMap, null);
 		
 		assertNotNull(converted);
 		assertTrue(converted.contains("startPoint:"));
@@ -578,10 +575,9 @@ public class StartPointTest extends BaseUnitTest {
 		// Corner 0: relative "A", Corner 1: absolute 100,200, Corner 2: absolute screen 150,250
 		attrs.put("_corners", "\u0003\u0002A\u0001\u0003\u0003100,200\u0001\u0002\u0003150,250");
 		
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		styleMap.put("startPoint", attrs);
-		String converted = converter.convert("style", styleMap, null);
+		String converted = StyleMapToGpadConverter.convert("style", styleMap, null);
 		
 		assertNotNull(converted);
 		assertTrue(converted.contains("startPoint:"));
@@ -601,10 +597,9 @@ public class StartPointTest extends BaseUnitTest {
 		attrs.put("x", "300");
 		attrs.put("y", "400");
 		
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		styleMap.put("absoluteScreenLocation", attrs);
-		String converted = converter.convert("style", styleMap, null);
+		String converted = StyleMapToGpadConverter.convert("style", styleMap, null);
 		
 		assertNotNull(converted);
 		assertTrue(converted.contains("@screen:"));
@@ -642,8 +637,7 @@ public class StartPointTest extends BaseUnitTest {
 					"<element>" + xml + "</element>");
 			
 			// Convert back to Gpad
-			StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
-			String convertedGpad = converter.convert("style", styleMap, null);
+			String convertedGpad = StyleMapToGpadConverter.convert("style", styleMap, null);
 			
 			assertNotNull(convertedGpad);
 			assertTrue(convertedGpad.contains("startPoint:"));

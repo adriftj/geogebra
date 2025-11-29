@@ -39,7 +39,7 @@ public class GeoElementToGpadConverterTest extends BaseUnitTest {
 		assertNotNull(gpad);
 		assertTrue(gpad.contains("A"));
 		// Should contain style sheet definition
-		assertTrue(gpad.contains("$") || gpad.contains("pointSize") || gpad.contains("fixed"));
+		assertTrue(gpad.contains("@") || gpad.contains("pointSize") || gpad.contains("fixed"));
 	}
 
 	@Test

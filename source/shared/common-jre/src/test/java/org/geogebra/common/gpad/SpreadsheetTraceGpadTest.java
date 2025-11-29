@@ -180,7 +180,6 @@ public class SpreadsheetTraceGpadTest extends BaseUnitTest {
 	@Test
 	public void testConvertSpreadsheetTraceBasic() {
 		// spreadsheetTrace: trace column=0 row=10;
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> traceAttrs = new LinkedHashMap<>();
@@ -190,7 +189,7 @@ public class SpreadsheetTraceGpadTest extends BaseUnitTest {
 		traceAttrs.put("doRowLimit", "false");
 		styleMap.put("spreadsheetTrace", traceAttrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain spreadsheetTrace", gpad.contains("spreadsheetTrace:"));
 		assertTrue("Should contain trace", gpad.contains("trace"));
@@ -203,7 +202,6 @@ public class SpreadsheetTraceGpadTest extends BaseUnitTest {
 	@Test
 	public void testConvertSpreadsheetTraceRowLimit() {
 		// spreadsheetTrace: trace column=2 row=5/20;
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> traceAttrs = new LinkedHashMap<>();
@@ -214,7 +212,7 @@ public class SpreadsheetTraceGpadTest extends BaseUnitTest {
 		traceAttrs.put("doRowLimit", "true");
 		styleMap.put("spreadsheetTrace", traceAttrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain spreadsheetTrace", gpad.contains("spreadsheetTrace:"));
 		assertTrue("Should contain trace", gpad.contains("trace"));
@@ -226,7 +224,6 @@ public class SpreadsheetTraceGpadTest extends BaseUnitTest {
 	public void testConvertSpreadsheetTraceFullConfig() {
 		// spreadsheetTrace: trace column=3 row=10/30 reset copy;
 		// Note: showLabel=true is default, so it's not output
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> traceAttrs = new LinkedHashMap<>();
@@ -240,7 +237,7 @@ public class SpreadsheetTraceGpadTest extends BaseUnitTest {
 		traceAttrs.put("doTraceGeoCopy", "true");
 		styleMap.put("spreadsheetTrace", traceAttrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain spreadsheetTrace", gpad.contains("spreadsheetTrace:"));
 		assertTrue("Should contain trace", gpad.contains("trace"));
@@ -255,14 +252,13 @@ public class SpreadsheetTraceGpadTest extends BaseUnitTest {
 	@Test
 	public void testConvertSpreadsheetTraceDisableTrace() {
 		// val=false is default, so spreadsheetTrace should not be output at all
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> traceAttrs = new LinkedHashMap<>();
 		traceAttrs.put("val", "false"); // default value, should not be output
 		styleMap.put("spreadsheetTrace", traceAttrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		// val=false is default, so spreadsheetTrace should be omitted
 		assertTrue("Should not contain spreadsheetTrace (val=false is default)", 
 				gpad == null || !gpad.contains("spreadsheetTrace:"));
@@ -271,7 +267,6 @@ public class SpreadsheetTraceGpadTest extends BaseUnitTest {
 	@Test
 	public void testConvertSpreadsheetTracePartialConfig() {
 		// spreadsheetTrace: pause list;
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> traceAttrs = new LinkedHashMap<>();
@@ -279,7 +274,7 @@ public class SpreadsheetTraceGpadTest extends BaseUnitTest {
 		traceAttrs.put("showTraceList", "true");
 		styleMap.put("spreadsheetTrace", traceAttrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain spreadsheetTrace", gpad.contains("spreadsheetTrace:"));
 		assertTrue("Should contain pause", gpad.contains("pause"));
@@ -291,7 +286,6 @@ public class SpreadsheetTraceGpadTest extends BaseUnitTest {
 		// spreadsheetTrace: ~label;
 		// Note: doColumnReset=false, showTraceList=false, doTraceGeoCopy=false, pause=false are defaults, so not output
 		// Only showLabel=false (non-default) should be output
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> traceAttrs = new LinkedHashMap<>();
@@ -302,7 +296,7 @@ public class SpreadsheetTraceGpadTest extends BaseUnitTest {
 		traceAttrs.put("pause", "false"); // default, should not output
 		styleMap.put("spreadsheetTrace", traceAttrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain spreadsheetTrace", gpad.contains("spreadsheetTrace:"));
 		assertTrue("Should contain ~label", gpad.contains("~label"));
@@ -316,7 +310,6 @@ public class SpreadsheetTraceGpadTest extends BaseUnitTest {
 	@Test
 	public void testConvertSpreadsheetTraceWithDefaultColumn() {
 		// Test with column=-1 (default, should not output)
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> traceAttrs = new LinkedHashMap<>();
@@ -325,7 +318,7 @@ public class SpreadsheetTraceGpadTest extends BaseUnitTest {
 		traceAttrs.put("traceRow1", "10");
 		styleMap.put("spreadsheetTrace", traceAttrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		// Should not contain column=-1
 		String tracePart = gpad.substring(gpad.indexOf("spreadsheetTrace:"));
@@ -335,7 +328,6 @@ public class SpreadsheetTraceGpadTest extends BaseUnitTest {
 	@Test
 	public void testConvertSpreadsheetTraceWithDefaultRow() {
 		// Test with traceRow1=-1 (default, should not output)
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> traceAttrs = new LinkedHashMap<>();
@@ -344,7 +336,7 @@ public class SpreadsheetTraceGpadTest extends BaseUnitTest {
 		traceAttrs.put("traceRow1", "-1");
 		styleMap.put("spreadsheetTrace", traceAttrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		// Should not contain row=-1
 		String tracePart = gpad.substring(gpad.indexOf("spreadsheetTrace:"));
@@ -388,8 +380,7 @@ public class SpreadsheetTraceGpadTest extends BaseUnitTest {
 			Map<String, LinkedHashMap<String, String>> styleMap = xmlParser.parse(styleXML);
 			
 			// Convert style map to GPAD
-			StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
-			String convertedGpad = converter.convert("test", styleMap, null);
+			String convertedGpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 			
 			// Verify converted GPAD contains spreadsheetTrace with non-default values
 			// Note: spreadsheetTrace XML is only included if isUsingFullGui() returns true
@@ -455,8 +446,7 @@ public class SpreadsheetTraceGpadTest extends BaseUnitTest {
 			Map<String, LinkedHashMap<String, String>> styleMap = xmlParser.parse(styleXML);
 			
 			// Convert style map to GPAD
-			StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
-			String convertedGpad = converter.convert("test", styleMap, null);
+			String convertedGpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 			
 			// Verify converted GPAD contains spreadsheetTrace with non-default values
 			// Note: spreadsheetTrace XML is only included if isUsingFullGui() returns true
@@ -521,8 +511,7 @@ public class SpreadsheetTraceGpadTest extends BaseUnitTest {
 			Map<String, LinkedHashMap<String, String>> styleMap = xmlParser.parse(styleXML);
 			
 			// Convert style map to GPAD
-			StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
-			String convertedGpad = converter.convert("test", styleMap, null);
+			String convertedGpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 			
 			// Verify converted GPAD contains spreadsheetTrace with non-default values
 			// Note: spreadsheetTrace XML is only included if isUsingFullGui() returns true
@@ -589,8 +578,7 @@ public class SpreadsheetTraceGpadTest extends BaseUnitTest {
 			Map<String, LinkedHashMap<String, String>> styleMap = xmlParser.parse(styleXML);
 			
 			// Convert style map to GPAD
-			StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
-			String convertedGpad = converter.convert("test", styleMap, null);
+			String convertedGpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 			
 			// Verify converted GPAD contains spreadsheetTrace with non-default values
 			// Note: spreadsheetTrace XML is only included if isUsingFullGui() returns true

@@ -167,7 +167,6 @@ public class TableViewGpadTest extends BaseUnitTest {
 	@Test
 	public void testConvertTableViewColumnAndPoints() {
 		// tableview: 2 points; // column=2, points=true
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> tableviewAttrs = new LinkedHashMap<>();
@@ -175,7 +174,7 @@ public class TableViewGpadTest extends BaseUnitTest {
 		tableviewAttrs.put("points", "true");
 		styleMap.put("tableview", tableviewAttrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain tableview", gpad.contains("tableview:"));
 		assertTrue("Should contain column 2", gpad.contains("2"));
@@ -187,7 +186,6 @@ public class TableViewGpadTest extends BaseUnitTest {
 	@Test
 	public void testConvertTableViewColumnAndNoPoints() {
 		// tableview: 1 ~points; // column=1, points=false
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> tableviewAttrs = new LinkedHashMap<>();
@@ -195,7 +193,7 @@ public class TableViewGpadTest extends BaseUnitTest {
 		tableviewAttrs.put("points", "false");
 		styleMap.put("tableview", tableviewAttrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain tableview", gpad.contains("tableview:"));
 		assertTrue("Should contain column 1", gpad.contains("1"));
@@ -208,14 +206,13 @@ public class TableViewGpadTest extends BaseUnitTest {
 	@Test
 	public void testConvertTableViewPointsOnly() {
 		// tableview: points; // no column, points=true
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> tableviewAttrs = new LinkedHashMap<>();
 		tableviewAttrs.put("points", "true");
 		styleMap.put("tableview", tableviewAttrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain tableview", gpad.contains("tableview:"));
 		assertTrue("Should contain points", gpad.contains("points"));
@@ -232,7 +229,6 @@ public class TableViewGpadTest extends BaseUnitTest {
 	@Test
 	public void testConvertTableViewColumnOnly() {
 		// tableview: 3; // column=3, no points (default)
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> tableviewAttrs = new LinkedHashMap<>();
@@ -240,7 +236,7 @@ public class TableViewGpadTest extends BaseUnitTest {
 		// points not set (default is true, but we don't output it when only column is set)
 		styleMap.put("tableview", tableviewAttrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain tableview", gpad.contains("tableview:"));
 		assertTrue("Should contain column 3", gpad.contains("3"));
@@ -252,7 +248,6 @@ public class TableViewGpadTest extends BaseUnitTest {
 	@Test
 	public void testConvertTableViewNoPointsOnly() {
 		// tableview: ~points; // no column, points=false
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> tableviewAttrs = new LinkedHashMap<>();
@@ -260,7 +255,7 @@ public class TableViewGpadTest extends BaseUnitTest {
 		// column not set (default is -1, which we don't output)
 		styleMap.put("tableview", tableviewAttrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain tableview", gpad.contains("tableview:"));
 		assertTrue("Should contain ~points", gpad.contains("~points"));
@@ -277,7 +272,6 @@ public class TableViewGpadTest extends BaseUnitTest {
 	@Test
 	public void testConvertTableViewWithDefaultColumn() {
 		// Test with column=-1 (default, should not output)
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> tableviewAttrs = new LinkedHashMap<>();
@@ -285,7 +279,7 @@ public class TableViewGpadTest extends BaseUnitTest {
 		tableviewAttrs.put("points", "true");
 		styleMap.put("tableview", tableviewAttrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		// Should only contain points, not column -1
 		assertTrue("Should contain tableview", gpad.contains("tableview:"));
@@ -298,7 +292,6 @@ public class TableViewGpadTest extends BaseUnitTest {
 	@Test
 	public void testConvertTableViewWithZeroColumn() {
 		// Test with column 0
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> tableviewAttrs = new LinkedHashMap<>();
@@ -306,7 +299,7 @@ public class TableViewGpadTest extends BaseUnitTest {
 		tableviewAttrs.put("points", "true");
 		styleMap.put("tableview", tableviewAttrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain tableview", gpad.contains("tableview:"));
 		assertTrue("Should contain 0", gpad.contains(" 0 "));

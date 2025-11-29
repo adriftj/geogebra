@@ -349,24 +349,6 @@ public abstract class GgbAPI implements JavaScriptAPI {
 	}
 
 	/**
-	 * Converts XML string to Gpad format.
-	 * 
-	 * @param xmlString
-	 *            XML string to convert
-	 * @return Gpad string representation, or null if conversion fails
-	 */
-	public synchronized String xmlToGpad(String xmlString) {
-		try {
-			org.geogebra.common.gpad.XMLToGpadConverter converter = 
-					new org.geogebra.common.gpad.XMLToGpadConverter(kernel);
-			return converter.convert(xmlString);
-		} catch (org.geogebra.common.gpad.GpadParseException e) {
-			Log.error("XML to Gpad conversion error: " + e.getMessage());
-			return null;
-		}
-	}
-
-	/**
 	 * Converts the entire construction to Gpad format.
 	 * Enumerates all construction elements in order and converts them to gpad format.
 	 * 

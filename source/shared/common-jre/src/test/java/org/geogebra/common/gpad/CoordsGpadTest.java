@@ -266,11 +266,10 @@ public class CoordsGpadTest extends BaseUnitTest {
 		attrs.put("z", "1.0");
 		attrs.put("w", "1.0");
 		
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new java.util.HashMap<>();
 		styleMap.put("coords", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue(gpad.contains("coords: 2.1 3.2"));
 	}
@@ -286,11 +285,10 @@ public class CoordsGpadTest extends BaseUnitTest {
 		attrs.put("z", "1.0");
 		attrs.put("w", "1.0");
 		
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new java.util.HashMap<>();
 		styleMap.put("coords", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		// z=1.0 is default, so it should be omitted
 		assertTrue(gpad.contains("coords: 2.2 3.1"));
@@ -307,11 +305,10 @@ public class CoordsGpadTest extends BaseUnitTest {
 		attrs.put("z", "3.5");
 		attrs.put("w", "2.1");
 		
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new java.util.HashMap<>();
 		styleMap.put("coords", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue(gpad.contains("coords: 2.3 4.1 3.5 2.1"));
 	}
@@ -331,11 +328,10 @@ public class CoordsGpadTest extends BaseUnitTest {
 		attrs.put("vz", "2.4");
 		attrs.put("vw", "0.0");
 		
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new java.util.HashMap<>();
 		styleMap.put("coords", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue(gpad.contains("coords: 2.3 4.1 3.5 v=1.1 2.3 2.4"));
 	}
@@ -358,11 +354,10 @@ public class CoordsGpadTest extends BaseUnitTest {
 		attrs.put("wy", "2.3");
 		attrs.put("wz", "3.3");
 		
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new java.util.HashMap<>();
 		styleMap.put("coords", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue(gpad.contains("coords: 2.3 4.1 3.5 2.1 v=2.5 6.2 3.4 w=1.1 2.3 3.3"));
 	}
@@ -382,11 +377,10 @@ public class CoordsGpadTest extends BaseUnitTest {
 		attrs.put("vz", "2.4");
 		attrs.put("vw", "0.5");
 		
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new java.util.HashMap<>();
 		styleMap.put("coords", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue(gpad.contains("coords: 2.3 4.1 3.5 v=1.1 2.3 2.4 0.5"));
 	}

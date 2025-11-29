@@ -2,7 +2,6 @@ package org.geogebra.common.gpad;
 
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -260,8 +259,7 @@ public class ConstructionToGpadConverter {
 		appendStyleSheetDefinitionIfNeeded(sb, geo, styleSheetName);
 
 		// Build command using GeoElementToGpadConverter
-		GeoElementToGpadConverter converter = new GeoElementToGpadConverter();
-		if (converter.buildCommand(sb, geo, styleSheetName)) {
+		if (GeoElementToGpadConverter.buildCommand(sb, geo, styleSheetName)) {
 			sb.append("\n");
 		}
 
@@ -300,8 +298,7 @@ public class ConstructionToGpadConverter {
 			return styleSheetMap.get(outputGeo);
 
 		// Extract style sheet content directly from GeoElement
-		GeoElementToGpadConverter elementConverter = new GeoElementToGpadConverter();
-		String contentOnly = elementConverter.extractStyleSheetContent(outputGeo);
+		String contentOnly = GeoElementToGpadConverter.extractStyleSheetContent(outputGeo);
 		if (contentOnly == null || contentOnly.isEmpty())
 			return null;
 
@@ -336,15 +333,12 @@ public class ConstructionToGpadConverter {
 	 */
 	private String generateStyleSheetGpad(GeoElement outputGeo, String styleSheetName) {
 		// Extract style sheet content directly from GeoElement
-		GeoElementToGpadConverter elementConverter = new GeoElementToGpadConverter();
-		String contentOnly = elementConverter.extractStyleSheetContent(outputGeo);
-		if (contentOnly == null || contentOnly.isEmpty()) {
+		String contentOnly = GeoElementToGpadConverter.extractStyleSheetContent(outputGeo);
+		if (contentOnly == null || contentOnly.isEmpty())
 			return null;
-		}
 
 		// Build full stylesheet definition with name
 		return "@" + styleSheetName + " = " + contentOnly;
 	}
-
 }
 

@@ -20,15 +20,11 @@ public class GeoElementToGpadConverter {
 
 	private int styleSheetCounter = 0;
 	private Map<GeoElement, String> styleSheetMap = new HashMap<>();
-	private XMLToStyleMapParser xmlParser;
-	private StyleMapToGpadConverter styleConverter;
 
 	/**
 	 * Creates a new GeoElementToGpadConverter.
 	 */
 	public GeoElementToGpadConverter() {
-		this.xmlParser = new XMLToStyleMapParser();
-		this.styleConverter = new StyleMapToGpadConverter();
 	}
 
 	/**
@@ -37,10 +33,9 @@ public class GeoElementToGpadConverter {
 	 * @param geo GeoElement to extract styles from
 	 * @return style map, or null if extraction fails or no styles found
 	 */
-	public Map<String, LinkedHashMap<String, String>> extractStyleMap(GeoElement geo) {
-		if (geo == null) {
+	public static Map<String, LinkedHashMap<String, String>> extractStyleMap(GeoElement geo) {
+		if (geo == null)
 			return null;
-		}
 		
 		// Use getXML() instead of getStyleXML() to include coords and other tags
 		// getStyleXML() only includes style properties, not data like coords
@@ -53,6 +48,7 @@ public class GeoElementToGpadConverter {
 		}
 		
 		// Parse XML to get style map
+		XMLToStyleMapParser xmlParser = new XMLToStyleMapParser();
 		try {
 			return xmlParser.parse(elementXML);
 		} catch (GpadParseException e) {
@@ -68,17 +64,16 @@ public class GeoElementToGpadConverter {
 	 * @param geo GeoElement to extract styles from
 	 * @return style sheet content string in format "{ ... }", or null if extraction fails or no styles found
 	 */
-	public String extractStyleSheetContent(GeoElement geo) {
+	public static String extractStyleSheetContent(GeoElement geo) {
 		Map<String, LinkedHashMap<String, String>> styleMap = extractStyleMap(geo);
-		if (styleMap == null || styleMap.isEmpty()) {
+		if (styleMap == null || styleMap.isEmpty())
 			return null;
-		}
 		
 		String objectType = geo.getTypeString();
-		return styleConverter.convertToContentOnly(styleMap, objectType);
+		return StyleMapToGpadConverter.convertToContentOnly(styleMap, objectType);
 	}
 
-	public boolean buildCommand(StringBuilder sb, GeoElement geo, String styleSheetName) {
+	public static boolean buildCommand(StringBuilder sb, GeoElement geo, String styleSheetName) {
 		// Extract command definition
 		String command = extractCommand(geo);
 		if (command == null || command.isEmpty())
@@ -135,10 +130,11 @@ public class GeoElementToGpadConverter {
 	 * @param geos list of GeoElements to convert
 	 * @return Gpad string representation
 	 */
-	public String toGpad(List<GeoElement> geos) {
+	public static String toGpad(List<GeoElement> geos) {
+		GeoElementToGpadConverter converter = new GeoElementToGpadConverter();
 		StringBuilder sb = new StringBuilder();
 		for (GeoElement geo : geos) {
-			String gpad = toGpad(geo);
+			String gpad = converter.toGpad(geo);
 			if (!gpad.isEmpty())
 				sb.append(gpad).append("\n");
 		}
@@ -153,7 +149,7 @@ public class GeoElementToGpadConverter {
 	 * @param geo GeoElement
 	 * @return command string, or null if not available
 	 */
-	private String extractCommand(GeoElement geo) {
+	private static String extractCommand(GeoElement geo) {
 		if (geo.getParentAlgorithm() != null) {
 			// Get command from parent algorithm
 			String cmdName = geo.getParentAlgorithm().getDefinitionName(myTPL);
@@ -214,7 +210,7 @@ public class GeoElementToGpadConverter {
 	 * @param str string to escape
 	 * @return escaped string
 	 */
-	private String escapeString(String str) {
+	private static String escapeString(String str) {
 		if (str == null)
 			return "";
 		// Escape backslash and double quote

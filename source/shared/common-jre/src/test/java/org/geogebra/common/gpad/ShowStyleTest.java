@@ -193,10 +193,9 @@ public class ShowStyleTest extends BaseUnitTest {
 			assertNotNull(attrs);
 			
 			// Convert back to Gpad
-			StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 			Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 			styleMap.put("show", attrs);
-			String convertedGpad = converter.convert("style", styleMap, null);
+			String convertedGpad = StyleMapToGpadConverter.convert("style", styleMap, null);
 			
 			// Verify conversion contains expected values
 			// object="true" is default, so not output
@@ -225,10 +224,9 @@ public class ShowStyleTest extends BaseUnitTest {
 		attrs.put("label", "false");
 		attrs.put("ev", "24"); // 16+8 = 24
 		
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		styleMap.put("show", attrs);
-		String converted = converter.convert("style", styleMap, null);
+		String converted = StyleMapToGpadConverter.convert("style", styleMap, null);
 		
 		assertTrue(converted.contains("show:"));
 		assertTrue(!converted.contains("object")); // object="true" is default, not output
@@ -251,10 +249,9 @@ public class ShowStyleTest extends BaseUnitTest {
 		attrs.put("label", "true");
 		attrs.put("ev", "39"); // 1+2+32+4 = 39
 		
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		styleMap.put("show", attrs);
-		String converted = converter.convert("style", styleMap, null);
+		String converted = StyleMapToGpadConverter.convert("style", styleMap, null);
 		
 		assertTrue(converted.contains("show:"));
 		assertTrue(converted.contains("~object"));
@@ -275,10 +272,9 @@ public class ShowStyleTest extends BaseUnitTest {
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
 		attrs.put("ev", "0");
 		
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		styleMap.put("show", attrs);
-		String converted = converter.convert("style", styleMap, null);
+		String converted = StyleMapToGpadConverter.convert("style", styleMap, null);
 		
 		// ev=0 means all bits are 0 (default state), ev1 and ~ev2 are no-ops, so nothing to output
 		// The converter should return empty string or null, which means the property is omitted
@@ -539,10 +535,9 @@ public class ShowStyleTest extends BaseUnitTest {
 		attrs.put("object", "true");
 		attrs.put("label", "false");
 		
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		styleMap.put("show", attrs);
-		String converted = converter.convert("style", styleMap, null);
+		String converted = StyleMapToGpadConverter.convert("style", styleMap, null);
 		
 		assertTrue(converted.contains("show:"));
 		assertTrue(!converted.contains("object")); // object="true" is default, not output
@@ -559,10 +554,9 @@ public class ShowStyleTest extends BaseUnitTest {
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
 		attrs.put("ev", "63"); // 1+2+4+8+16+32 = 63
 		
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		styleMap.put("show", attrs);
-		String converted = converter.convert("style", styleMap, null);
+		String converted = StyleMapToGpadConverter.convert("style", styleMap, null);
 		
 		assertTrue(converted.contains("show:"));
 		assertTrue(converted.contains("~ev1")); // bit 0 set
@@ -580,10 +574,9 @@ public class ShowStyleTest extends BaseUnitTest {
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
 		attrs.put("ev", "1");
 		
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		styleMap.put("show", attrs);
-		String converted = converter.convert("style", styleMap, null);
+		String converted = StyleMapToGpadConverter.convert("style", styleMap, null);
 		
 		assertTrue(converted.contains("show:"));
 		assertTrue(converted.contains("~ev1")); // bit 0 set, so output ~ev1
@@ -598,10 +591,9 @@ public class ShowStyleTest extends BaseUnitTest {
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
 		attrs.put("ev", "2");
 		
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		styleMap.put("show", attrs);
-		String converted = converter.convert("style", styleMap, null);
+		String converted = StyleMapToGpadConverter.convert("style", styleMap, null);
 		
 		assertTrue(converted.contains("show:"));
 		assertTrue(!converted.contains("ev1")); // bit 0 clear, ev1 is no-op, not output
@@ -616,10 +608,9 @@ public class ShowStyleTest extends BaseUnitTest {
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
 		attrs.put("ev", "4");
 		
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		styleMap.put("show", attrs);
-		String converted = converter.convert("style", styleMap, null);
+		String converted = StyleMapToGpadConverter.convert("style", styleMap, null);
 		
 		assertTrue(converted.contains("show:"));
 		assertTrue(!converted.contains("ev1")); // bit 0 clear, ev1 is no-op, not output
@@ -635,10 +626,9 @@ public class ShowStyleTest extends BaseUnitTest {
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
 		attrs.put("ev", "8");
 		
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		styleMap.put("show", attrs);
-		String converted = converter.convert("style", styleMap, null);
+		String converted = StyleMapToGpadConverter.convert("style", styleMap, null);
 		
 		assertTrue(converted.contains("show:"));
 		assertTrue(!converted.contains("ev1")); // bit 0 clear, ev1 is no-op, not output
@@ -654,10 +644,9 @@ public class ShowStyleTest extends BaseUnitTest {
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
 		attrs.put("ev", "16");
 		
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		styleMap.put("show", attrs);
-		String converted = converter.convert("style", styleMap, null);
+		String converted = StyleMapToGpadConverter.convert("style", styleMap, null);
 		
 		assertTrue(converted.contains("show:"));
 		assertTrue(!converted.contains("ev1")); // bit 0 clear, ev1 is no-op, not output
@@ -673,10 +662,9 @@ public class ShowStyleTest extends BaseUnitTest {
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
 		attrs.put("ev", "32");
 		
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		styleMap.put("show", attrs);
-		String converted = converter.convert("style", styleMap, null);
+		String converted = StyleMapToGpadConverter.convert("style", styleMap, null);
 		
 		assertTrue(converted.contains("show:"));
 		assertTrue(!converted.contains("ev1")); // bit 0 clear, ev1 is no-op, not output
@@ -704,10 +692,9 @@ public class ShowStyleTest extends BaseUnitTest {
 			LinkedHashMap<String, String> attrs = styleSheet.getProperty("show");
 			assertNotNull(attrs);
 			
-			StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 			Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 			styleMap.put("show", attrs);
-			String convertedGpad = converter.convert("style", styleMap, null);
+			String convertedGpad = StyleMapToGpadConverter.convert("style", styleMap, null);
 			
 			// Verify conversion contains expected values
 			assertTrue(convertedGpad.contains("~object"));
@@ -734,10 +721,9 @@ public class ShowStyleTest extends BaseUnitTest {
 		attrs.put("label", "true");
 		attrs.put("ev", "0");
 		
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		styleMap.put("show", attrs);
-		String converted = converter.convert("style", styleMap, null);
+		String converted = StyleMapToGpadConverter.convert("style", styleMap, null);
 		
 		// All values are defaults, so should return null or empty
 		assertTrue(converted == null || converted.isEmpty() || !converted.contains("show:"));
@@ -751,10 +737,9 @@ public class ShowStyleTest extends BaseUnitTest {
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
 		attrs.put("object", "false");
 		
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		styleMap.put("show", attrs);
-		String converted = converter.convert("style", styleMap, null);
+		String converted = StyleMapToGpadConverter.convert("style", styleMap, null);
 		
 		assertTrue(converted.contains("show:"));
 		assertTrue(converted.contains("~object"));
@@ -769,10 +754,9 @@ public class ShowStyleTest extends BaseUnitTest {
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
 		attrs.put("label", "false");
 		
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		styleMap.put("show", attrs);
-		String converted = converter.convert("style", styleMap, null);
+		String converted = StyleMapToGpadConverter.convert("style", styleMap, null);
 		
 		assertTrue(converted.contains("show:"));
 		assertTrue(converted.contains("~label"));

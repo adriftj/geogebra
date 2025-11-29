@@ -639,7 +639,6 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 	@Test
 	public void testConvertObjColorStaticHex6() {
 		// Test static color with 6-digit hex (no alpha or alpha=1.0)
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -649,7 +648,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("alpha", "1.0");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain objColor", gpad.contains("objColor"));
 		assertTrue("Should contain #FF0000", gpad.contains("#FF0000"));
@@ -659,7 +658,6 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 	@Test
 	public void testConvertObjColorStaticHex8() {
 		// Test static color with 8-digit hex (alpha != 1.0)
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -669,7 +667,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("alpha", "0.5"); // 128/255
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain objColor", gpad.contains("objColor"));
 		assertTrue("Should contain 8-digit hex with alpha", gpad.contains("#FF0000"));
@@ -680,7 +678,6 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 	@Test
 	public void testConvertObjColorStaticHexWithoutAlpha() {
 		// Test static color without alpha attribute (should default to 1.0, so no alpha in output)
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -689,7 +686,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("b", "0");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain #00FF00", gpad.contains("#00FF00"));
 		assertTrue("Should not contain 8-digit hex", !gpad.contains("#00FF00FF"));
@@ -698,7 +695,6 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 	@Test
 	public void testConvertObjColorDynamicRgb3Params() {
 		// Test dynamic RGB color with 3 parameters
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -708,7 +704,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "0"); // RGB
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain objColor", gpad.contains("objColor"));
 		assertTrue("Should contain rgb(", gpad.contains("rgb("));
@@ -719,7 +715,6 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 	@Test
 	public void testConvertObjColorDynamicRgb4Params() {
 		// Test dynamic RGB color with 4 parameters (including alpha)
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -730,7 +725,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "0"); // RGB
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain rgb(", gpad.contains("rgb("));
 		assertTrue("Should contain 4 parameters", gpad.contains("rgb(x,y,z,a)"));
@@ -739,7 +734,6 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 	@Test
 	public void testConvertObjColorDynamicHsv3Params() {
 		// Test dynamic HSV color with 3 parameters
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -749,7 +743,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "1"); // HSB/HSV
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain hsv(", gpad.contains("hsv("));
 		assertTrue("Should contain h,s,v", gpad.contains("h") && gpad.contains("s") && gpad.contains("v"));
@@ -758,7 +752,6 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 	@Test
 	public void testConvertObjColorDynamicHsv4Params() {
 		// Test dynamic HSV color with 4 parameters
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -769,7 +762,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "1"); // HSB/HSV
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain hsv(", gpad.contains("hsv("));
 		assertTrue("Should contain 4 parameters", gpad.contains("hsv(h,s,v,a)"));
@@ -778,7 +771,6 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 	@Test
 	public void testConvertObjColorDynamicHsl3Params() {
 		// Test dynamic HSL color with 3 parameters
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -788,7 +780,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "2"); // HSL
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain hsl(", gpad.contains("hsl("));
 		assertTrue("Should contain h,s,l", gpad.contains("h") && gpad.contains("s") && gpad.contains("l"));
@@ -797,7 +789,6 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 	@Test
 	public void testConvertObjColorDynamicHsl4Params() {
 		// Test dynamic HSL color with 4 parameters
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -808,7 +799,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "2"); // HSL
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain hsl(", gpad.contains("hsl("));
 		assertTrue("Should contain 4 parameters", gpad.contains("hsl(h,s,l,a)"));
@@ -817,7 +808,6 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 	@Test
 	public void testConvertObjColorDynamicWithComplexExpressions() {
 		// Test dynamic color with complex expressions (should be quoted)
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -827,7 +817,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "0");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain rgb(", gpad.contains("rgb("));
 		// Complex expressions should not need quotes if they don't contain special chars
@@ -837,7 +827,6 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 	@Test
 	public void testConvertObjColorDynamicWithExpressionsNeedingQuotes() {
 		// Test dynamic color with expressions containing special characters (should be quoted)
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -847,7 +836,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "0");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain rgb(", gpad.contains("rgb("));
 		// Expressions with special chars should be quoted
@@ -857,7 +846,6 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 	@Test
 	public void testConvertObjColorWithFillType() {
 		// Test objColor with fill type
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -867,7 +855,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("fillType", "1"); // HATCH
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain fill=hatch", gpad.contains("fill=hatch"));
 	}
@@ -879,7 +867,6 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		String[] expectedGpad = {"standard", "hatch", "crosshatch", "chessboard", "dotted", 
 				"honeycomb", "brick", "weaving", "symbols", "image"};
 		
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		
 		for (int i = 0; i < fillTypes.length; i++) {
 			Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
@@ -890,7 +877,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 			attrs.put("fillType", fillTypes[i]);
 			styleMap.put("objColor", attrs);
 			
-			String gpad = converter.convert("test", styleMap, null);
+			String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 			if (i == 0) {
 				// fillType=0 (STANDARD) is default, should be omitted
 				assertTrue("fillType=0 should be omitted", !gpad.contains("fill="));
@@ -904,7 +891,6 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 	@Test
 	public void testConvertObjColorWithHatchAngle() {
 		// Test objColor with hatch angle (non-default)
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -915,7 +901,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("hatchAngle", "30");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain angle=30", gpad.contains("angle=30"));
 	}
@@ -923,7 +909,6 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 	@Test
 	public void testConvertObjColorWithHatchAngleDefault() {
 		// Test objColor with hatch angle = 45 (default, should be omitted)
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -934,7 +919,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("hatchAngle", "45"); // Default value
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should not contain angle=45 (default)", !gpad.contains("angle=45"));
 	}
@@ -942,7 +927,6 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 	@Test
 	public void testConvertObjColorWithHatchDistance() {
 		// Test objColor with hatch distance (non-default)
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -953,7 +937,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("hatchDistance", "15");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain dist=15", gpad.contains("dist=15"));
 	}
@@ -961,7 +945,6 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 	@Test
 	public void testConvertObjColorWithHatchDistanceDefault() {
 		// Test objColor with hatch distance = 10 (default, should be omitted)
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -972,7 +955,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("hatchDistance", "10"); // Default value
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should not contain dist=10 (default)", !gpad.contains("dist=10"));
 	}
@@ -980,7 +963,6 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 	@Test
 	public void testConvertObjColorWithImage() {
 		// Test objColor with image path
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -991,7 +973,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("image", "path/to/image.png");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain image=", gpad.contains("image="));
 		assertTrue("Should contain path", gpad.contains("path/to/image.png"));
@@ -1000,7 +982,6 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 	@Test
 	public void testConvertObjColorWithImageNeedingQuotes() {
 		// Test objColor with image path containing special characters (should be quoted)
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -1011,7 +992,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("image", "path/to/image with spaces.png");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain image=", gpad.contains("image="));
 		// Path with spaces should be quoted
@@ -1021,7 +1002,6 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 	@Test
 	public void testConvertObjColorWithFillSymbol() {
 		// Test objColor with fill symbol
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -1032,7 +1012,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("fillSymbol", "$");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain symbol=", gpad.contains("symbol="));
 		assertTrue("Should contain $", gpad.contains("$"));
@@ -1041,7 +1021,6 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 	@Test
 	public void testConvertObjColorWithSpecialFillSymbol() {
 		// Test objColor with fill symbol containing special characters (should be quoted)
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -1052,7 +1031,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("fillSymbol", "\r");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		// Symbol with special chars should be skipped
 		assertTrue("Should not contain special symbol", !gpad.contains("symbol="));
@@ -1061,7 +1040,6 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 	@Test
 	public void testConvertObjColorWithInverseFill() {
 		// Test objColor with inverseFill=true
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -1071,7 +1049,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("inverseFill", "true");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain inverse", gpad.contains("inverse"));
 		assertTrue("Should not contain ~inverse", !gpad.contains("~inverse"));
@@ -1080,7 +1058,6 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 	@Test
 	public void testConvertObjColorWithInverseFillFalse() {
 		// Test objColor with inverseFill=false (default, should be omitted)
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -1090,7 +1067,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("inverseFill", "false");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should not contain inverse (default false)", !gpad.contains("inverse"));
 	}
@@ -1098,7 +1075,6 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 	@Test
 	public void testConvertObjColorCombinedProperties() {
 		// Test objColor with multiple properties
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -1112,7 +1088,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("inverseFill", "true");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain rgb(", gpad.contains("rgb("));
 		assertTrue("Should contain fill=hatch", gpad.contains("fill=hatch"));
@@ -1124,7 +1100,6 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 	@Test
 	public void testConvertObjColorAllProperties() {
 		// Test objColor with all properties
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -1141,7 +1116,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("inverseFill", "true");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain hsv(", gpad.contains("hsv("));
 		assertTrue("Should contain fill=crosshatch", gpad.contains("fill=crosshatch"));
@@ -1155,7 +1130,6 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 	@Test
 	public void testConvertObjColorWithEscapeSequences() {
 		// Test objColor with expressions containing escape sequences
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -1165,7 +1139,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "0");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain rgb(", gpad.contains("rgb("));
 		// Expressions with newlines/tabs should be quoted with escape sequences
@@ -1176,13 +1150,12 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 	@Test
 	public void testConvertObjColorEmptyAttrs() {
 		// Test objColor with empty attributes (should return empty string)
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		// When attributes are empty, objColor property should not be output
 		assertTrue("Should not contain objColor when attrs empty", gpad == null || !gpad.contains("objColor"));
 	}
@@ -1190,14 +1163,13 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 	@Test
 	public void testConvertObjColorOnlyFillType() {
 		// Test objColor with only fillType (no color)
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
 		attrs.put("fillType", "1"); // HATCH
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		// Without color, objColor should still be output if fillType is set
 		assertNotNull(gpad);
 		assertTrue("Should contain fill=hatch", gpad.contains("fill=hatch"));
@@ -1206,7 +1178,6 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 	@Test
 	public void testConvertObjColorStaticColorWithDefaultsOmitted() {
 		// Test static color with all default values (should only output color)
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -1220,7 +1191,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("inverseFill", "false"); // Default
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain #FF0000", gpad.contains("#FF0000"));
 		assertTrue("Should not contain fill= (default)", !gpad.contains("fill="));
@@ -1234,7 +1205,6 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 	@Test
 	public void testSimpleExpressionSingleLabel() {
 		// Test simple expression: single label (x, y, z, a, etc.)
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -1244,7 +1214,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "0");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		// Simple expressions should not be quoted
 		assertTrue("Should contain rgb(x,y,z)", gpad.contains("rgb(x,y,z)"));
@@ -1256,7 +1226,6 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 	@Test
 	public void testSimpleExpressionNumber() {
 		// Test simple expression: number
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -1266,7 +1235,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "0");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		// Numbers should not be quoted
 		assertTrue("Should contain rgb(255,128,64)", gpad.contains("rgb(255,128,64)"));
@@ -1276,7 +1245,6 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 	@Test
 	public void testSimpleExpressionFloat() {
 		// Test simple expression: float number
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -1286,7 +1254,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "0");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		// Float numbers should not be quoted
 		assertTrue("Should contain float numbers", gpad.contains("255.5"));
@@ -1296,7 +1264,6 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 	@Test
 	public void testSimpleExpressionAddition() {
 		// Test simple expression: addition (x+y)
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -1306,7 +1273,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "0");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		// Addition expressions should not be quoted
 		assertTrue("Should contain x+y", gpad.contains("x+y"));
@@ -1316,7 +1283,6 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 	@Test
 	public void testSimpleExpressionSubtraction() {
 		// Test simple expression: subtraction (x-y)
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -1326,7 +1292,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "0");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		// Subtraction expressions should not be quoted
 		assertTrue("Should contain x-y", gpad.contains("x-y"));
@@ -1336,7 +1302,6 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 	@Test
 	public void testSimpleExpressionMultiplication() {
 		// Test simple expression: multiplication (x*y)
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -1346,7 +1311,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "0");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		// Multiplication expressions should not be quoted
 		assertTrue("Should contain x*y", gpad.contains("x*y"));
@@ -1356,7 +1321,6 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 	@Test
 	public void testSimpleExpressionDivision() {
 		// Test simple expression: division (x/y)
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -1366,7 +1330,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "0");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		// Division expressions should not be quoted
 		assertTrue("Should contain x/y", gpad.contains("x/y"));
@@ -1376,7 +1340,6 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 	@Test
 	public void testSimpleExpressionPower() {
 		// Test simple expression: power (x^2)
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -1386,7 +1349,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "0");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		// Power expressions should not be quoted
 		assertTrue("Should contain x^2", gpad.contains("x^2"));
@@ -1396,7 +1359,6 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 	@Test
 	public void testSimpleExpressionUnaryMinus() {
 		// Test simple expression: unary minus (-x)
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -1406,7 +1368,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "0");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		// Unary minus expressions should not be quoted
 		assertTrue("Should contain -x", gpad.contains("-x"));
@@ -1416,7 +1378,6 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 	@Test
 	public void testSimpleExpressionParentheses() {
 		// Test simple expression: parentheses ((x+y)*z)
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -1426,7 +1387,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "0");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		// Parenthesized expressions should not be quoted
 		assertTrue("Should contain (x+y)*z", gpad.contains("(x+y)*z"));
@@ -1436,7 +1397,6 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 	@Test
 	public void testSimpleExpressionFunctionCall() {
 		// Test simple expression: function call (sin(x))
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -1446,7 +1406,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "0");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		// Function calls should not be quoted
 		assertTrue("Should contain sin(x)", gpad.contains("sin(x)"));
@@ -1456,7 +1416,6 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 	@Test
 	public void testSimpleExpressionComplex() {
 		// Test simple expression: complex expression (sin(x+y)*z^2)
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -1466,7 +1425,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "0");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		// Complex but valid expressions should not be quoted
 		assertTrue("Should contain sin(x+y)*z^2", gpad.contains("sin(x+y)*z^2"));
@@ -1476,7 +1435,6 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 	@Test
 	public void testComplexExpressionWithComma() {
 		// Test complex expression: contains comma (needs quotes)
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -1486,7 +1444,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "0");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		// Expressions with comma should be quoted
 		assertTrue("Should contain quoted x, y", gpad.contains("\"x, y\""));
@@ -1495,7 +1453,6 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 	@Test
 	public void testComplexExpressionWithSemicolon() {
 		// Test complex expression: contains semicolon (needs quotes)
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -1505,7 +1462,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "0");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		// Expressions with semicolon should be quoted
 		assertTrue("Should contain quoted x; y", gpad.contains("\"x; y\""));
@@ -1514,7 +1471,6 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 	@Test
 	public void testComplexExpressionWithRightBrace() {
 		// Test complex expression: contains right brace (needs quotes)
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -1524,7 +1480,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "0");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		// Expressions with right brace should be quoted
 		assertTrue("Should contain quoted x } y", gpad.contains("\"x } y\""));
@@ -1533,7 +1489,6 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 	@Test
 	public void testComplexExpressionWithNewline() {
 		// Test complex expression: contains newline (needs quotes)
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -1543,7 +1498,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "0");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		// Expressions with newline should be quoted and escaped
 		assertTrue("Should contain quoted expression with \\n", gpad.contains("\"x\\ny\""));
@@ -1552,7 +1507,6 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 	@Test
 	public void testComplexExpressionWithCarriageReturn() {
 		// Test complex expression: contains carriage return (needs quotes)
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -1562,7 +1516,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "0");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		// Expressions with carriage return should be quoted and escaped
 		assertTrue("Should contain quoted expression with \\r", gpad.contains("\"x\\ry\""));
@@ -1571,7 +1525,6 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 	@Test
 	public void testComplexExpressionWithTab() {
 		// Test complex expression: contains tab (needs quotes)
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -1581,7 +1534,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "0");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		// Expressions with tab should be quoted but not escaped
 		assertTrue("Should contain quoted but not escaped expression with <tab>", gpad.contains("\"x\ty\""));
@@ -1590,7 +1543,6 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 	@Test
 	public void testComplexExpressionWithSpace() {
 		// Test complex expression: contains space (needs quotes)
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -1600,7 +1552,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "0");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		// Expressions with space should be quoted
 		assertTrue("Should contain quoted x y", gpad.contains("\"x y\""));
@@ -1609,7 +1561,6 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 	@Test
 	public void testComplexExpressionWithQuote() {
 		// Test complex expression: contains quote (needs quotes and escaping)
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -1619,7 +1570,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "0");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		// Expressions with quote should be quoted and escaped
 		assertTrue("Should contain quoted expression with escaped quote", gpad.contains("\"x\\\"y\""));
@@ -1628,7 +1579,6 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 	@Test
 	public void testComplexExpressionWithBackslash() {
 		// Test complex expression: contains backslash (needs quotes and escaping)
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -1638,7 +1588,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "0");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		// Expressions with backslash should be quoted and escaped
 		assertTrue("Should contain quoted expression with escaped backslash", gpad.contains("\"x\\\\y\""));
@@ -1647,7 +1597,6 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 	@Test
 	public void testComplexExpressionMultipleSpecialChars() {
 		// Test complex expression: multiple special characters
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -1657,7 +1606,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "0");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		// All special characters should be properly escaped
 		assertTrue("Should contain quoted expression", gpad.contains("\"x, y; z } w\""));
@@ -1668,7 +1617,6 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 	@Test
 	public void testSimpleExpressionWithAlpha() {
 		// Test simple expression with alpha channel
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -1679,7 +1627,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "0");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		// Simple expressions with alpha should not be quoted
 		assertTrue("Should contain rgb(x,y,z,a)", gpad.contains("rgb(x,y,z,a)"));
@@ -1689,7 +1637,6 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 	@Test
 	public void testSimpleExpressionHSV() {
 		// Test simple expression with HSV color space
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -1699,7 +1646,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "1");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		// Simple expressions should not be quoted
 		assertTrue("Should contain hsv(h,s,v)", gpad.contains("hsv(h,s,v)"));
@@ -1709,7 +1656,6 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 	@Test
 	public void testSimpleExpressionHSL() {
 		// Test simple expression with HSL color space
-		StyleMapToGpadConverter converter = new StyleMapToGpadConverter();
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -1719,7 +1665,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		attrs.put("colorSpace", "2");
 		styleMap.put("objColor", attrs);
 		
-		String gpad = converter.convert("test", styleMap, null);
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		// Simple expressions should not be quoted
 		assertTrue("Should contain hsl(h,s,l)", gpad.contains("hsl(h,s,l)"));
