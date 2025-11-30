@@ -178,4 +178,52 @@ tasks {
         
         duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     }
+
+    register<JavaExec>("runGpadToGgb") {
+        description = "Run GpadToGgbConverter tool"
+        group = "application"
+        mainClass = "org.geogebra.desktop.gpadtools.GpadToGgbConverter"
+        classpath = sourceSets.main.get().runtimeClasspath
+        
+        // 传递命令行参数
+        if (project.hasProperty("args")) {
+            args((project.property("args") as String).split(" "))
+        }
+    }
+
+    register<Jar>("gpadToGgbJar") {
+        description = "Create executable JAR for GpadToGgbConverter"
+        group = "build"
+        archiveBaseName = "gpad2ggb"
+        archiveClassifier = ""
+        
+        // 确保先编译
+        dependsOn("classes")
+        // 确保依赖项目的 jar 任务先执行
+        dependsOn(project(":editor-desktop").tasks.named("jar"))
+        dependsOn(project(":jogl2").tasks.named("jar"))
+        dependsOn(project(":renderer-desktop").tasks.named("jar"))
+        
+        manifest {
+            attributes["Main-Class"] = "org.geogebra.desktop.gpadtools.GpadToGgbConverter"
+        }
+        
+        // 包含所有编译后的类文件
+        from(sourceSets.main.get().output) {
+            include("**")
+        }
+        
+        // 包含所有运行时依赖，过滤掉不存在的文件
+        from(configurations.runtimeClasspath.get().filter { it.exists() }.map { 
+            if (it.isDirectory) {
+                it
+            } else {
+                zipTree(it)
+            }
+        }) {
+            exclude("META-INF/*.RSA", "META-INF/*.SF", "META-INF/*.DSA")
+        }
+        
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    }
 }
