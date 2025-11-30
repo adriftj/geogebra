@@ -6,10 +6,15 @@ import java.util.List;
 import java.util.Map;
 
 import org.geogebra.common.kernel.StringTemplate;
+import org.geogebra.common.kernel.geos.GeoBoolean;
 import org.geogebra.common.kernel.geos.GeoButton;
 import org.geogebra.common.kernel.geos.GeoElement;
 import org.geogebra.common.kernel.geos.GeoFunction;
 import org.geogebra.common.kernel.geos.GeoNumeric;
+import org.geogebra.common.kernel.geos.GeoText;
+import org.geogebra.common.kernel.kernelND.GeoLineND;
+import org.geogebra.common.kernel.kernelND.GeoPointND;
+import org.geogebra.common.kernel.kernelND.GeoVectorND;
 import org.geogebra.common.util.debug.Log;
 
 /**
@@ -183,17 +188,50 @@ public class GeoElementToGpadConverter {
 
 	/**
 	 * Extracts command definition from GeoElement.
+	 * Uses the same logic as XML generation to determine how to represent the element.
+	 * 
+	 * XML generation logic:
+	 * 1. If independent && definition != null && getDefaultGeoType() < 0:
+	 *    - Generate <expression> tag with definition (like colorGreyDark = "#4D4D4D")
+	 * 2. Otherwise, for independent elements:
+	 *    - Generate <element> tag with <coords> or <value> tags (like PDilate with coords)
+	 * 
+	 * This method follows the same logic:
+	 * - If condition 1 is met, return definition (corresponds to <expression>)
+	 * - Otherwise, use toValueString() or type-specific handling (corresponds to <coords>/<value>)
 	 * 
 	 * @param geo GeoElement
 	 * @return command string, or null if not available
 	 */
 	private static String extractCommand(GeoElement geo) {
+		// If it has a parent algorithm, get command from parent (unless it's Expression)
 		if (geo.getParentAlgorithm() != null) {
-			// Get command from parent algorithm
 			String cmdName = geo.getParentAlgorithm().getDefinitionName(myTPL);
 			if (cmdName != null && !"Expression".equals(cmdName)) {
 				// Get command string with parameters
 				return geo.getParentAlgorithm().getDefinition(myTPL);
+			}
+		}
+
+		// For independent elements, check if they should use expression format
+		// (same logic as GeoElement.getExpressionXML() and GeoText.getExpressionXML())
+		// Condition: isIndependent() && getDefaultGeoType() < 0
+		// For most types: also requires definition != null
+		// For GeoText: uses toOutputValueString() even without definition
+		// This corresponds to XML <expression> tag generation
+		if (geo.isIndependent() && geo.getDefaultGeoType() < 0) {
+			// Special handling for GeoText: uses toOutputValueString() (same as GeoText.getExpressionXML())
+			if (geo instanceof GeoText) {
+				GeoText text = (GeoText) geo;
+				String expStr = text.toOutputValueString(myTPL);
+				if (expStr != null && !expStr.isEmpty())
+					return expStr;
+			}
+			// For other types: requires definition != null (same as GeoElement.getExpressionXML())
+			else if (geo.getDefinition() != null) {
+				// This element should be represented as an expression
+				// Use getDefinitionXML() logic to get the definition string
+				return geo.getDefinition(myTPL);
 			}
 		}
 
@@ -208,6 +246,7 @@ public class GeoElementToGpadConverter {
 		}
 
 		// Special handling for Slider objects (GeoNumeric with slider properties)
+		// This corresponds to XML <element type="numeric"> with slider properties
 		if (geo instanceof GeoNumeric) {
 			GeoNumeric num = (GeoNumeric) geo;
 			if (num.isSliderable()) {
@@ -215,6 +254,92 @@ public class GeoElementToGpadConverter {
 				double min = num.getIntervalMin();
 				double max = num.getIntervalMax();
 				return "Slider(" + min + ", " + max + ")";
+			}
+			// For independent numeric without slider and without definition, use its value
+			// This corresponds to XML <element type="numeric"><value val="..."/>
+			if (num.isIndependent() && num.isDefined() && num.getDefinition() == null) {
+				// Use toValueString to get properly formatted number
+				String valStr = num.toValueString(myTPL);
+				if (valStr != null && !valStr.isEmpty() && !"?".equals(valStr))
+					return valStr;
+				// Fallback to simple double representation
+				double value = num.getDouble();
+				if (Double.isFinite(value))
+					return String.valueOf(value);
+			}
+		}
+
+		// Special handling for GeoBoolean: extract boolean value
+		// This corresponds to XML <element type="boolean"><value val="true"/>
+		if (geo instanceof GeoBoolean) {
+			GeoBoolean bool = (GeoBoolean) geo;
+			if (bool.isDefined()) {
+				// Return boolean value as string: "true" or "false"
+				return bool.getBoolean() ? "true" : "false";
+			}
+			// If undefined, return "?" (though this shouldn't happen for independent booleans)
+			return "?";
+		}
+
+		// Special handling for GeoText: use Text("...") format for independent text
+		// that doesn't satisfy expression condition (getDefaultGeoType() >= 0)
+		// This corresponds to XML <element type="text"> with text content (not <expression>)
+		if (geo instanceof GeoText) {
+			GeoText text = (GeoText) geo;
+			if (text.isDefined()) {
+				String textStr = text.getTextStringSafe();
+				if (textStr != null) {
+					// Build Text command: Text("...")
+					// Escape the string for gpad format
+					return "Text(\"" + escapeString(textStr) + "\")";
+				}
+			}
+			// If undefined or empty, return Text("")
+			return "Text(\"\")";
+		}
+
+		// Special handling for GeoPointND: use toValueString() to get coordinates
+		// This corresponds to XML <coords> tag for independent points without definition
+		// (like PDilate: <element type="point"><coords x="1" y="1" z="1"/>)
+		if (geo instanceof GeoPointND) {
+			GeoPointND point = (GeoPointND) geo;
+			if (point.isDefined() && point.isFinite()) {
+				// Use toValueString() to get properly formatted point coordinates
+				// This will return format like "(1, 1)" or "(1; 1)" depending on template
+				// Same as what XML <coords> tag stores
+				String pointStr = point.toValueString(myTPL);
+				if (pointStr != null && !pointStr.isEmpty() && !"?".equals(pointStr))
+					return pointStr;
+			}
+		}
+
+		// Special handling for GeoVectorND: use toValueString() to get coordinates
+		// This corresponds to XML <coords> tag for independent vectors without definition
+		// (<element type="vector"><coords x="1" y="2" z="0"/>)
+		if (geo instanceof GeoVectorND) {
+			GeoVectorND vector = (GeoVectorND) geo;
+			if (vector.isDefined() && vector.isFinite()) {
+				// Use toValueString() to get properly formatted vector coordinates
+				// This will return format like "(1, 2)" or "(1; 2)" depending on template
+				// Same as what XML <coords> tag stores
+				String vectorStr = vector.toValueString(myTPL);
+				if (vectorStr != null && !vectorStr.isEmpty() && !"?".equals(vectorStr))
+					return vectorStr;
+			}
+		}
+
+		// Special handling for GeoLineND: use toValueString() to get equation
+		// This corresponds to XML <coords> tag for independent lines without definition
+		// (<element type="line"><coords x="1" y="2" z="3"/>)
+		// Note: toValueString() returns equation form (e.g., "x + 2y = 3"), not coordinates
+		if (geo instanceof GeoLineND) {
+			GeoLineND line = (GeoLineND) geo;
+			if (line.isDefined()) {
+				// Use toValueString() to get line equation
+				// This will return format like "x + 2y = 3" or parametric form
+				String lineStr = line.toValueString(myTPL);
+				if (lineStr != null && !lineStr.isEmpty() && !"?".equals(lineStr))
+					return lineStr;
 			}
 		}
 
@@ -236,9 +361,16 @@ public class GeoElementToGpadConverter {
 			}
 		}
 
-		// For independent elements, try to get definition
-		if (geo.isIndependent() && geo.getDefinition() != null)
-			return geo.getDefinition(myTPL);
+		// Generic fallback for other independent elements with toValueString()
+		// This covers types like GeoList, GeoAngle, etc. that use <value> or other XML tags
+		// This corresponds to XML <element> tags with <value> or other value-related tags
+		if (geo.isIndependent() && geo.isDefined() && geo.getDefinition() == null) {
+			String valStr = geo.toValueString(myTPL);
+			if (valStr != null && !valStr.isEmpty() && !"?".equals(valStr))
+				return valStr;
+		}
+
+		// No command available
 		return null;
 	}
 	

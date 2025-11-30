@@ -151,10 +151,10 @@ tasks {
         
         // 确保先编译
         dependsOn("classes")
-        // 确保依赖项目的 jar 任务先执行
-        dependsOn(project(":editor-desktop").tasks.named("jar"))
-        dependsOn(project(":jogl2").tasks.named("jar"))
-        dependsOn(project(":renderer-desktop").tasks.named("jar"))
+        
+        // 确保所有依赖项目的构建任务先执行（包括通过 includeBuild 引入的项目）
+        // buildDependencies 会自动包含所有依赖的构建任务，包括 jar 任务
+        dependsOn(configurations.runtimeClasspath.get().buildDependencies)
         
         manifest {
             attributes["Main-Class"] = "org.geogebra.desktop.gpadtools.GgbToGpadConverter"
@@ -199,10 +199,9 @@ tasks {
         
         // 确保先编译
         dependsOn("classes")
-        // 确保依赖项目的 jar 任务先执行
-        dependsOn(project(":editor-desktop").tasks.named("jar"))
-        dependsOn(project(":jogl2").tasks.named("jar"))
-        dependsOn(project(":renderer-desktop").tasks.named("jar"))
+        
+        // 确保所有依赖项目的构建任务先执行（包括通过 includeBuild 引入的项目）
+        dependsOn(configurations.runtimeClasspath.get().buildDependencies)
         
         manifest {
             attributes["Main-Class"] = "org.geogebra.desktop.gpadtools.GpadToGgbConverter"

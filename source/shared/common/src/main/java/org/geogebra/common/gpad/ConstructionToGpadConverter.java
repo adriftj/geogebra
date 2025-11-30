@@ -8,7 +8,6 @@ import java.util.Set;
 import org.geogebra.common.kernel.Construction;
 import org.geogebra.common.kernel.StringTemplate;
 import org.geogebra.common.kernel.algos.AlgoElement;
-import org.geogebra.common.kernel.algos.Algos;
 import org.geogebra.common.kernel.algos.ConstructionElement;
 import org.geogebra.common.kernel.geos.GeoElement;
 import org.geogebra.common.util.debug.Log;
@@ -62,13 +61,22 @@ public class ConstructionToGpadConverter {
 
 			if (ce.isAlgoElement()) {
 				AlgoElement algo = (AlgoElement) ce;
-				// Check if it's an Expression
-				if (Algos.Expression.equals(algo.getClassName()))
+				// Use getDefinitionName() to determine if it's an Expression (same logic as XML generation)
+				String cmdName = algo.getDefinitionName(myTPL);
+				
+				// Check if it's an Expression (same logic as AlgoElement.hasExpXML())
+				if ("Expression".equals(cmdName))
 					processExpression(algo, sb);
 				else
 					processCommand(algo, sb);
 			} else if (ce.isGeoElement()) {
 				GeoElement geo = (GeoElement) ce;
+				AlgoElement parentAlgo = geo.getParentAlgorithm();
+				
+				// Skip if this geo has a parent algorithm - it should be processed by its parent
+				if (parentAlgo != null)
+					continue;
+				
 				if (geo.isIndependent())
 					processIndependentElement(geo, sb);
 			}
@@ -143,6 +151,7 @@ public class ConstructionToGpadConverter {
 
 	/**
 	 * Processes an expression (AlgoElement with Expression className).
+	 * Uses the same logic as AlgoElement.getExpXML() for getting expression string.
 	 * 
 	 * @param algo the algorithm element
 	 * @param sb string builder to append to
@@ -160,6 +169,18 @@ public class ConstructionToGpadConverter {
 			return;
 		}
 
+		// Get expression string - use outputGeo's definition if available,
+		// otherwise use algo's definition (same logic as AlgoElement.getExpXML() uses toExpString())
+		String expString = null;
+		if (outputGeo.getDefinition() != null)
+			expString = outputGeo.getDefinition().toString(myTPL);
+		if (expString == null || expString.isEmpty())
+			expString = algo.getDefinition(myTPL);
+		if (expString == null || expString.isEmpty()) {
+			Log.error("Expression has no exp string");
+			return;
+		}
+
 		// Generate stylesheet for output object
 		String styleSheetName = generateStyleSheetForOutput(outputGeo);
 
@@ -174,21 +195,6 @@ public class ConstructionToGpadConverter {
 		if (styleSheetName != null)
 			sb.append(" @").append(styleSheetName);
 
-		// Get expression string
-		// For Expression type, try to get from output GeoElement's definition first
-		String expString = null;
-		if (outputGeo.getDefinition() != null)
-			expString = outputGeo.getDefinition().toString(myTPL);
-		// Fallback to algo.getDefinition if outputGeo doesn't have definition
-		if (expString == null || expString.isEmpty()) {
-			// For Expression type, getDefinition returns the expression string (via toString)
-			expString = algo.getDefinition(myTPL);
-		}
-		if (expString == null || expString.isEmpty()) {
-			Log.error("Expression has no exp string");
-			return;
-		}
-
 		// Expression instruction must end with semicolon
 		sb.append(" = ").append(expString).append(";\n");
 
@@ -198,6 +204,8 @@ public class ConstructionToGpadConverter {
 
 	/**
 	 * Processes an independent GeoElement.
+	 * Uses the same logic as GeoElement.getExpressionXML() to determine if it should
+	 * be treated as an expression or as an independent element.
 	 * 
 	 * @param geo the independent geo element
 	 * @param sb string builder to append to
@@ -214,6 +222,24 @@ public class ConstructionToGpadConverter {
 		// Generate stylesheet definition first (only once per unique stylesheet)
 		appendStyleSheetDefinitionIfNeeded(sb, geo, styleSheetName);
 
+		// Check if this should be treated as an expression (same logic as GeoElement.getExpressionXML())
+		// Condition: isIndependent() && definition != null && getDefaultGeoType() < 0
+		if (geo.getDefinition() != null && geo.getDefaultGeoType() < 0) {
+			// This is an independent element with a definition - treat as expression
+			// Use getDefinitionXML() logic to get the definition string
+			String def = geo.getDefinition(myTPL);
+			if (def != null && !def.isEmpty()) {
+				// Generate expression instruction: label = definition;
+				GeoElementToGpadConverter.buildOutputLabel(sb, geo);
+				if (styleSheetName != null)
+					sb.append(" @").append(styleSheetName);
+				sb.append(" = ").append(def).append(";\n");
+				processedOutputs.add(geo);
+				return;
+			}
+		}
+
+		// Otherwise, treat as regular independent element
 		// Build command using GeoElementToGpadConverter
 		if (GeoElementToGpadConverter.buildCommand(sb, geo, styleSheetName))
 			sb.append("\n");

@@ -83,6 +83,9 @@ import org.geogebra.common.kernel.commands.EvalInfo;
 import org.geogebra.common.kernel.CircularDefinitionException;
 import java.util.Map;
 import org.geogebra.common.gpad.GpadStyleMaps;
+import org.geogebra.common.kernel.Macro;
+import org.geogebra.common.kernel.MacroKernel;
+import org.geogebra.common.gpad.GpadParser;
 
 import java.util.ArrayList;
 import java.util.Vector;
@@ -714,6 +717,8 @@ TOKEN : {
 <*> TOKEN : {
    < RBRACE: "}" >
 |   < POLAR_SEPARATOR: ( "\u2221" | ";" ) > // separator used by Giac instead of ;
+|   < GPAD_MACRO: "@@macro" >
+|   < GPAD_RETURN: "@@return" >
 }
 
 <DEFAULT, GK_STR_BLOCK, GK_animation_BLOCK, GK_EXPR_BLOCK> TOKEN : {
@@ -2382,6 +2387,14 @@ void gpadStatement() throws CircularDefinitionException :
 {
 }
 {(
+    gpadStatementInMacro() |
+    gpadMacroDefinition()
+)}
+
+void gpadStatementInMacro() throws CircularDefinitionException :
+{
+}
+{(
     gpadStyleSheetDefinition() |
     gpadCommandExpression()
 )}
@@ -2518,11 +2531,11 @@ void gpadStyleSheetPropertyInt(GpadStyleSheet styleSheet) :
 }
 {
     keyToken = <GK_INT> <GK_COLON> { token_source.SwitchTo(DEFAULT); }
-    valueToken = <INTEGER>
+    valueToken = <FLOAT>
     {
         converted = convertPropertyKey(keyToken.image);
         java.util.LinkedHashMap<String, String> attrs = new java.util.LinkedHashMap<>();
-        attrs.put(converted[1], valueToken.image);
+        attrs.put(converted[1], extractIntegerPart(valueToken.image));
         styleSheet.setProperty(converted[0], attrs);
     }
 }
@@ -4381,10 +4394,113 @@ String gpadGeoLabel() :
         tok = <FUNCTION_LABEL> <VARX> [ "," <VARY> [ "," <VARZ> ] ] ")"
         {
             label =  tok.image;
-            label = label.substring(label.length()-1);
+            label = label.substring(0, label.length()-1);
         }
     )
     {
         return label;
     }
+}
+
+/**
+ * Macro definition: @@macro name(input1, input2, ...) { gpadStatementInMacro* @@return output1, output2, ... }
+ */
+void gpadMacroDefinition() throws CircularDefinitionException :
+{
+    Token macroNameToken;
+    String macroName;
+    java.util.List<String> inputLabels = new java.util.ArrayList<>();
+    java.util.List<String> outputLabels = new java.util.ArrayList<>();
+    Macro macro;
+    MacroKernel macroKernel;
+    org.geogebra.common.kernel.Construction macroCons;
+    Kernel savedKernel;
+    java.util.List<GeoElement> savedResults;
+    java.util.Map<String, GpadStyleSheet> savedStyleSheets;
+}
+{
+    <GPAD_MACRO>
+    macroNameToken = <FUNCTION_LABEL>
+    {
+        macroName = macroNameToken.image;
+        macroName = macroName.substring(0, macroName.length() - 1);
+        
+        // Check for name conflict
+        if (kernel.getMacro(macroName) != null) {
+            org.geogebra.common.util.debug.Log.error("Gpad macro definition failed: macro '" + macroName + "' already exists");
+            throw new ParseException("Macro '" + macroName + "' already exists");
+        }
+        
+        // Create MacroKernel
+        macroKernel = kernel.newMacroKernel();
+        macroKernel.setContinuous(false);
+        macroCons = macroKernel.getConstruction();
+        
+        // Create Macro object
+        macro = new Macro(kernel, macroName);
+        
+        // Save current context
+        savedKernel = kernel;
+        savedResults = gpadResults;
+        savedStyleSheets = gpadStyleSheets;
+        
+        // Switch to macro kernel
+        // Note: Create a new, isolated gpadStyleSheets map for the macro definition.
+        // Stylesheets defined inside the macro will only be available within the macro,
+        // and the macro can only reference stylesheets defined within itself.
+        // The parser (this) will use the switched kernel automatically.
+        kernel = macroKernel;
+        gpadResults = new java.util.ArrayList<>();
+        gpadStyleSheets = new java.util.HashMap<>();
+    }
+    [ gpadMacroLabelList(inputLabels) ] ")"
+    <LBRACE> ( gpadStatementInMacro() )*
+    <GPAD_RETURN> gpadMacroLabelList(outputLabels) <RBRACE>
+    {
+        // Restore original context
+        // The macro's isolated gpadStyleSheets is discarded here,
+        // ensuring stylesheets defined in the macro don't affect the global scope.
+        kernel = savedKernel;
+        gpadResults = savedResults;
+        gpadStyleSheets = savedStyleSheets;
+        
+        // Verify input labels exist in macro construction
+        String[] inputLabelsArray = inputLabels.toArray(new String[0]);
+        for (String inputLabel : inputLabelsArray) {
+            if (macroCons.lookupLabel(inputLabel) == null) {
+                throw new ParseException("Input object '" + inputLabel + "' not found in macro body");
+            }
+        }
+        
+        // Verify output labels exist in macro construction
+        String[] outputLabelsArray = outputLabels.toArray(new String[0]);
+        for (String outputLabel : outputLabelsArray) {
+            if (macroCons.lookupLabel(outputLabel) == null) {
+                throw new ParseException("Output object '" + outputLabel + "' not found in macro body");
+            }
+        }
+        
+        // Initialize macro
+        try {
+            macro.initMacro(macroCons, inputLabelsArray, outputLabelsArray);
+        } catch (Exception e) {
+            org.geogebra.common.util.debug.Log.error("Gpad macro initialization failed: " + e.getMessage());
+            throw new ParseException("Failed to initialize macro: " + e.getMessage());
+        }
+        
+        // Register macro to kernel
+        kernel.addMacro(macro);
+    }
+}
+
+/**
+ * Parses macro label list: label1, label2, ...
+ */
+void gpadMacroLabelList(java.util.List<String> labels) :
+{
+    String label;
+}
+{
+    label = gpadGeoLabel() { labels.add(label); }
+    ( <COMMA> label = gpadGeoLabel() { labels.add(label); } )*
 }

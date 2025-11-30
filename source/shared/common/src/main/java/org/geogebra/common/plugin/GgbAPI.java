@@ -356,9 +356,6 @@ public abstract class GgbAPI implements JavaScriptAPI {
 	 * @return Gpad string representation of the entire construction
 	 */
 	public synchronized String constructionToGpad(boolean mergeStylesheets) {
-		if (construction == null)
-			return "";
-		
 		org.geogebra.common.gpad.ConstructionToGpadConverter converter = 
 				new org.geogebra.common.gpad.ConstructionToGpadConverter(construction, mergeStylesheets);
 		return converter.toGpad();
