@@ -950,6 +950,7 @@ public abstract class AppW extends App implements SetLabels, HasLanguage {
 
 	protected void initImageManager() {
 		imageManager = new ImageManagerW();
+		imageManager.setApp(this);
 	}
 
 	@Override

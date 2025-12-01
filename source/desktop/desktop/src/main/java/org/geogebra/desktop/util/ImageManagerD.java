@@ -193,11 +193,20 @@ public class ImageManagerD extends ImageManager {
 
 	/**
 	 * Lookup image by path, normalize extension
-	 * @param fileName0 file path
+	 * @param fileName0 file path or URL
 	 * @return image
 	 */
 	public static MyImageD getExternalImage(String fileName0) {
 		String fileName = fileName0;
+		// Check if it's a URL
+		if (isURL(fileName)) {
+			// If already in table, return it
+			MyImageD cached = externalImageTable.get(fileName);
+			if (cached != null)
+				return cached;
+			// Try to load from URL
+			return loadImageFromURL(fileName);
+		}
 		// GIF saved as PNG in .ggb files so need to change extension
 		FileExtensions ext = StringUtil.getFileExtension(fileName);
 		if (!ext.isAllowedImage()) {
@@ -205,6 +214,39 @@ public class ImageManagerD extends ImageManager {
 					FileExtensions.PNG);
 		}
 		return externalImageTable.get(fileName);
+	}
+
+	/**
+	 * Check if the given string is a URL
+	 * @param fileName filename or URL to check
+	 * @return true if it's a URL (starts with http:// or https://)
+	 */
+	private static boolean isURL(String fileName) {
+		return fileName != null && 
+				(fileName.startsWith("http://") || fileName.startsWith("https://"));
+	}
+
+	/**
+	 * Load an image from a URL
+	 * @param url the URL to load
+	 * @return MyImageD if successful, null otherwise
+	 */
+	private static MyImageD loadImageFromURL(String url) {
+		try {
+			java.net.URL imageURL = new java.net.URL(url);
+			BufferedImage img = ImageIO.read(imageURL);
+			if (img != null) {
+				MyImageD myImage = new MyImageD(img);
+				// Cache the loaded image
+				externalImageTable.put(url, myImage);
+				return myImage;
+			}
+		} catch (IOException e) {
+			Log.debug("Failed to load image from URL: " + url + ", error: " + e.getMessage());
+		} catch (Exception e) {
+			Log.debug("Unexpected error loading image from URL: " + url + ", error: " + e.getMessage());
+		}
+		return null;
 	}
 
 	/**
