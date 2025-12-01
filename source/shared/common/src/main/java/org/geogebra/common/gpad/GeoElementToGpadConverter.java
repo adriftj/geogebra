@@ -11,6 +11,7 @@ import org.geogebra.common.kernel.geos.GeoBoolean;
 import org.geogebra.common.kernel.geos.GeoButton;
 import org.geogebra.common.kernel.geos.GeoElement;
 import org.geogebra.common.kernel.geos.GeoFunction;
+import org.geogebra.common.kernel.geos.GeoImage;
 import org.geogebra.common.kernel.geos.GeoNumeric;
 import org.geogebra.common.kernel.geos.GeoText;
 import org.geogebra.common.kernel.kernelND.GeoLineND;
@@ -86,6 +87,7 @@ public class GeoElementToGpadConverter {
 	 * Filters style map before conversion to Gpad format.
 	 * - Removes object and label attributes from show style
 	 * - Removes EuclidianView display styles for objects that are not shown in geometry view
+	 * - Removes file style for independent GeoImage objects (filename is already in Image command)
 	 * 
 	 * @param styleMap style map to filter (modified in place)
 	 * @param geo GeoElement to check visibility
@@ -103,6 +105,11 @@ public class GeoElementToGpadConverter {
 			if (showAttrs.isEmpty())
 				styleMap.remove("show");
 		}
+		
+		// Remove file style for independent GeoImage objects
+		// The filename is already included in the Image command, so it shouldn't be in the style sheet
+		if (geo instanceof GeoImage && geo.isIndependent())
+			styleMap.remove("file");
 		
 		// Remove EuclidianView display styles for objects not shown in geometry view
 		if (!geo.isEuclidianShowable()) {
@@ -291,6 +298,19 @@ public class GeoElementToGpadConverter {
 				return "Button(\"" + escapeString(caption) + "\")";
 			else // without caption
 				return "Button()";
+		}
+
+		// Special handling for Image objects
+		if (geo instanceof GeoImage) {
+			GeoImage image = (GeoImage) geo;
+			// Only handle independent images (not created by commands)
+			if (image.isIndependent()) {
+				String fileName = image.getGraphicsAdapter().getImageFileName();
+				if (fileName != null && !fileName.isEmpty()) // with filename/URL
+					return "Image(\"" + escapeString(fileName) + "\")";
+				else // without filename
+					return "Image()";
+			}
 		}
 
 		// Special handling for Slider objects (GeoNumeric with slider properties)
