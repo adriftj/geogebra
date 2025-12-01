@@ -11,7 +11,6 @@ import java.util.Map;
 import org.geogebra.common.AppCommonFactory;
 import org.geogebra.common.BaseUnitTest;
 import org.geogebra.common.jre.headless.AppCommon;
-import org.geogebra.common.kernel.CircularDefinitionException;
 import org.geogebra.common.kernel.geos.GeoElement;
 import org.geogebra.common.kernel.geos.GeoLine;
 import org.geogebra.common.kernel.geos.GeoPoint;
@@ -57,7 +56,7 @@ public class CoordsGpadTest extends BaseUnitTest {
 			assertEquals("3.2", attrs.get("y"));
 			assertEquals("1.0", attrs.get("z"));
 			assertEquals("1.0", attrs.get("w"));
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -86,7 +85,7 @@ public class CoordsGpadTest extends BaseUnitTest {
 			assertEquals("3.1", attrs.get("y"));
 			assertEquals("1.0", attrs.get("z"));
 			assertEquals("1.0", attrs.get("w"));
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -115,7 +114,7 @@ public class CoordsGpadTest extends BaseUnitTest {
 			assertEquals("4.1", attrs.get("y"));
 			assertEquals("3.5", attrs.get("z"));
 			assertEquals("2.1", attrs.get("w"));
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -148,7 +147,7 @@ public class CoordsGpadTest extends BaseUnitTest {
 			assertEquals("2.3", attrs.get("vy"));
 			assertEquals("2.4", attrs.get("vz"));
 			assertEquals("0.0", attrs.get("vw"));
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -181,7 +180,7 @@ public class CoordsGpadTest extends BaseUnitTest {
 			assertEquals("2.3", attrs.get("vy"));
 			assertEquals("3.3", attrs.get("vz"));
 			assertEquals("0.0", attrs.get("vw"));
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -217,7 +216,7 @@ public class CoordsGpadTest extends BaseUnitTest {
 			assertEquals("1.1", attrs.get("wx"));
 			assertEquals("2.3", attrs.get("wy"));
 			assertEquals("3.3", attrs.get("wz"));
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -250,7 +249,7 @@ public class CoordsGpadTest extends BaseUnitTest {
 			assertEquals("2.3", attrs.get("vy"));
 			assertEquals("2.4", attrs.get("vz"));
 			assertEquals("0.5", attrs.get("vw"));
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -459,7 +458,7 @@ public class CoordsGpadTest extends BaseUnitTest {
 			// The coords style from the input style sheet is verified above.
 			assertTrue("Output should contain the Circle command", 
 					gpadOutput.contains("Circle") || gpadOutput.contains("circle"));
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Round-trip failed: " + e.getMessage(), e);
 		}
 	}
@@ -536,7 +535,7 @@ public class CoordsGpadTest extends BaseUnitTest {
 			String expectedCoords = "coords: 0.0 0.0 0.0 v=1.0 1.0 1.0";
 			assertTrue("Output should contain coords style with default values from Line(A, B): " + gpadOutput, 
 					gpadOutput.contains(expectedCoords));
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Round-trip failed: " + e.getMessage(), e);
 		}
 	}

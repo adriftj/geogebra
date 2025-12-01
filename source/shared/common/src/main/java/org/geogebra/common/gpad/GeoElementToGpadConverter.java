@@ -32,6 +32,7 @@ public class GeoElementToGpadConverter {
 	 * These styles are only relevant for visual display in the geometry view.
 	 */
 	private static final Set<String> EUCLIDIAN_DISPLAY_STYLES = Set.of(
+		"angleStyle",
 		"animation",
 		"bgColor",
 		"labelMode",

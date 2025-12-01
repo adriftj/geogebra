@@ -6,7 +6,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.ArrayList;
 
-import org.geogebra.common.gpad.GpadParseException;
 import org.geogebra.common.gpad.GpadSerializer;
 import org.geogebra.common.gpad.GpadStyleSheet;
 import org.geogebra.common.kernel.Kernel;
@@ -567,11 +566,11 @@ public class GpadStyleXMLApplier {
 	 * 
 	 * @param geo GeoElement to apply styles to
 	 * @param styleSheet style sheet to apply
-	 * @throws GpadParseException if application fails
+	 * @return list of error messages (empty if no errors occurred)
 	 */
-	public static void apply(GpadStyleSheet styleSheet, GeoElement geo) throws GpadParseException {
+	public static ArrayList<String> apply(GpadStyleSheet styleSheet, GeoElement geo) {
 		if (geo == null || styleSheet == null)
-			return;
+			return new ArrayList<>();
 
 		Kernel kernel = geo.getKernel();
 		MyXMLHandler myXMLHandler = kernel.newMyXMLHandler(kernel.getConstruction());
@@ -623,7 +622,7 @@ public class GpadStyleXMLApplier {
 							// 有其他值要设置，合并新设的值到缺省值中（新值覆盖缺省值）
 							LinkedHashMap<String, String> mergedAttrs = new LinkedHashMap<>(resetInfo.defaultAttrs);
 							needAdjustDefault(tagName, geo).ifPresent(
-					            dAttrs -> mergedAttrs.putAll(dAttrs)
+				            dAttrs -> mergedAttrs.putAll(dAttrs)
         					);
 							mergedAttrs.putAll(attrs);
 							attrs = mergedAttrs;
@@ -679,8 +678,8 @@ public class GpadStyleXMLApplier {
 			kernel.getApplication().getTraceManager().loadTraceGeoCollection();
 		}
 
-		if (!myXMLHandler.errors.isEmpty())
-			throw new GpadParseException("Failed to apply style sheet: " + myXMLHandler.errors.toString());
+		// Return the list of errors (may be empty)
+		return new ArrayList<>(myXMLHandler.errors);
 	}
 	
 	/**

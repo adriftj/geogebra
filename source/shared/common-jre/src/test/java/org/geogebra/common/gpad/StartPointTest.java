@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.geogebra.common.BaseUnitTest;
-import org.geogebra.common.kernel.CircularDefinitionException;
+
 import org.geogebra.common.kernel.geos.GeoBoolean;
 import org.geogebra.common.kernel.geos.GeoButton;
 import org.geogebra.common.kernel.geos.GeoElement;
@@ -52,7 +52,7 @@ public class StartPointTest extends BaseUnitTest {
 			assertNotNull(startPoint);
 			assertEquals("A", startPoint.getLabelSimple());
 			assertTrue(!geoText.isAbsoluteScreenLocActive());
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -77,7 +77,7 @@ public class StartPointTest extends BaseUnitTest {
 			assertEquals(100.0, startPoint.getInhomX(), 1e-10);
 			assertEquals(200.0, startPoint.getInhomY(), 1e-10);
 			assertTrue(!geoText.isAbsoluteScreenLocActive());
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -120,7 +120,7 @@ public class StartPointTest extends BaseUnitTest {
 			// Just verify that absolute screen is active
 			assertTrue(screenX == 150);
 			assertTrue(screenY == 250);
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -145,7 +145,7 @@ public class StartPointTest extends BaseUnitTest {
 			int screenY = geoText.getAbsoluteScreenLocY();
 			assertEquals(300, screenX);
 			assertEquals(400, screenY);
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -171,7 +171,7 @@ public class StartPointTest extends BaseUnitTest {
 			assertNotNull(startPoint);
 			assertEquals("A", startPoint.getLabelSimple());
 			assertTrue(!geoText.isAbsoluteScreenLocActive());
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -196,7 +196,7 @@ public class StartPointTest extends BaseUnitTest {
 			GeoPointND startPoint = vector.getStartPoint();
 			assertNotNull(startPoint);
 			assertEquals("A", startPoint.getLabelSimple());
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -220,7 +220,7 @@ public class StartPointTest extends BaseUnitTest {
 			assertNotNull(startPoint);
 			assertEquals(50.0, startPoint.getInhomX(), 1e-10);
 			assertEquals(60.0, startPoint.getInhomY(), 1e-10);
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -246,7 +246,7 @@ public class StartPointTest extends BaseUnitTest {
 			assertNotNull(startPoint);
 			assertEquals("A", startPoint.getLabelSimple());
 			assertTrue(!numeric.isAbsoluteScreenLocActive());
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -282,7 +282,7 @@ public class StartPointTest extends BaseUnitTest {
 			System.out.println("================================================");
 			assertTrue(screenX == 200);
 			assertTrue(screenY == 300);
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -305,7 +305,7 @@ public class StartPointTest extends BaseUnitTest {
 			int screenY = numeric.getAbsoluteScreenLocY();
 			assertEquals(400, screenX);
 			assertEquals(500, screenY);
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -331,7 +331,7 @@ public class StartPointTest extends BaseUnitTest {
 			assertNotNull(startPoint);
 			assertEquals("A", startPoint.getLabelSimple());
 			assertTrue(!button.isAbsoluteScreenLocActive());
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -366,7 +366,7 @@ public class StartPointTest extends BaseUnitTest {
 			System.out.println("================================================");
 			assertTrue(screenX == 250);
 			assertTrue(screenY == 350);
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -391,7 +391,7 @@ public class StartPointTest extends BaseUnitTest {
 			GeoPointND startPoint = bool.getStartPoint();
 			assertNotNull(startPoint);
 			assertEquals("A", startPoint.getLabelSimple());
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -426,7 +426,7 @@ public class StartPointTest extends BaseUnitTest {
 			System.out.println("================================================");
 			assertTrue(screenX == 300);
 			assertTrue(screenY == 400);
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -461,7 +461,7 @@ public class StartPointTest extends BaseUnitTest {
 			assertEquals("A", corner0.getLabelSimple());
 			assertEquals("B", corner1.getLabelSimple());
 			assertEquals("C", corner2.getLabelSimple());
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -489,7 +489,7 @@ public class StartPointTest extends BaseUnitTest {
 			assertEquals(0.0, corner0.getInhomY(), 1e-10);
 			assertEquals(200.0, corner1.getInhomX(), 1e-10);
 			assertEquals(0.0, corner1.getInhomY(), 1e-10);
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -513,7 +513,7 @@ public class StartPointTest extends BaseUnitTest {
 			int screenY = image.getAbsoluteScreenLocY();
 			assertEquals(10, screenX);
 			assertEquals(20, screenY);
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -642,7 +642,7 @@ public class StartPointTest extends BaseUnitTest {
 			assertNotNull(convertedGpad);
 			assertTrue(convertedGpad.contains("startPoint:"));
 			assertTrue(convertedGpad.contains("\"A\""));
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Round-trip failed: " + e.getMessage(), e);
 		}
 	}
@@ -667,7 +667,7 @@ public class StartPointTest extends BaseUnitTest {
 			assertNotNull(xml);
 			// May contain either startPoint with absolute="true" or absoluteScreenLocation
 			assertTrue(xml.contains("absolute") || xml.contains("absoluteScreenLocation"));
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Round-trip failed: " + e.getMessage(), e);
 		}
 	}
@@ -713,7 +713,7 @@ public class StartPointTest extends BaseUnitTest {
 			// Just verify that absolute screen is active and coordinates are set
 			assertTrue(screenX >= 0);
 			assertTrue(screenY >= 0);
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -742,7 +742,7 @@ public class StartPointTest extends BaseUnitTest {
 				           startPoint.getInhomY() > 0);
 			}
 			assertTrue(!text.isAbsoluteScreenLocActive());
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -765,7 +765,7 @@ public class StartPointTest extends BaseUnitTest {
 			// This combination may result in absolute screen positioning
 			// but with startPoint referencing a geometric point
 			assertTrue(text.isAbsoluteScreenLocActive());
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}

@@ -106,6 +106,8 @@ public abstract class GgbAPI implements JavaScriptAPI {
 	protected App app = null;
 	/** last error message from evalGpad */
 	private String lastError = null;
+	/** last warning message from evalGpad */
+	private String lastWarning = null;
 	private static final StringTemplate nonLocalizedTemplate = StringTemplate
 			.printDecimals(ExpressionNodeConstants.StringType.GEOGEBRA, 13, false);
 
@@ -282,9 +284,25 @@ public abstract class GgbAPI implements JavaScriptAPI {
 	 */
 	public synchronized String evalGpad(String gpadText) {
 		lastError = null; // Clear previous error
+		lastWarning = null; // Clear previous warning
+		org.geogebra.common.gpad.GpadParser parser = null;
 		try {
-			org.geogebra.common.gpad.GpadParser parser = new org.geogebra.common.gpad.GpadParser(kernel);
+			parser = new org.geogebra.common.gpad.GpadParser(kernel);
 			java.util.List<org.geogebra.common.kernel.geos.GeoElement> geos = parser.parse(gpadText);
+			
+			// Collect warnings from parser (even if parsing succeeded, there may be warnings)
+			java.util.List<String> warnings = parser.getGpadWarnings();
+			if (warnings != null && !warnings.isEmpty()) {
+				StringBuilder warningBuilder = new StringBuilder();
+				boolean first = true;
+				for (String warning : warnings) {
+					if (!first)
+						warningBuilder.append("\n");
+					first = false;
+					warningBuilder.append(warning);
+				}
+				lastWarning = warningBuilder.toString();
+			}
 			
 			if (geos.isEmpty())
 				return "";
@@ -298,23 +316,50 @@ public abstract class GgbAPI implements JavaScriptAPI {
 				ret.append(geo.getLabelSimple());
 			}
 			return ret.toString();
-		} catch (org.geogebra.common.main.MyError e) {
-			lastError = e.getLocalizedMessage();
-			Log.error("Gpad MyError: " + lastError);
-			return null;
-		} catch (org.geogebra.common.kernel.CircularDefinitionException e) {
-			lastError = e.getMessage();
-			Log.error("Gpad CircularDefinitionException: " + lastError);
-			return null;
 		} catch (org.geogebra.common.gpad.GpadParseException e) {
+			// GpadParseException already contains position info in message, just extract it
 			lastError = e.getMessage();
-			Log.error("Gpad parse error: " + lastError);
+			
+			// Even if parsing failed, try to collect warnings that may have been generated before the error
+			if (parser != null) {
+				java.util.List<String> warnings = parser.getGpadWarnings();
+				if (warnings != null && !warnings.isEmpty()) {
+					StringBuilder warningBuilder = new StringBuilder();
+					boolean first = true;
+					for (String warning : warnings) {
+						if (!first)
+							warningBuilder.append("\n");
+						first = false;
+						warningBuilder.append(warning);
+					}
+					lastWarning = warningBuilder.toString();
+				}
+			}
+			
+			// Don't use Log.error() here - let the caller handle error output
 			return null;
 		} catch (Throwable t) {
 			lastError = t.getMessage();
 			if (lastError == null)
 				lastError = t.getClass().getSimpleName();
-			Log.error("Gpad unexpected error: " + lastError);
+			
+			// Even if parsing failed, try to collect warnings that may have been generated before the error
+			if (parser != null) {
+				java.util.List<String> warnings = parser.getGpadWarnings();
+				if (warnings != null && !warnings.isEmpty()) {
+					StringBuilder warningBuilder = new StringBuilder();
+					boolean first = true;
+					for (String warning : warnings) {
+						if (!first)
+							warningBuilder.append("\n");
+						first = false;
+						warningBuilder.append(warning);
+					}
+					lastWarning = warningBuilder.toString();
+				}
+			}
+			
+			// Don't use Log.error() here - let the caller handle error output
 			return null;
 		}
 	}
@@ -326,6 +371,15 @@ public abstract class GgbAPI implements JavaScriptAPI {
 	 */
 	public String getLastError() {
 		return lastError;
+	}
+
+	/**
+	 * Gets the last warning message from evalGpad, if any.
+	 * 
+	 * @return last warning message (may contain multiple warnings separated by newlines), or null if no warning occurred
+	 */
+	public String getLastWarning() {
+		return lastWarning;
 	}
 
 	/**

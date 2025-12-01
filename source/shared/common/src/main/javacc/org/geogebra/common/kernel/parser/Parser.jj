@@ -114,6 +114,7 @@ public class Parser implements ParserInterface {
     // Gpad parsing state
     private java.util.Map<String, GpadStyleSheet> gpadStyleSheets;
     private java.util.List<GeoElement> gpadResults;
+    private java.util.List<String> gpadWarnings;
 
     /**
      * Constructor for expression validation (without Kernel).
@@ -352,17 +353,30 @@ public class Parser implements ParserInterface {
 
     /**
     * Error recovery: skip invalid tokens until ";" or "}" or EOF
+    * Collects warning information about skipped tokens.
     */
     void gpadSkipToSync() {
         token_source.SwitchTo(DEFAULT);
+        Token currentToken = getToken(0);
+        int startLine = currentToken != null ? currentToken.beginLine : -1;
+        int startColumn = currentToken != null ? currentToken.beginColumn : -1;
         Token t = getToken(1);
-        System.out.println("Enter error recovery token=" + getToken(0).image);
+        StringBuilder skippedTokens = new StringBuilder();
+        boolean firstToken = true;
+        
         while (t.kind != POLAR_SEPARATOR && t.kind != RBRACE && t.kind != EOF) {
-            System.out.println("t.kind=" + t.kind + ":" + t.image);
+            if (!firstToken)
+                skippedTokens.append(" ");
+            skippedTokens.append(t.image);
+            firstToken = false;
             getNextToken();
             t = getToken(1);
         }
-        System.out.println("Exit error recovery");
+        
+        if (skippedTokens.length() > 0) {
+            String warningMsg = "Skipped invalid tokens: " + skippedTokens.toString();
+            addGpadWarning(warningMsg, startLine, startColumn);
+        }
     }
 
     // 使用 GpadStyleMaps 中定义的映射表
@@ -424,16 +438,87 @@ public class Parser implements ParserInterface {
      * @return list of created GeoElements
      * @throws ParseException if parsing fails
      */
-    public java.util.List<GeoElement> parseGpad(String gpadText) throws ParseException, CircularDefinitionException {
+    public java.util.List<GeoElement> parseGpad(String gpadText) throws GpadParseException {
         if (gpadText == null || gpadText.trim().isEmpty())
             return new java.util.ArrayList<>();
         gpadStyleSheets = new java.util.HashMap<>();
         gpadResults = new java.util.ArrayList<>();
+        gpadWarnings = new java.util.ArrayList<>();
         
-        myReInit(gpadText);
-        buildGpadProgram();
-        
-        return gpadResults;
+        try {
+            myReInit(gpadText);
+            buildGpadProgram();
+            return gpadResults;
+        } catch (ParseException e) {
+            // Extract line and column information if available
+            int line = -1;
+            int column = -1;
+            try {
+                if (e.currentToken != null) {
+                    line = e.currentToken.beginLine;
+                    column = e.currentToken.beginColumn;
+                }
+            } catch (Exception ex) {
+                // Ignore if we can't access token information
+            }
+            String errorMsg = e.getMessage();
+            if (errorMsg == null) {
+                errorMsg = "Parse error";
+            }
+            // Check if message already contains position info
+            boolean alreadyHasPosition = errorMsg.startsWith("Line ");
+            StringBuilder detailedMsg = new StringBuilder();
+            if (!alreadyHasPosition) {
+                if (line >= 0 && column >= 0)
+                    detailedMsg.append("Line ").append(line).append(", column ").append(column).append(": ");
+                else if (line >= 0)
+                    detailedMsg.append("Line ").append(line).append(": ");
+            }
+            detailedMsg.append(errorMsg);
+            throw new GpadParseException(detailedMsg.toString(), line, column);
+        } catch (Throwable t) {
+            // Catch any other exceptions (CircularDefinitionException and MyError should already be
+            // caught and converted to GpadParseException by gpadCommandExpression)
+            String errorMsg = t.getMessage();
+            if (errorMsg == null)
+                errorMsg = t.getClass().getSimpleName();
+            throw new GpadParseException(errorMsg, t);
+        }
+    }
+    
+    /**
+     * Adds a warning message with position information.
+     * 
+     * @param message warning message
+     * @param line line number (1-based), or -1 if unknown
+     * @param column column number (1-based), or -1 if unknown
+     */
+    private void addGpadWarning(String message, int line, int column) {
+        if (gpadWarnings == null)
+            gpadWarnings = new java.util.ArrayList<>();
+        StringBuilder warning = new StringBuilder();
+        if (line >= 0 && column >= 0)
+            warning.append("Line ").append(line).append(", column ").append(column).append(": ");
+        else if (line >= 0)
+            warning.append("Line ").append(line).append(": ");
+        warning.append(message);
+        gpadWarnings.add(warning.toString());
+    }
+    
+    /**
+     * Adds a warning message without position information.
+     * 
+     * @param message warning message
+     */
+    private void addGpadWarning(String message) {
+        addGpadWarning(message, -1, -1);
+    }
+    
+    /**
+     * @return the list of warnings collected during Gpad parsing
+     */
+    public java.util.List<String> getGpadWarnings() {
+        return gpadWarnings;
     }
     
     /**
@@ -2376,14 +2461,14 @@ ValidExpression vectorSpecial():
 /**
  * Gpad program = (statement)*
  */
-void buildGpadProgram() throws CircularDefinitionException :
+void buildGpadProgram() throws GpadParseException :
 {
 }
 {
     (gpadStatement())* (<EOF>)?
 }
 
-void gpadStatement() throws CircularDefinitionException :
+void gpadStatement() throws GpadParseException :
 {
 }
 {(
@@ -2391,7 +2476,7 @@ void gpadStatement() throws CircularDefinitionException :
     gpadMacroDefinition()
 )}
 
-void gpadStatementInMacro() throws CircularDefinitionException :
+void gpadStatementInMacro() throws GpadParseException :
 {
 }
 {(
@@ -2434,6 +2519,9 @@ GpadStyleSheet gpadStyleSheetBody(String name) :
 
 void gpadStyleSheetKeyValue(GpadStyleSheet styleSheet) :
 {
+    Token errorToken = null;
+    int errorLine = -1;
+    int errorColumn = -1;
 }
 {
     try {
@@ -2467,6 +2555,27 @@ void gpadStyleSheetKeyValue(GpadStyleSheet styleSheet) :
         { token_source.SwitchTo(DEFAULT); }
     }
     catch(ParseException e) {
+        // Extract position information from exception
+        try {
+            if (e.currentToken != null) {
+                errorToken = e.currentToken;
+                errorLine = errorToken.beginLine;
+                errorColumn = errorToken.beginColumn;
+            } else if (token != null) {
+                errorToken = token;
+                errorLine = errorToken.beginLine;
+                errorColumn = errorToken.beginColumn;
+            }
+        } catch (Exception ex) {
+            // Ignore if we can't access token information
+        }
+        
+        String errorMsg = e.getMessage();
+        if (errorMsg == null)
+            errorMsg = "Invalid property syntax";
+        
+        // Add warning for recoverable errors (can skip)
+        addGpadWarning("Style property error: " + errorMsg, errorLine, errorColumn);
         gpadSkipToSync();
     }
 }
@@ -2597,8 +2706,8 @@ void gpadStyleSheetPropertyXYCoords(GpadStyleSheet styleSheet) :
     String[] converted;
 }
 {
-    keyToken = <GK_XYCOORDS> <GK_COLON> { token_source.SwitchTo(DEFAULT); }
-    xToken = <FLOAT> yToken = <FLOAT>
+    keyToken = <GK_XYCOORDS> <GK_COLON> { token_source.SwitchTo(GK_VALUE_BLOCK); }
+    xToken = <GK_VALUE_float> yToken = <GK_VALUE_float>
     {
         converted = convertPropertyKey(keyToken.image);
         java.util.LinkedHashMap<String, String> attrs = new java.util.LinkedHashMap<>();
@@ -4302,19 +4411,39 @@ void gpadBarTagBar(StringBuilder serialized) :
  * * = hide both object and label
  * ~ = show object, hide label
  */
-void gpadCommandExpression() throws CircularDefinitionException :
+void gpadCommandExpression() throws GpadParseException :
 {
     java.util.List<String> labels = new java.util.ArrayList<>();
     java.util.List<GpadStyleSheet> styleSheets = new java.util.ArrayList<>();
     GeoElement[] geos;
-    ValidExpression ve;
+    ValidExpression ve = null;
+    Token equalToken = null;
+    Token errorToken = null;
+    int errorLine = -1;
+    int errorColumn = -1;
 }
 {
-    gpadLabelStyleSheets(labels, styleSheets)
-    ( <COMMA> gpadLabelStyleSheets(labels, styleSheets) )*
-    <EQUAL> ve = expressionOrEquation() [<POLAR_SEPARATOR>]
-    {
-        try {
+    try {
+        gpadLabelStyleSheets(labels, styleSheets)
+        ( <COMMA> gpadLabelStyleSheets(labels, styleSheets) )*
+        equalToken = <EQUAL>
+        {
+            // Capture EQUAL token position early for better error reporting
+            if (equalToken != null) {
+                errorToken = equalToken;
+                errorLine = equalToken.beginLine;
+                errorColumn = equalToken.beginColumn;
+            } else {
+                // Fallback to current token if EQUAL token not available
+                errorToken = token;
+                if (errorToken != null) {
+                    errorLine = errorToken.beginLine;
+                    errorColumn = errorToken.beginColumn;
+                }
+            }
+        }
+        ve = expressionOrEquation() [<POLAR_SEPARATOR>]
+        {
             if (labels != null)
                 ve.addLabel(labels);
             EvalInfo info = new EvalInfo(true);
@@ -4324,20 +4453,112 @@ void gpadCommandExpression() throws CircularDefinitionException :
                 GeoElement geo = geos[i];
                 if (i >= 0 && i < styleSheets.size()) {
                     GpadStyleSheet styleSheet = styleSheets.get(i);
-                    try {
-                        GpadStyleXMLApplier.apply(styleSheet, geo);
-                    } catch (GpadParseException e) {
-                        // Log error but don't throw - allow parsing to continue
-                        org.geogebra.common.util.debug.Log.debug("Failed to apply style sheet: " + e.getMessage());
+                    java.util.ArrayList<String> errors = GpadStyleXMLApplier.apply(styleSheet, geo);
+                    // Merge all errors into a single warning - allow parsing to continue
+                    if (errors != null && !errors.isEmpty()) {
+                        StringBuilder warningMsg = new StringBuilder();
+                        warningMsg.append("Failed to apply style sheet to ").append(geo.getLabelSimple()).append(": ");
+                        boolean first = true;
+                        for (String errorMsg : errors) {
+                            if (!first)
+                                warningMsg.append("; ");
+                            first = false;
+                            warningMsg.append(errorMsg);
+                        }
+                        // Use command expression position for warning
+                        if (errorLine >= 0 && errorColumn >= 0)
+                            addGpadWarning(warningMsg.toString(), errorLine, errorColumn);
+                        else if (errorLine >= 0)
+                            addGpadWarning(warningMsg.toString(), errorLine, -1);
+                        else
+                            addGpadWarning(warningMsg.toString());
                     }
                 }
                 gpadResults.add(geo);
-            }               
-        } catch (CircularDefinitionException e) {
-            // Let CircularDefinitionException propagate
-            throw e;
+            }
         }
-        // MyError is unchecked (extends Error), so it will propagate naturally
+    } catch (CircularDefinitionException e) {
+        // Catch CircularDefinitionException from expressionOrEquation() or processValidExpression()
+        // Use equalToken position if available, otherwise try to get from current token
+        if (errorLine < 0 || errorColumn < 0) {
+            try {
+                if (token != null) {
+                    errorLine = token.beginLine;
+                    errorColumn = token.beginColumn;
+                }
+            } catch (Exception ex) {
+                // Ignore if we can't access token information
+            }
+        }
+        String errorMsg = e.getMessage();
+        if (errorMsg == null)
+            errorMsg = "Circular definition";
+        StringBuilder detailedMsg = new StringBuilder();
+        if (errorLine >= 0 && errorColumn >= 0) {
+            detailedMsg.append("Line ").append(errorLine).append(", column ").append(errorColumn).append(": ");
+        } else if (errorLine >= 0) {
+            detailedMsg.append("Line ").append(errorLine).append(": ");
+        }
+        detailedMsg.append(errorMsg);
+        throw new GpadParseException(detailedMsg.toString(), errorLine, errorColumn);
+    } catch (org.geogebra.common.main.MyError e) {
+        // Catch MyError from expressionOrEquation() or processValidExpression()
+        // Use equalToken position if available, otherwise try to get from current token
+        if (errorLine < 0 || errorColumn < 0) {
+            try {
+                if (token != null) {
+                    errorLine = token.beginLine;
+                    errorColumn = token.beginColumn;
+                }
+            } catch (Exception ex) {
+                // Ignore if we can't access token information
+            }
+        }
+        String errorMsg = e.getLocalizedMessage();
+        if (errorMsg == null)
+            errorMsg = e.getMessage();
+        if (errorMsg == null)
+            errorMsg = "Error";
+        StringBuilder detailedMsg = new StringBuilder();
+        if (errorLine >= 0 && errorColumn >= 0) {
+            detailedMsg.append("Line ").append(errorLine).append(", column ").append(errorColumn).append(": ");
+        } else if (errorLine >= 0) {
+            detailedMsg.append("Line ").append(errorLine).append(": ");
+        }
+        detailedMsg.append(errorMsg);
+        throw new GpadParseException(detailedMsg.toString(), errorLine, errorColumn);
+    } catch (ParseException e) {
+        // Catch ParseException from expressionOrEquation()
+        // Try to extract position from ParseException, fallback to equalToken position
+        int line = -1;
+        int column = -1;
+        try {
+            if (e.currentToken != null) {
+                line = e.currentToken.beginLine;
+                column = e.currentToken.beginColumn;
+            }
+        } catch (Exception ex) {
+            // Ignore if we can't access token information
+        }
+        // Use ParseException position if available, otherwise use equalToken position
+        if (line < 0 || column < 0) {
+            line = errorLine;
+            column = errorColumn;
+        }
+        String errorMsg = e.getMessage();
+        if (errorMsg == null)
+            errorMsg = "Parse error";
+        // Check if message already contains position info
+        boolean alreadyHasPosition = errorMsg.startsWith("Line ");
+        StringBuilder detailedMsg = new StringBuilder();
+        if (!alreadyHasPosition) {
+            if (line >= 0 && column >= 0)
+                detailedMsg.append("Line ").append(line).append(", column ").append(column).append(": ");
+            else if (line >= 0)
+                detailedMsg.append("Line ").append(line).append(": ");
+        }
+        detailedMsg.append(errorMsg);
+        throw new GpadParseException(detailedMsg.toString(), line, column);
     }
 }
 
@@ -4405,7 +4626,7 @@ String gpadGeoLabel() :
 /**
  * Macro definition: @@macro name(input1, input2, ...) { gpadStatementInMacro* @@return output1, output2, ... }
  */
-void gpadMacroDefinition() throws CircularDefinitionException :
+void gpadMacroDefinition() throws GpadParseException :
 {
     Token macroNameToken;
     String macroName;
@@ -4427,8 +4648,27 @@ void gpadMacroDefinition() throws CircularDefinitionException :
         
         // Check for name conflict
         if (kernel.getMacro(macroName) != null) {
-            org.geogebra.common.util.debug.Log.error("Gpad macro definition failed: macro '" + macroName + "' already exists");
-            throw new ParseException("Macro '" + macroName + "' already exists");
+            int line = macroNameToken.beginLine;
+            int column = macroNameToken.beginColumn;
+            String errorMsg = "Macro '" + macroName + "' already exists";
+            org.geogebra.common.util.debug.Log.error("Gpad macro definition failed: " + errorMsg);
+            // Create ParseException with position info in message
+            StringBuilder detailedMsg = new StringBuilder();
+            if (line >= 0 && column >= 0)
+                detailedMsg.append("Line ").append(line).append(", column ").append(column).append(": ");
+            else if (line >= 0)
+                detailedMsg.append("Line ").append(line).append(": ");
+            detailedMsg.append(errorMsg);
+            ParseException pe = new ParseException(detailedMsg.toString());
+            // Try to set currentToken for position extraction in GpadParser
+            if (macroNameToken != null) {
+                try {
+                    pe.currentToken = macroNameToken;
+                } catch (Exception ex) {
+                    // Ignore if we can't set token (it's OK, message already has position)
+                }
+            }
+            throw pe;
         }
         
         // Create MacroKernel
@@ -4468,7 +4708,34 @@ void gpadMacroDefinition() throws CircularDefinitionException :
         String[] inputLabelsArray = inputLabels.toArray(new String[0]);
         for (String inputLabel : inputLabelsArray) {
             if (macroCons.lookupLabel(inputLabel) == null) {
-                throw new ParseException("Input object '" + inputLabel + "' not found in macro body");
+                String errorMsg = "Input object '" + inputLabel + "' not found in macro body";
+                // Try to get position from current token if available
+                int line = -1;
+                int column = -1;
+                try {
+                    if (token != null) {
+                        line = token.beginLine;
+                        column = token.beginColumn;
+                    }
+                } catch (Exception ex) {
+                    // Ignore if we can't access token
+                }
+                StringBuilder detailedMsg = new StringBuilder();
+                if (line >= 0 && column >= 0) {
+                    detailedMsg.append("Line ").append(line).append(", column ").append(column).append(": ");
+                } else if (line >= 0) {
+                    detailedMsg.append("Line ").append(line).append(": ");
+                }
+                detailedMsg.append(errorMsg);
+                ParseException pe = new ParseException(detailedMsg.toString());
+                try {
+                    if (token != null) {
+                        pe.currentToken = token;
+                    }
+                } catch (Exception ex) {
+                    // Ignore if we can't set token
+                }
+                throw pe;
             }
         }
         
@@ -4476,7 +4743,34 @@ void gpadMacroDefinition() throws CircularDefinitionException :
         String[] outputLabelsArray = outputLabels.toArray(new String[0]);
         for (String outputLabel : outputLabelsArray) {
             if (macroCons.lookupLabel(outputLabel) == null) {
-                throw new ParseException("Output object '" + outputLabel + "' not found in macro body");
+                String errorMsg = "Output object '" + outputLabel + "' not found in macro body";
+                // Try to get position from current token if available
+                int line = -1;
+                int column = -1;
+                try {
+                    if (token != null) {
+                        line = token.beginLine;
+                        column = token.beginColumn;
+                    }
+                } catch (Exception ex) {
+                    // Ignore if we can't access token
+                }
+                StringBuilder detailedMsg = new StringBuilder();
+                if (line >= 0 && column >= 0) {
+                    detailedMsg.append("Line ").append(line).append(", column ").append(column).append(": ");
+                } else if (line >= 0) {
+                    detailedMsg.append("Line ").append(line).append(": ");
+                }
+                detailedMsg.append(errorMsg);
+                ParseException pe = new ParseException(detailedMsg.toString());
+                try {
+                    if (token != null) {
+                        pe.currentToken = token;
+                    }
+                } catch (Exception ex) {
+                    // Ignore if we can't set token
+                }
+                throw pe;
             }
         }
         
@@ -4485,7 +4779,34 @@ void gpadMacroDefinition() throws CircularDefinitionException :
             macro.initMacro(macroCons, inputLabelsArray, outputLabelsArray);
         } catch (Exception e) {
             org.geogebra.common.util.debug.Log.error("Gpad macro initialization failed: " + e.getMessage());
-            throw new ParseException("Failed to initialize macro: " + e.getMessage());
+            String errorMsg = "Failed to initialize macro: " + e.getMessage();
+            // Try to get position from current token if available
+            int line = -1;
+            int column = -1;
+            try {
+                if (token != null) {
+                    line = token.beginLine;
+                    column = token.beginColumn;
+                }
+            } catch (Exception ex) {
+                // Ignore if we can't access token
+            }
+            StringBuilder detailedMsg = new StringBuilder();
+            if (line >= 0 && column >= 0) {
+                detailedMsg.append("Line ").append(line).append(", column ").append(column).append(": ");
+            } else if (line >= 0) {
+                detailedMsg.append("Line ").append(line).append(": ");
+            }
+            detailedMsg.append(errorMsg);
+            ParseException pe = new ParseException(detailedMsg.toString());
+            try {
+                if (token != null) {
+                    pe.currentToken = token;
+                }
+            } catch (Exception ex) {
+                // Ignore if we can't set token
+            }
+            throw pe;
         }
         
         // Register macro to kernel

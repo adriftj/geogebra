@@ -11,7 +11,6 @@ import java.util.Map;
 
 import org.geogebra.common.BaseUnitTest;
 import org.geogebra.common.awt.GColor;
-import org.geogebra.common.kernel.CircularDefinitionException;
 import org.geogebra.common.kernel.geos.ChartStyleGeo;
 import org.geogebra.common.kernel.geos.GeoElement;
 import org.geogebra.common.kernel.geos.properties.FillType;
@@ -45,7 +44,7 @@ public class BarTagGpadParserTest extends BaseUnitTest {
 			assertEquals("Bar 1 should be red", 255, barColor.getRed());
 			assertEquals("Bar 1 should have no green", 0, barColor.getGreen());
 			assertEquals("Bar 1 should have no blue", 0, barColor.getBlue());
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -70,12 +69,12 @@ public class BarTagGpadParserTest extends BaseUnitTest {
 			assertEquals("Bar 1 should have no green", 0, barColor.getGreen());
 			assertEquals("Bar 1 should have no blue", 0, barColor.getBlue());
 			
-			// Verify bar 1 has alpha (#22 = 34/255 ≈ 0.133)
+			// Verify bar 1 has alpha (#22 = 34/255 �?0.133)
 			double barAlpha = chartGeo.getStyle().getBarAlpha(1);
 			assertTrue("Bar 1 should have alpha set", barAlpha >= 0);
-			// #22 = 34, so alpha should be approximately 34/255 ≈ 0.133
+			// #22 = 34, so alpha should be approximately 34/255 �?0.133
 			assertEquals("Bar 1 alpha should be approximately 0.133", 34.0 / 255.0, barAlpha, 0.001);
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -95,7 +94,7 @@ public class BarTagGpadParserTest extends BaseUnitTest {
 			// Verify bar 1 has hatch fill type
 			FillType fillType = chartGeo.getStyle().getBarFillType(1);
 			assertEquals("Bar 1 should have hatch fill type", FillType.HATCH, fillType);
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -117,7 +116,7 @@ public class BarTagGpadParserTest extends BaseUnitTest {
 			assertEquals("Bar 1 should have angle 30", 30, angle);
 			int dist = chartGeo.getStyle().getBarHatchDistance(1);
 			assertEquals("Bar 1 should have distance 10", 10, dist);
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -139,7 +138,7 @@ public class BarTagGpadParserTest extends BaseUnitTest {
 			assertEquals("Bar 1 should have image fill type", FillType.IMAGE, fillType);
 			String image = chartGeo.getStyle().getBarImage(1);
 			assertEquals("Bar 1 should have image path", "path/to/image.png", image);
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -161,7 +160,7 @@ public class BarTagGpadParserTest extends BaseUnitTest {
 			assertEquals("Bar 1 should have symbols fill type", FillType.SYMBOLS, fillType);
 			String symbol = chartGeo.getStyle().getBarSymbol(1);
 			assertEquals("Bar 1 should have symbol $", "$", symbol);
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -199,7 +198,7 @@ public class BarTagGpadParserTest extends BaseUnitTest {
 			assertEquals("Bar 2 should have angle 30", 30, bar2Angle);
 			int bar2Dist = chartGeo.getStyle().getBarHatchDistance(2);
 			assertEquals("Bar 2 should have distance 10", 10, bar2Dist);
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -251,7 +250,7 @@ public class BarTagGpadParserTest extends BaseUnitTest {
 			assertEquals("Bar 5 should have symbols fill type", FillType.SYMBOLS, bar5FillType);
 			String bar5Symbol = chartGeo.getStyle().getBarSymbol(5);
 			assertEquals("Bar 5 should have symbol $", "$", bar5Symbol);
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -279,7 +278,7 @@ public class BarTagGpadParserTest extends BaseUnitTest {
 			// Angle should be normalized: 450 -> 90 (450 % 360 = 90)
 			int angle = chartGeo.getStyle().getBarHatchAngle(1);
 			assertEquals("Bar 1 angle should be normalized to 90", 90, angle);
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -301,7 +300,7 @@ public class BarTagGpadParserTest extends BaseUnitTest {
 			assertEquals("Bar 1 should have image fill type", FillType.IMAGE, fillType);
 			String image = chartGeo.getStyle().getBarImage(1);
 			assertEquals("Bar 1 should have quoted image path", "path with spaces/image.png", image);
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -323,7 +322,7 @@ public class BarTagGpadParserTest extends BaseUnitTest {
 			assertEquals("Bar 1 should have symbols fill type", FillType.SYMBOLS, fillType);
 			String symbol = chartGeo.getStyle().getBarSymbol(1);
 			assertEquals("Bar 1 should have quoted symbol *", "*", symbol);
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -351,7 +350,7 @@ public class BarTagGpadParserTest extends BaseUnitTest {
 				FillType actualFillType = chartGeo.getStyle().getBarFillType(1);
 				assertEquals("Fill type " + fillTypes[i] + " should be correctly applied", 
 						expectedFillTypes[i], actualFillType);
-			} catch (GpadParseException | CircularDefinitionException e) {
+			} catch (GpadParseException e) {
 				throw new AssertionError("Parse failed for fillType " + fillTypes[i] + ": " + e.getMessage(), e);
 			}
 		}
@@ -376,7 +375,7 @@ public class BarTagGpadParserTest extends BaseUnitTest {
 			GColor bar0Color = chartGeo1.getStyle().getBarColor(1);
 			// If no style was applied, getBarColor might return null or default color
 			// This is acceptable - the test just verifies parsing doesn't crash
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			// Parse exception is acceptable if bar= is truly required
 		}
 		
@@ -397,7 +396,7 @@ public class BarTagGpadParserTest extends BaseUnitTest {
 			assertEquals("Bar 1 should be red", 255, bar0Color.getRed());
 			FillType bar0FillType = chartGeo2.getStyle().getBarFillType(1);
 			assertEquals("Bar 1 should have hatch fill type", FillType.HATCH, bar0FillType);
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed with bar= at the end: " + e.getMessage(), e);
 		}
 	}
@@ -426,7 +425,7 @@ public class BarTagGpadParserTest extends BaseUnitTest {
 			assertEquals("Bar 1 should have angle 30", 30, bar0Angle);
 			int bar0Dist = chartGeo1.getStyle().getBarHatchDistance(1);
 			assertEquals("Bar 1 should have distance 10", 10, bar0Dist);
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed with color before bar=: " + e.getMessage(), e);
 		}
 		
@@ -445,7 +444,7 @@ public class BarTagGpadParserTest extends BaseUnitTest {
 			GColor bar0Color = chartGeo2.getStyle().getBarColor(1);
 			assertNotNull("Bar 1 should have color", bar0Color);
 			assertEquals("Bar 1 should be red", 255, bar0Color.getRed());
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed with color after other attributes: " + e.getMessage(), e);
 		}
 		
@@ -466,7 +465,7 @@ public class BarTagGpadParserTest extends BaseUnitTest {
 			assertEquals("Bar 1 should be red", 255, bar0Color.getRed());
 			FillType bar0FillType = chartGeo3.getStyle().getBarFillType(1);
 			assertEquals("Bar 1 should have hatch fill type", FillType.HATCH, bar0FillType);
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed with bar= in the middle: " + e.getMessage(), e);
 		}
 	}
@@ -489,7 +488,7 @@ public class BarTagGpadParserTest extends BaseUnitTest {
 			assertEquals("Bar 1 should have default angle 45", 45, angle);
 			int dist = chartGeo.getStyle().getBarHatchDistance(1);
 			assertEquals("Bar 1 should have default distance 10", 10, dist);
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -512,7 +511,7 @@ public class BarTagGpadParserTest extends BaseUnitTest {
 			assertEquals("Bar 1 should have symbols fill type automatically set", FillType.SYMBOLS, fillType);
 			String symbol = chartGeo.getStyle().getBarSymbol(1);
 			assertEquals("Bar 1 should have symbol $", "$", symbol);
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -559,7 +558,7 @@ public class BarTagGpadParserTest extends BaseUnitTest {
 			GColor barColor2 = chartGeo2.getStyle().getBarColor(1);
 			assertNotNull("Bar 1 should have color after round trip", barColor2);
 			assertEquals("Bar 1 should be red after round trip", 255, barColor2.getRed());
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Round-trip failed: " + e.getMessage(), e);
 		}
 	}
@@ -605,7 +604,7 @@ public class BarTagGpadParserTest extends BaseUnitTest {
 			assertNotNull("Bar 1 should have color after round trip", barColor2);
 			double barAlpha2 = chartGeo2.getStyle().getBarAlpha(1);
 			assertEquals("Bar 1 alpha should be preserved", barAlpha, barAlpha2, 0.001);
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Round-trip failed: " + e.getMessage(), e);
 		}
 	}
@@ -664,7 +663,7 @@ public class BarTagGpadParserTest extends BaseUnitTest {
 			assertEquals("Bar 1 should have angle 60 after round trip", 60, angle2);
 			int dist2 = chartGeo2.getStyle().getBarHatchDistance(1);
 			assertEquals("Bar 1 should have distance 15 after round trip", 15, dist2);
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Round-trip failed: " + e.getMessage(), e);
 		}
 	}
@@ -725,7 +724,7 @@ public class BarTagGpadParserTest extends BaseUnitTest {
 			GColor bar3Color2 = chartGeo2.getStyle().getBarColor(3);
 			assertNotNull("Bar 3 should have color after round trip", bar3Color2);
 			assertEquals("Bar 3 should be blue after round trip", 255, bar3Color2.getBlue());
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Round-trip failed: " + e.getMessage(), e);
 		}
 	}
@@ -769,7 +768,7 @@ public class BarTagGpadParserTest extends BaseUnitTest {
 			assertEquals("Bar 1 should have symbols fill type after round trip", FillType.SYMBOLS, fillType2);
 			String symbol2 = chartGeo2.getStyle().getBarSymbol(1);
 			assertEquals("Bar 1 should have symbol $ after round trip", "$", symbol2);
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Round-trip failed: " + e.getMessage(), e);
 		}
 	}

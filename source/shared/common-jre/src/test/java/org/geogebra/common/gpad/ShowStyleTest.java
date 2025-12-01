@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.geogebra.common.BaseUnitTest;
-import org.geogebra.common.kernel.CircularDefinitionException;
+
 import org.geogebra.common.kernel.geos.GeoElement;
 import org.geogebra.common.kernel.geos.GeoPoint;
 import org.junit.Test;
@@ -45,7 +45,7 @@ public class ShowStyleTest extends BaseUnitTest {
 			assertEquals("true", attrs.get("object"));
 			assertEquals("false", attrs.get("label"));
 			assertEquals("24", attrs.get("ev")); // 16+8 = 24
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -76,7 +76,7 @@ public class ShowStyleTest extends BaseUnitTest {
 			assertEquals("false", attrs.get("object"));
 			assertEquals("true", attrs.get("label"));
 			assertEquals("39", attrs.get("ev")); // 1+2+32+4 = 39
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -105,7 +105,7 @@ public class ShowStyleTest extends BaseUnitTest {
 			assertEquals("false", attrs.get("label"));
 			// ev should not be present when no ev flags are specified
 			assertTrue(!attrs.containsKey("ev"));
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -136,7 +136,7 @@ public class ShowStyleTest extends BaseUnitTest {
 			// ev should be 6: ev1 clears bit 0 (0), ev2 sets bit 1 (2), 3d sets bit 2 (4), plane sets bit 4(16)
 			// ev = 0 & ~1 | 2 | 4 | 16 = 22
 			assertEquals("22", attrs.get("ev"));
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -164,7 +164,7 @@ public class ShowStyleTest extends BaseUnitTest {
 			// ev should be 0: ev1 clears bit 0, ~ev2 clears bit 1
 			// ev = 0 & ~1 & ~2 = 0
 			assertEquals("0", attrs.get("ev"));
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -206,7 +206,7 @@ public class ShowStyleTest extends BaseUnitTest {
 			assertTrue(!convertedGpad.contains("~ev2"));
 			assertTrue(convertedGpad.contains("plane"));
 			assertTrue(convertedGpad.contains("~3d"));
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Round-trip failed: " + e.getMessage(), e);
 		}
 	}
@@ -307,7 +307,7 @@ public class ShowStyleTest extends BaseUnitTest {
 			// 3d: set bit 2, clear bit 3 -> 0 | 4 & ~8 = 4
 			// ~plane: clear bit 4, set bit 5 -> 4 & ~16 | 32 = 36
 			assertEquals("36", attrs.get("ev"));
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -330,7 +330,7 @@ public class ShowStyleTest extends BaseUnitTest {
 			// Empty show should not create a property or create empty attributes
 			LinkedHashMap<String, String> attrs = styleSheet.getProperty("show");
 			// Either null or empty is acceptable
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -357,7 +357,7 @@ public class ShowStyleTest extends BaseUnitTest {
 			
 			// ev1 clears bit 0, so ev = 0 & ~1 = 0
 			assertEquals("0", attrs.get("ev"));
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -384,7 +384,7 @@ public class ShowStyleTest extends BaseUnitTest {
 			
 			// ~ev1 sets bit 0, so ev = 0 | 1 = 1
 			assertEquals("1", attrs.get("ev"));
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -411,7 +411,7 @@ public class ShowStyleTest extends BaseUnitTest {
 			
 			// 3d sets bit 2, clears bit 3, so ev = 0 | 4 & ~8 = 4
 			assertEquals("4", attrs.get("ev"));
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -438,7 +438,7 @@ public class ShowStyleTest extends BaseUnitTest {
 			
 			// ~3d clears bit 2, sets bit 3, so ev = 0 & ~4 | 8 = 8
 			assertEquals("8", attrs.get("ev"));
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -465,7 +465,7 @@ public class ShowStyleTest extends BaseUnitTest {
 			
 			// plane sets bit 4, clears bit 5, so ev = 0 | 16 & ~32 = 16
 			assertEquals("16", attrs.get("ev"));
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -492,7 +492,7 @@ public class ShowStyleTest extends BaseUnitTest {
 			
 			// ~plane clears bit 4, sets bit 5, so ev = 0 & ~16 | 32 = 32
 			assertEquals("32", attrs.get("ev"));
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -521,7 +521,7 @@ public class ShowStyleTest extends BaseUnitTest {
 			// ev2 sets bit 1 -> 2, then ~ev2 clears bit 1 -> 0
 			// Final: ev = 1 & ~2 = 1
 			assertEquals("1", attrs.get("ev"));
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -704,7 +704,7 @@ public class ShowStyleTest extends BaseUnitTest {
 			assertTrue(convertedGpad.contains("ev2"));
 			assertTrue(convertedGpad.contains("~plane"));
 			assertTrue(convertedGpad.contains("3d"));
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Round-trip failed: " + e.getMessage(), e);
 		}
 	}

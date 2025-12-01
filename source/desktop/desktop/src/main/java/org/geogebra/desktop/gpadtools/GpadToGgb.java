@@ -7,14 +7,21 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
+import org.geogebra.common.io.MyXMLio;
 import org.geogebra.common.util.debug.Log;
 import org.geogebra.desktop.headless.AppDNoGui;
 import org.geogebra.desktop.main.LocalizationD;
 import org.geogebra.common.plugin.GgbAPI;
-import org.geogebra.common.jre.io.MyXMLioJre;
 
 /**
  * Command-line tool to convert GPAD format files to GeoGebra (.ggb) files.
@@ -32,6 +39,8 @@ import org.geogebra.common.jre.io.MyXMLioJre;
 public class GpadToGgb {
 
 	private static boolean overwrite = false;
+	private static String embedRootDirPattern = null; // Relative path pattern (e.g., "../images" or "."), default is "."
+	private static List<String> embedPatterns = new ArrayList<>();
 	private static List<String> errors = new ArrayList<>();
 	private static int successCount = 0;
 	private static int failCount = 0;
@@ -69,6 +78,20 @@ public class GpadToGgb {
 					System.exit(1);
 				}
 				output = new File(args[++i]);
+			} else if ("-d".equals(arg)) {
+				if (i + 1 >= args.length) {
+					System.err.println("Error: -d requires a value");
+					printUsage();
+					System.exit(1);
+				}
+				embedRootDirPattern = args[++i];
+			} else if ("-e".equals(arg)) {
+				if (i + 1 >= args.length) {
+					System.err.println("Error: -e requires a value");
+					printUsage();
+					System.exit(1);
+				}
+				embedPatterns.add(args[++i]);
 			} else if ("-w".equals(arg)) {
 				overwrite = true;
 			} else if (arg.startsWith("-")) {
@@ -123,7 +146,9 @@ public class GpadToGgb {
 			if (input.isFile()) {
 				// Single file conversion
 				if (input.getName().toLowerCase().endsWith(".gpad")) {
-					convertFile(input, output, overwrite);
+					// Resolve embed root directory relative to gpad file directory
+					File actualEmbedRoot = resolveEmbedRootDir(input, embedRootDirPattern);
+					convertFile(input, output, overwrite, actualEmbedRoot);
 				} else {
 					System.err.println("Error: Input file must have .gpad extension");
 					System.exit(1);
@@ -157,7 +182,7 @@ public class GpadToGgb {
 	/**
 	 * Convert a single GPAD file to GGB format
 	 */
-	private static boolean convertFile(File inputFile, File outputFile, boolean overwrite) {
+	private static boolean convertFile(File inputFile, File outputFile, boolean overwrite, File embedRootDir) {
 		String inputPath = inputFile.getAbsolutePath();
 		
 		// Check if output file exists
@@ -232,10 +257,26 @@ public class GpadToGgb {
 			GgbAPI ggbApi = app.getGgbApi();
 			String result = ggbApi.evalGpad(gpadText.toString());
 			
+			// Check for warnings (non-fatal issues) - output before checking for errors
+			// Warnings should be output even if parsing fails
+			String lastWarning = ggbApi.getLastWarning();
+			boolean hasWarnings = false;
+			if (lastWarning != null && !lastWarning.trim().isEmpty()) {
+				hasWarnings = true;
+				// Output warnings (multiple warnings may be separated by newlines)
+				String[] warnings = lastWarning.split("\n");
+				for (String warning : warnings) {
+					if (warning != null && !warning.trim().isEmpty()) {
+						System.err.println("Warning [" + inputPath + "]: " + warning.trim());
+					}
+				}
+			}
+			
 			if (result == null) {
 				// Check for error message
-				String lastError = ggbApi.getLastError();
-				String error = "Failed to parse GPAD: " + (lastError != null ? lastError : "Unknown error");
+				String error = ggbApi.getLastError();
+				if (error == null || error.trim().isEmpty())
+					error = "Failed to parse GPAD: Unknown error";
 				errors.add(inputPath + ": " + error);
 				System.err.println("Error [" + inputPath + "]: " + error);
 				failCount++;
@@ -253,12 +294,20 @@ public class GpadToGgb {
 				return false;
 			}
 			
-			// Write to GGB file (ZIP format)
+			// Collect files to embed
+			Set<String> filesToEmbed = collectFilesToEmbed(gpadText.toString(), inputFile, embedRootDir);
+			
+			// Write to GGB file (ZIP format) with embedded files
 			try (FileOutputStream fos = new FileOutputStream(outputFile)) {
-				MyXMLioJre.writeZipped(fos, new StringBuilder(xmlString));
+				writeZippedWithEmbeddedFiles(fos, xmlString, filesToEmbed, embedRootDir);
 			}
 
-			System.out.println("Converted: " + inputFile.getName() + " -> " + outputFile.getName());
+			// Output success message, including warning indicator if warnings were present
+			if (hasWarnings) {
+				System.out.println("Converted (with warnings): " + inputFile.getName() + " -> " + outputFile.getName());
+			} else {
+				System.out.println("Converted: " + inputFile.getName() + " -> " + outputFile.getName());
+			}
 			successCount++;
 			return true;
 
@@ -288,8 +337,19 @@ public class GpadToGgb {
 					String xmlString = ggbApi.getXML();
 					
 					if (xmlString != null && !xmlString.isEmpty()) {
+						// Collect files to embed
+						StringBuilder gpadTextForEmbed = new StringBuilder();
+						try (InputStreamReader reader = new InputStreamReader(
+								new FileInputStream(inputFile), StandardCharsets.UTF_8)) {
+							char[] buffer = new char[8192];
+							int read;
+							while ((read = reader.read(buffer)) != -1) {
+								gpadTextForEmbed.append(buffer, 0, read);
+							}
+						}
+						Set<String> filesToEmbed = collectFilesToEmbed(gpadTextForEmbed.toString(), inputFile, embedRootDir);
 						try (FileOutputStream fos = new FileOutputStream(outputFile)) {
-							MyXMLioJre.writeZipped(fos, new StringBuilder(xmlString));
+							writeZippedWithEmbeddedFiles(fos, xmlString, filesToEmbed, embedRootDir);
 						}
 						System.out.println("Converted (with LaTeX warning): " + inputFile.getName() + " -> " + outputFile.getName());
 						successCount++;
@@ -354,6 +414,197 @@ public class GpadToGgb {
 	}
 
 	/**
+	 * Resolve embed root directory relative to gpad file directory
+	 * 
+	 * @param gpadFile the gpad file
+	 * @param embedRootPattern the pattern for embed root (relative path like "../images" or ".", null means ".")
+	 * @return the resolved embed root directory
+	 */
+	private static File resolveEmbedRootDir(File gpadFile, String embedRootPattern) {
+		File gpadDir = gpadFile.getParentFile();
+		if (gpadDir == null) {
+			gpadDir = new File(".");
+		}
+		
+		// If no pattern specified, default to gpad file directory
+		if (embedRootPattern == null || embedRootPattern.isEmpty()) {
+			return gpadDir;
+		}
+		
+		// Resolve pattern relative to gpad file directory
+		Path gpadDirPath = gpadDir.toPath();
+		Path embedRootPath = gpadDirPath.resolve(embedRootPattern).normalize();
+		
+		// Security check: ensure resolved path doesn't escape too far (optional, but good practice)
+		// We allow relative paths like .. but we should ensure they're reasonable
+		File embedRoot = embedRootPath.toFile();
+		return embedRoot;
+	}
+
+	/**
+	 * Collect files to embed from gpad content and command line patterns
+	 */
+	private static Set<String> collectFilesToEmbed(String gpadContent, File gpadFile, File embedRootDir) {
+		Set<String> filesToEmbed = new HashSet<>();
+		
+		// Extract filenames from gpad content using regex
+		// Pattern: filename:"path" or filename:path; (allows whitespace after : and before ;)
+		Pattern filenamePattern = Pattern.compile("filename:\\s*(\"([^\"]+)\"|([^;]+?)\\s*;)", Pattern.CASE_INSENSITIVE);
+		Matcher matcher = filenamePattern.matcher(gpadContent);
+		while (matcher.find()) {
+			String filename = matcher.group(2); // Quoted path
+			if (filename == null) {
+				filename = matcher.group(3); // Unquoted path (ends with ;)
+				if (filename != null) {
+					// Remove trailing whitespace (semicolon already excluded by regex)
+					filename = filename.trim();
+				}
+			} else {
+				// Quoted path - trim in case there was whitespace handling
+				filename = filename.trim();
+			}
+			if (filename != null && !filename.isEmpty()) {
+				filesToEmbed.add(filename);
+			}
+		}
+		
+		// Add files from -e patterns
+		for (String pattern : embedPatterns) {
+			// Resolve pattern relative to embed root directory
+			Path patternPath = Paths.get(pattern);
+			if (patternPath.isAbsolute()) {
+				// Absolute path - use as is
+				findFilesByPattern(patternPath.toFile(), filesToEmbed, embedRootDir);
+			} else {
+				// Relative path - resolve against embed root
+				File patternFile = embedRootDir.toPath().resolve(patternPath).toFile();
+				findFilesByPattern(patternFile, filesToEmbed, embedRootDir);
+			}
+		}
+		
+		return filesToEmbed;
+	}
+	
+	/**
+	 * Find files matching a pattern (supports wildcards in filename part)
+	 */
+	private static void findFilesByPattern(File patternFile, Set<String> result, File embedRootDir) {
+		if (patternFile == null) {
+			return;
+		}
+		
+		Path patternPath = patternFile.toPath().normalize();
+		String patternStr = patternPath.toString();
+		Path embedRootPath = embedRootDir.toPath().toAbsolutePath().normalize();
+		
+		// Check if pattern contains wildcards
+		if (patternStr.contains("*") || patternStr.contains("?")) {
+			// Extract directory and filename pattern
+			File parentDir = patternFile.getParentFile();
+			if (parentDir == null || !parentDir.isDirectory()) {
+				return;
+			}
+			
+			String filenamePattern = patternFile.getName();
+			// Convert simple wildcard pattern to regex
+			String regex = filenamePattern
+				.replace(".", "\\.")
+				.replace("*", ".*")
+				.replace("?", ".");
+			
+			Pattern filePattern = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
+			
+			// Search in directory
+			File[] files = parentDir.listFiles();
+			if (files != null) {
+				for (File file : files) {
+					if (file.isFile() && filePattern.matcher(file.getName()).matches()) {
+						// Get relative path from embed root
+						Path filePath = file.toPath().toAbsolutePath().normalize();
+						// Security check: ensure file is within embed root
+						if (filePath.startsWith(embedRootPath)) {
+							Path relativePath = embedRootPath.relativize(filePath);
+							result.add(relativePath.toString().replace('\\', '/'));
+						}
+					}
+				}
+			}
+		} else {
+			// No wildcards - exact file match
+			if (patternFile.isFile()) {
+				// Get relative path from embed root
+				Path filePath = patternFile.toPath().toAbsolutePath().normalize();
+				// Security check: ensure file is within embed root
+				if (filePath.startsWith(embedRootPath)) {
+					Path relativePath = embedRootPath.relativize(filePath);
+					result.add(relativePath.toString().replace('\\', '/'));
+				}
+			}
+		}
+	}
+	
+	/**
+	 * Write GGB file with embedded files
+	 */
+	private static void writeZippedWithEmbeddedFiles(FileOutputStream fos, String xmlString, 
+			Set<String> filesToEmbed, File embedRootDir) throws IOException {
+		ZipOutputStream zip = new ZipOutputStream(fos);
+		
+		// Write XML file
+		zip.putNextEntry(new ZipEntry(MyXMLio.XML_FILE));
+		zip.write(xmlString.getBytes(StandardCharsets.UTF_8));
+		zip.closeEntry();
+		
+		// Write embedded files
+		int embeddedCount = 0;
+		for (String relativePath : filesToEmbed) {
+			try {
+				// Resolve file path relative to embed root directory
+				Path filePath = embedRootDir.toPath().resolve(relativePath).normalize();
+				
+				// Security check: ensure file is within embed root directory
+				Path embedRootPath = embedRootDir.toPath().toAbsolutePath().normalize();
+				if (!filePath.toAbsolutePath().normalize().startsWith(embedRootPath)) {
+					String error = "Skipping embedded file with dangerous path (would escape embed root): " + relativePath;
+					errors.add(error);
+					System.err.println("Error: " + error);
+					continue;
+				}
+				
+				File fileToEmbed = filePath.toFile();
+				if (!fileToEmbed.exists() || !fileToEmbed.isFile()) {
+					String error = "Embedded file not found: " + relativePath;
+					errors.add(error);
+					System.err.println("Warning: " + error);
+					continue;
+				}
+				
+				// Add file to zip
+				zip.putNextEntry(new ZipEntry(relativePath.replace('\\', '/')));
+				try (FileInputStream fis = new FileInputStream(fileToEmbed)) {
+					byte[] buffer = new byte[8192];
+					int read;
+					while ((read = fis.read(buffer)) != -1) {
+						zip.write(buffer, 0, read);
+					}
+				}
+				zip.closeEntry();
+				embeddedCount++;
+			} catch (IOException e) {
+				String error = "Failed to embed file " + relativePath + ": " + e.getMessage();
+				errors.add(error);
+				System.err.println("Warning: " + error);
+			}
+		}
+		
+		zip.close();
+		
+		if (embeddedCount > 0) {
+			System.out.println("Embedded " + embeddedCount + " file(s)");
+		}
+	}
+
+	/**
 	 * Recursively convert all GPAD files in a directory
 	 */
 	private static void convertDirectory(File inputDir, File outputDir, boolean overwrite) {
@@ -399,8 +650,10 @@ public class GpadToGgb {
 			}
 			File outputFile = outputFilePath.toFile();
 
+			// Resolve embed root directory relative to gpad file directory
+			File actualEmbedRoot = resolveEmbedRootDir(gpadFile, embedRootDirPattern);
 			// Convert file
-			convertFile(gpadFile, outputFile, overwrite);
+			convertFile(gpadFile, outputFile, overwrite, actualEmbedRoot);
 		}
 	}
 
@@ -439,6 +692,10 @@ public class GpadToGgb {
 		System.err.println("Options:");
 		System.err.println("  -i <file|dir>  Input file or directory");
 		System.err.println("  -o <file|dir>  Output file or directory");
+		System.err.println("  -d <dir>       Root directory for embedded files (relative to each gpad file directory)");
+		System.err.println("                 Default: \".\" (gpad file directory). Supports relative paths like \"../images\"");
+		System.err.println("  -e <pattern>   File pattern to embed (relative to -d, can appear multiple times)");
+		System.err.println("                 Supports wildcards (*, ?) in filename part");
 		System.err.println("  -w             Overwrite existing files (default: skip)");
 		System.err.println();
 		System.err.println("Examples:");
@@ -469,6 +726,9 @@ public class GpadToGgb {
 				System.err.println("  " + error);
 			}
 		}
+		
+		// Note: Warnings are already printed during conversion, so we don't need to repeat them here
+		// This keeps the summary clean while ensuring warnings are visible during processing
 	}
 }
 

@@ -223,7 +223,7 @@ public class GpadStyleSheetResetTest extends BaseUnitTest {
 	// ========== Tests for GpadStyleXMLApplier with reset marker ==========
 
 	@Test
-	public void testApplyWithResetMarkerAndNormalAttributes() throws GpadParseException {
+	public void testApplyWithResetMarkerAndNormalAttributes() {
 		// Create a point
 		GeoPoint point = new GeoPoint(getConstruction());
 		point.setCoords(1, 2, 1);
@@ -250,7 +250,7 @@ public class GpadStyleSheetResetTest extends BaseUnitTest {
 	}
 
 	@Test
-	public void testApplyWithResetMarkerOnly() throws GpadParseException {
+	public void testApplyWithResetMarkerOnly() {
 		// Create a line
 		GeoLine line = new GeoLine(getConstruction());
 		line.setLabel("g");
@@ -275,7 +275,7 @@ public class GpadStyleSheetResetTest extends BaseUnitTest {
 	}
 
 	@Test
-	public void testApplyWithResetMarkerAndMultipleAttributes() throws GpadParseException {
+	public void testApplyWithResetMarkerAndMultipleAttributes() {
 		// Create a line
 		GeoLine line = new GeoLine(getConstruction());
 		line.setLabel("g");
@@ -301,7 +301,7 @@ public class GpadStyleSheetResetTest extends BaseUnitTest {
 	}
 
 	@Test
-	public void testApplyMultiplePropertiesWithResetMarker() throws GpadParseException {
+	public void testApplyMultiplePropertiesWithResetMarker() {
 		// Create a point
 		GeoPoint point = new GeoPoint(getConstruction());
 		point.setCoords(1, 2, 1);
@@ -358,7 +358,7 @@ public class GpadStyleSheetResetTest extends BaseUnitTest {
 			assertNotNull(attrs);
 			assertTrue("Should contain reset marker", attrs.containsKey("~"));
 			assertEquals("Reset marker value should be empty", "", attrs.get("~"));
-		} catch (GpadParseException | org.geogebra.common.kernel.CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -379,7 +379,7 @@ public class GpadStyleSheetResetTest extends BaseUnitTest {
 			assertNotNull(attrs);
 			assertTrue("Should contain reset marker", attrs.containsKey("~"));
 			assertEquals("8", attrs.get("val"));
-		} catch (GpadParseException | org.geogebra.common.kernel.CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -410,7 +410,7 @@ public class GpadStyleSheetResetTest extends BaseUnitTest {
 			assertNotNull(objColorAttrs);
 			assertTrue("Should not contain reset marker", !objColorAttrs.containsKey("~"));
 			assertEquals("255", objColorAttrs.get("r"));
-		} catch (GpadParseException | org.geogebra.common.kernel.CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}

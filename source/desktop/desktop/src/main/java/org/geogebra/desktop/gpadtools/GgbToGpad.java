@@ -7,10 +7,17 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
+import org.geogebra.common.io.MyXMLio;
 import org.geogebra.common.io.XMLParseException;
+import org.geogebra.common.jre.io.StreamUtil;
 import org.geogebra.common.util.debug.Log;
 import org.geogebra.desktop.headless.AppDNoGui;
 import org.geogebra.desktop.headless.GFileHandler;
@@ -182,6 +189,9 @@ public class GgbToGpad {
 		if (outputDir != null && !outputDir.exists()) {
 			outputDir.mkdirs();
 		}
+
+		// Extract embedded files from ggb zip archive before loading
+		extractEmbeddedFiles(inputFile, outputFile);
 
 		AppDNoGui app = null;
 		try {
@@ -499,6 +509,103 @@ public class GgbToGpad {
 
 			// Convert file
 			convertFile(ggbFile, outputFile, mergeStyles, overwrite);
+		}
+	}
+
+	/**
+	 * Extract embedded files from ggb zip archive to subdirectories relative to output gpad file
+	 * 
+	 * @param inputFile the input ggb file (zip archive)
+	 * @param outputFile the output gpad file
+	 */
+	private static void extractEmbeddedFiles(File inputFile, File outputFile) {
+		// System files that should not be extracted as embedded files
+		Set<String> systemFiles = new HashSet<>();
+		systemFiles.add(MyXMLio.XML_FILE);
+		systemFiles.add(MyXMLio.XML_FILE_MACRO);
+		systemFiles.add(MyXMLio.XML_FILE_DEFAULTS_2D);
+		systemFiles.add(MyXMLio.XML_FILE_DEFAULTS_3D);
+		systemFiles.add(MyXMLio.JAVASCRIPT_FILE);
+		systemFiles.add(MyXMLio.XML_FILE_THUMBNAIL);
+		systemFiles.add("structure.json");
+
+		// Get output directory (where gpad file is located)
+		File outputDir = outputFile.getParentFile();
+		if (outputDir == null) {
+			// If output file has no parent, use current directory
+			outputDir = new File(".");
+		}
+
+		int extractedCount = 0;
+		try (ZipInputStream zip = new ZipInputStream(new FileInputStream(inputFile))) {
+			ZipEntry entry;
+			while ((entry = zip.getNextEntry()) != null) {
+				String entryName = entry.getName();
+				
+				// Skip system files and directories
+				if (systemFiles.contains(entryName) || entry.isDirectory()) {
+					zip.closeEntry();
+					continue;
+				}
+
+				// Extract embedded file
+				// Preserve directory structure in zip, but relative to output directory
+				// Normalize path: remove leading slash if present (zip entries may have it)
+				String normalizedName = entryName;
+				if (normalizedName.startsWith("/")) {
+					normalizedName = normalizedName.substring(1);
+				}
+				Path entryPath = Paths.get(normalizedName).normalize();
+				
+				// Security check: ensure the path doesn't escape the output directory
+				// Check for path traversal attempts (e.g., ".." or absolute paths)
+				if (entryPath.isAbsolute() || entryPath.toString().contains("..")) {
+					String error = "Skipping embedded file with dangerous path (would escape output directory): " + entryName;
+					errors.add(inputFile.getAbsolutePath() + ": " + error);
+					System.err.println("Error [" + inputFile.getAbsolutePath() + "]: " + error);
+					zip.closeEntry();
+					continue;
+				}
+				
+				Path outputDirPath = outputDir.toPath().toAbsolutePath().normalize();
+				Path outputPath = outputDirPath.resolve(entryPath).normalize();
+				
+				// Additional security check: ensure the resolved path is still within output directory
+				if (!outputPath.startsWith(outputDirPath)) {
+					String error = "Skipping embedded file with dangerous path (would escape output directory): " + entryName;
+					errors.add(inputFile.getAbsolutePath() + ": " + error);
+					System.err.println("Error [" + inputFile.getAbsolutePath() + "]: " + error);
+					zip.closeEntry();
+					continue;
+				}
+				
+				// Create parent directories if needed
+				File outputFileForEntry = outputPath.toFile();
+				File parentDir = outputFileForEntry.getParentFile();
+				if (parentDir != null && !parentDir.exists()) {
+					parentDir.mkdirs();
+				}
+
+				// Extract file content
+				byte[] content = StreamUtil.loadIntoMemory(zip);
+				
+				// Write to output file
+				try (FileOutputStream fos = new FileOutputStream(outputFileForEntry)) {
+					fos.write(content);
+				}
+				
+				extractedCount++;
+				zip.closeEntry();
+			}
+		} catch (IOException e) {
+			// Log error but don't fail the conversion
+			String error = "Failed to extract embedded files: " + e.getMessage();
+			errors.add(inputFile.getAbsolutePath() + ": " + error);
+			System.err.println("Warning [" + inputFile.getAbsolutePath() + "]: " + error);
+		}
+
+		if (extractedCount > 0) {
+			System.out.println("Extracted " + extractedCount + " embedded file(s) from " + inputFile.getName());
 		}
 	}
 

@@ -9,7 +9,7 @@ import static org.junit.Assert.fail;
 import java.util.List;
 
 import org.geogebra.common.BaseUnitTest;
-import org.geogebra.common.kernel.CircularDefinitionException;
+
 import org.geogebra.common.kernel.Macro;
 import org.geogebra.common.kernel.geos.GeoElement;
 import org.geogebra.common.kernel.geos.GeoLine;
@@ -43,7 +43,7 @@ public class GpadMacroTest extends BaseUnitTest {
 			assertEquals("Midpoint", macro.getCommandName());
 			assertEquals(2, macro.getMacroInput().length);
 			assertEquals(1, macro.getMacroOutput().length);
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -64,7 +64,7 @@ public class GpadMacroTest extends BaseUnitTest {
 			assertNotNull(macro);
 			assertEquals(0, macro.getMacroInput().length);
 			assertEquals(1, macro.getMacroOutput().length);
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -90,7 +90,7 @@ public class GpadMacroTest extends BaseUnitTest {
 			assertNotNull(macro);
 			assertEquals(3, macro.getMacroInput().length);
 			assertEquals(3, macro.getMacroOutput().length);
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -117,7 +117,7 @@ public class GpadMacroTest extends BaseUnitTest {
 			// Verify that macro's stylesheet is not in global stylesheets
 			assertNull("Macro stylesheet should not be in global scope", 
 					parser.getGlobalStyleSheets().get("red"));
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -148,7 +148,7 @@ public class GpadMacroTest extends BaseUnitTest {
 			
 			Macro macro = getKernel().getMacro("TestMacro");
 			assertNotNull(macro);
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -181,7 +181,7 @@ public class GpadMacroTest extends BaseUnitTest {
 			GeoElement m = getKernel().lookupLabel("M");
 			assertNotNull("M should be created by macro call", m);
 			assertTrue("M should be a point", m instanceof GeoPoint);
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -207,8 +207,6 @@ public class GpadMacroTest extends BaseUnitTest {
 			// Expected: macro name conflict
 			assertTrue("Error should mention macro name conflict", 
 					e.getMessage().contains("already exists") || e.getMessage().contains("TestMacro"));
-		} catch (CircularDefinitionException e) {
-			fail("Unexpected CircularDefinitionException: " + e.getMessage());
 		}
 	}
 
@@ -228,8 +226,6 @@ public class GpadMacroTest extends BaseUnitTest {
 			// The exception message contains "GPAD_RETURN" or "RBRACE" indicating missing @@return
 			assertTrue("Error should mention GPAD_RETURN or RBRACE", 
 					e.getMessage().contains("GPAD_RETURN") || e.getMessage().contains("RBRACE"));
-		} catch (CircularDefinitionException e) {
-			fail("Unexpected CircularDefinitionException: " + e.getMessage());
 		}
 	}
 
@@ -249,8 +245,6 @@ public class GpadMacroTest extends BaseUnitTest {
 			// Expected: input object A not found in macro body
 			assertTrue("Error should mention input object not found", 
 					e.getMessage().contains("Input object") || e.getMessage().contains("not found"));
-		} catch (CircularDefinitionException e) {
-			fail("Unexpected CircularDefinitionException: " + e.getMessage());
 		}
 	}
 
@@ -270,8 +264,6 @@ public class GpadMacroTest extends BaseUnitTest {
 			// Expected: output object Q not found in macro body
 			assertTrue("Error should mention output object not found", 
 					e.getMessage().contains("Output object") || e.getMessage().contains("not found"));
-		} catch (CircularDefinitionException e) {
-			fail("Unexpected CircularDefinitionException: " + e.getMessage());
 		}
 	}
 
@@ -298,7 +290,7 @@ public class GpadMacroTest extends BaseUnitTest {
 			
 			// Verify macro's stylesheet is not in global scope
 			assertNull(parser.getGlobalStyleSheets().get("lineStyle"));
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -335,7 +327,7 @@ public class GpadMacroTest extends BaseUnitTest {
 			assertTrue("a should be a segment", a instanceof GeoSegment);
 			assertTrue("b should be a segment", b instanceof GeoSegment);
 			assertTrue("c should be a segment", c instanceof GeoSegment);
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -356,7 +348,7 @@ public class GpadMacroTest extends BaseUnitTest {
 			parser.parse(gpad);
 			// If parsing succeeds, the stylesheet reference should be null
 			// (This depends on implementation - if it's null, it might just skip the style)
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			// This is acceptable - macro cannot access global stylesheets
 			// The exact behavior depends on implementation
 		}
@@ -390,7 +382,7 @@ public class GpadMacroTest extends BaseUnitTest {
 			Macro distanceMacro = getKernel().getMacro("MyDistance");
 			assertNotNull("MyMidpoint macro should be registered", midpointMacro);
 			assertNotNull("MyDistance macro should be registered", distanceMacro);
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -412,7 +404,7 @@ public class GpadMacroTest extends BaseUnitTest {
 			// Output is just the input, which should be valid
 			assertEquals(1, macro.getMacroInput().length);
 			assertEquals(1, macro.getMacroOutput().length);
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -438,7 +430,7 @@ public class GpadMacroTest extends BaseUnitTest {
 			assertNotNull(macro);
 			assertEquals(2, macro.getMacroInput().length);
 			assertEquals(2, macro.getMacroOutput().length);
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -465,7 +457,7 @@ public class GpadMacroTest extends BaseUnitTest {
 			GeoElement m = getKernel().lookupLabel("M");
 			assertNotNull("M should be created", m);
 			assertTrue("M should be a point", m instanceof GeoPoint);
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}

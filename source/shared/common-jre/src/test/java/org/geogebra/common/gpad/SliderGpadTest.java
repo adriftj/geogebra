@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.geogebra.common.BaseUnitTest;
-import org.geogebra.common.kernel.CircularDefinitionException;
+
 import org.geogebra.common.kernel.geos.GeoAngle;
 import org.geogebra.common.kernel.geos.GeoElement;
 import org.geogebra.common.kernel.geos.GeoNumeric;
@@ -42,7 +42,7 @@ public class SliderGpadTest extends BaseUnitTest {
 			assertEquals(0.0, num.getIntervalMin(), 1e-10);
 			assertEquals(10.0, num.getIntervalMax(), 1e-10);
 			assertEquals(200.0, num.getSliderWidth(), 1e-10);
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -69,7 +69,7 @@ public class SliderGpadTest extends BaseUnitTest {
 			assertEquals(150.0, num.getSliderY(), 1e-10);
 			// When x/y are set in slider, absoluteScreenLocation should be false
 			assertTrue(!num.isAbsoluteScreenLocActive());
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -98,7 +98,7 @@ public class SliderGpadTest extends BaseUnitTest {
 			// Coordinates should come from slider's x/y
 			assertEquals(100.0, num.getAbsoluteScreenLocX(), 1e-10);
 			assertEquals(200.0, num.getAbsoluteScreenLocY(), 1e-10);
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -119,7 +119,7 @@ public class SliderGpadTest extends BaseUnitTest {
 			
 			// Verify slider is vertical (horizontal = false)
 			assertTrue(!num.isSliderHorizontal());
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -140,7 +140,7 @@ public class SliderGpadTest extends BaseUnitTest {
 			
 			// Verify algebra view visibility
 			assertTrue(num.isAVSliderOrCheckboxVisible());
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -161,7 +161,7 @@ public class SliderGpadTest extends BaseUnitTest {
 			
 			// Verify arbitrary constant
 			assertTrue(getKernel().getConstruction().getUnclaimedArbitraryConstants().contains(num));
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -183,7 +183,7 @@ public class SliderGpadTest extends BaseUnitTest {
 			
 			// Verify fixed property from slider
 			assertTrue(num.isLockedPosition());
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -205,7 +205,7 @@ public class SliderGpadTest extends BaseUnitTest {
 			// Verify slider properties with expressions
 			assertEquals(-5.0, num.getIntervalMin(), 1e-10);
 			assertEquals(10.0, num.getIntervalMax(), 1e-10);
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -233,7 +233,7 @@ public class SliderGpadTest extends BaseUnitTest {
 			assertTrue(!num.isSliderHorizontal());
 			assertTrue(num.isAVSliderOrCheckboxVisible());
 			assertTrue(getKernel().getConstruction().getUnclaimedArbitraryConstants().contains(num));
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -256,7 +256,7 @@ public class SliderGpadTest extends BaseUnitTest {
 			assertTrue(num.isSliderHorizontal()); // ~vertical means horizontal (default)
 			assertTrue(!num.isAVSliderOrCheckboxVisible()); // ~algebra means false
 			assertTrue(!getKernel().getConstruction().getUnclaimedArbitraryConstants().contains(num)); // ~constant means false
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -281,7 +281,7 @@ public class SliderGpadTest extends BaseUnitTest {
 			assertTrue(num.isAbsoluteScreenLocActive());
 			assertEquals(100.0, num.getAbsoluteScreenLocX(), 1e-10);
 			assertEquals(200.0, num.getAbsoluteScreenLocY(), 1e-10);
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -465,7 +465,7 @@ public class SliderGpadTest extends BaseUnitTest {
 			// For independent GeoNumeric with valid intervals, this should be true
 			assertTrue("Number expression with slider style should create a slider", 
 					num.isSliderable());
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -512,7 +512,7 @@ public class SliderGpadTest extends BaseUnitTest {
 			// Verify that the object is sliderable (has valid intervals and is independent)
 			assertTrue("Number expression with slider style should be sliderable", 
 					num.isSliderable());
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -561,7 +561,7 @@ public class SliderGpadTest extends BaseUnitTest {
 			// isSliderable() only checks if object can be a slider, not if it's currently visible
 			assertTrue("Number expression with slider style should be sliderable even when hidden", 
 					num.isSliderable());
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -597,7 +597,7 @@ public class SliderGpadTest extends BaseUnitTest {
 			// Note: isSliderable() will return false because Angle(pi/4) creates
 			// a dependent object (not independent). Only independent objects can be sliders.
 			// This is expected behavior in GeoGebra.
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -623,7 +623,7 @@ public class SliderGpadTest extends BaseUnitTest {
 			assertEquals(0.0, angle.getIntervalMin(), 1e-10);
 			assertEquals(2 * Math.PI, angle.getIntervalMax(), 1e-10);
 			assertEquals(180.0, angle.getSliderWidth(), 1e-10);
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -649,7 +649,7 @@ public class SliderGpadTest extends BaseUnitTest {
 			assertEquals(100.0, angle.getSliderX(), 1e-10);
 			assertEquals(150.0, angle.getSliderY(), 1e-10);
 			assertTrue(!angle.isAbsoluteScreenLocActive());
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -678,7 +678,7 @@ public class SliderGpadTest extends BaseUnitTest {
 			// Coordinates should come from slider's x/y
 			assertEquals(100.0, angle.getAbsoluteScreenLocX(), 1e-10);
 			assertEquals(200.0, angle.getAbsoluteScreenLocY(), 1e-10);
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -699,7 +699,7 @@ public class SliderGpadTest extends BaseUnitTest {
 			
 			// Verify slider is vertical (horizontal = false)
 			assertTrue(!angle.isSliderHorizontal());
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -722,7 +722,7 @@ public class SliderGpadTest extends BaseUnitTest {
 			// Verify slider properties with unbounded range
 			assertEquals(-Math.PI, angle.getIntervalMin(), 1e-10);
 			assertEquals(3 * Math.PI, angle.getIntervalMax(), 1e-10);
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -749,7 +749,7 @@ public class SliderGpadTest extends BaseUnitTest {
 			assertEquals(150.0, angle.getSliderY(), 1e-10);
 			assertTrue(!angle.isSliderHorizontal());
 			assertTrue(angle.isAVSliderOrCheckboxVisible());
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}

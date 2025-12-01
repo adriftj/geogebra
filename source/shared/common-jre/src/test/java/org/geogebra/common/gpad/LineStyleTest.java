@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.geogebra.common.BaseUnitTest;
-import org.geogebra.common.kernel.CircularDefinitionException;
+
 import org.geogebra.common.kernel.geos.GeoElement;
 import org.geogebra.common.kernel.geos.GeoLine;
 import org.junit.Test;
@@ -51,7 +51,7 @@ public class LineStyleTest extends BaseUnitTest {
 			assertEquals("0", attrs.get("typeHidden")); // hidden (no value) -> 0
 			assertEquals("128", attrs.get("opacity")); // 128.6 -> 128 (decimal ignored)
 			assertEquals("false", attrs.get("drawArrow")); // ~arrow -> false
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -88,7 +88,7 @@ public class LineStyleTest extends BaseUnitTest {
 			assertEquals("1", attrs.get("typeHidden")); // hidden=dashed -> 1
 			assertEquals("127", attrs.get("opacity")); // 127 -> 127
 			assertEquals("true", attrs.get("drawArrow")); // arrow -> true
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -119,7 +119,7 @@ public class LineStyleTest extends BaseUnitTest {
 			assertNotNull(attrs);
 			assertEquals("20", attrs.get("type")); // dotted -> 20
 			assertEquals("5", attrs.get("thickness")); // default thickness
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -150,7 +150,7 @@ public class LineStyleTest extends BaseUnitTest {
 			assertNotNull(attrs);
 			assertEquals("0", attrs.get("type")); // default type (full)
 			assertEquals("10", attrs.get("thickness")); // 10.5 -> 10
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -183,7 +183,7 @@ public class LineStyleTest extends BaseUnitTest {
 			assertEquals("0", attrs.get("type")); // default type (full)
 			assertEquals("5", attrs.get("thickness")); // default thickness
 			assertEquals("2", attrs.get("typeHidden")); // hidden=show -> 2
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -218,7 +218,7 @@ public class LineStyleTest extends BaseUnitTest {
 				assertNotNull(attrs);
 				assertEquals(expectedValues[i], attrs.get("type"));
 				assertEquals("5", attrs.get("thickness")); // default thickness
-			} catch (GpadParseException | CircularDefinitionException e) {
+			} catch (GpadParseException e) {
 				throw new AssertionError("Parse failed for type " + types[i] + ": " + e.getMessage(), e);
 			}
 		}
@@ -242,7 +242,7 @@ public class LineStyleTest extends BaseUnitTest {
 			assertEquals(10, geo.getLineType()); // dashedshort -> 10
 			assertEquals(3, geo.getLineThickness()); // thickness=3
 			assertEquals(100, geo.getLineOpacity()); // opacity=100
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -372,7 +372,7 @@ public class LineStyleTest extends BaseUnitTest {
 		assertTrue(gpad1.contains("arrow"));
 		assertTrue(!gpad1.contains("~arrow"));
 		
-		// Test drawArrow="false" -> 不出现
+		// Test drawArrow="false" -> 不出�?
 		LinkedHashMap<String, String> attrs2 = new LinkedHashMap<>();
 		attrs2.put("drawArrow", "false");
 		Map<String, LinkedHashMap<String, String>> styleMap2 = new LinkedHashMap<>();
@@ -422,7 +422,7 @@ public class LineStyleTest extends BaseUnitTest {
 			assertTrue(convertedGpad.contains("hidden"));
 			assertTrue(convertedGpad.contains("opacity=128"));
 			assertTrue(!convertedGpad.contains("arrow"));
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Round-trip failed: " + e.getMessage(), e);
 		}
 	}
@@ -445,7 +445,7 @@ public class LineStyleTest extends BaseUnitTest {
 			// Empty lineStyle should not create a property or create empty attributes
 			LinkedHashMap<String, String> attrs = styleSheet.getProperty("lineStyle");
 			// Either null or empty is acceptable
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -477,7 +477,7 @@ public class LineStyleTest extends BaseUnitTest {
 			assertEquals("0", attrs.get("type")); // default type (full)
 			assertEquals("3", attrs.get("thickness"));
 			assertEquals("true", attrs.get("drawArrow"));
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}

@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.geogebra.common.BaseUnitTest;
-import org.geogebra.common.kernel.CircularDefinitionException;
+
 import org.geogebra.common.kernel.geos.GeoElement;
 import org.geogebra.common.kernel.geos.GeoFunction;
 import org.geogebra.common.kernel.kernelND.GeoEvaluatable;
@@ -40,7 +40,7 @@ public class TableViewGpadTest extends BaseUnitTest {
 			// Verify tableview properties
 			assertEquals(2, evaluatable.getTableColumn());
 			assertTrue(evaluatable.isPointsVisible());
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -62,7 +62,7 @@ public class TableViewGpadTest extends BaseUnitTest {
 			// Verify tableview properties
 			assertEquals(1, evaluatable.getTableColumn());
 			assertTrue(!evaluatable.isPointsVisible());
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -87,7 +87,7 @@ public class TableViewGpadTest extends BaseUnitTest {
 			// Column should remain at default (-1) when not specified
 			assertEquals(-1, evaluatable.getTableColumn());
 			assertTrue(evaluatable.isPointsVisible());
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -110,7 +110,7 @@ public class TableViewGpadTest extends BaseUnitTest {
 			assertEquals(3, evaluatable.getTableColumn());
 			// points should remain at default (true) when not specified
 			assertTrue(evaluatable.isPointsVisible());
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -135,7 +135,7 @@ public class TableViewGpadTest extends BaseUnitTest {
 			// Column should remain at default (-1) when not specified
 			assertEquals(-1, evaluatable.getTableColumn());
 			assertTrue(!evaluatable.isPointsVisible());
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -157,7 +157,7 @@ public class TableViewGpadTest extends BaseUnitTest {
 			// Verify tableview properties
 			assertEquals(0, evaluatable.getTableColumn());
 			assertTrue(evaluatable.isPointsVisible());
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -335,7 +335,7 @@ public class TableViewGpadTest extends BaseUnitTest {
 			assertTrue("Converted GPAD should contain tableview. Actual: " + convertedGpad, convertedGpad.contains("tableview:"));
 			assertTrue("Converted GPAD should contain column 2", convertedGpad.contains("2"));
 			assertTrue("Converted GPAD should contain points", convertedGpad.contains("points"));
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -367,7 +367,7 @@ public class TableViewGpadTest extends BaseUnitTest {
 			assertTrue("Converted GPAD should contain tableview", convertedGpad.contains("tableview:"));
 			assertTrue("Converted GPAD should contain column 1", convertedGpad.contains("1"));
 			assertTrue("Converted GPAD should contain ~points", convertedGpad.contains("~points"));
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}

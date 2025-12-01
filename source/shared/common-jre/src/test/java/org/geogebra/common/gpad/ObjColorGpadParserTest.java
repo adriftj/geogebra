@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.geogebra.common.BaseUnitTest;
-import org.geogebra.common.kernel.CircularDefinitionException;
+
 import org.geogebra.common.kernel.geos.GeoElement;
 import org.junit.Test;
 
@@ -37,7 +37,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 			assertEquals("0", attrs.get("g"));
 			assertEquals("0", attrs.get("b"));
 			assertNull(attrs.get("alpha")); // alpha is absence
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -60,7 +60,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 			// alpha = 0x80 = 128, 128/255 = 0.50196...
 			double alpha = Double.parseDouble(attrs.get("alpha"));
 			assertTrue(Math.abs(alpha - 128.0 / 255.0) < 0.001);
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -80,7 +80,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 			assertEquals("0", attrs.get("r"));
 			assertEquals("255", attrs.get("g"));
 			assertEquals("0", attrs.get("b"));
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -102,7 +102,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 			assertEquals("z", attrs.get("dynamicb"));
 			assertTrue(attrs.get("dynamica") == null); // No alpha
 			assertEquals("0", attrs.get("colorSpace")); // RGB
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -124,7 +124,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 			assertEquals("z", attrs.get("dynamicb"));
 			assertEquals("a", attrs.get("dynamica")); // Has alpha
 			assertEquals("0", attrs.get("colorSpace")); // RGB
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -145,7 +145,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 			assertEquals("s", attrs.get("dynamicg"));
 			assertEquals("v", attrs.get("dynamicb"));
 			assertEquals("1", attrs.get("colorSpace")); // HSB
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -167,7 +167,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 			assertEquals("v", attrs.get("dynamicb"));
 			assertEquals("a", attrs.get("dynamica"));
 			assertEquals("1", attrs.get("colorSpace")); // HSB
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -188,7 +188,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 			assertEquals("s", attrs.get("dynamicg"));
 			assertEquals("l", attrs.get("dynamicb"));
 			assertEquals("2", attrs.get("colorSpace")); // HSL
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -210,7 +210,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 			assertEquals("l", attrs.get("dynamicb"));
 			assertEquals("a", attrs.get("dynamica"));
 			assertEquals("2", attrs.get("colorSpace")); // HSL
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -230,7 +230,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 			assertEquals("x*255", attrs.get("dynamicr"));
 			assertEquals("sin(y)*128+128", attrs.get("dynamicg"));
 			assertEquals("z^2*255", attrs.get("dynamicb"));
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -250,7 +250,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 			assertEquals("x*255", attrs.get("dynamicr"));
 			assertEquals("y+128", attrs.get("dynamicg"));
 			assertEquals("z/2", attrs.get("dynamicb"));
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -270,7 +270,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 			assertEquals("x\n*255", attrs.get("dynamicr")); // \n converted to newline
 			assertEquals("y\t+128", attrs.get("dynamicg")); // \t converted to tab
 			assertEquals("z\r/2", attrs.get("dynamicb")); // \r converted to carriage return
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -288,7 +288,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 			java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("objColor");
 			assertNotNull(attrs);
 			assertEquals("1", attrs.get("fillType")); // HATCH
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -311,7 +311,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 				java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("objColor");
 				assertNotNull("Fill type " + fillTypes[i] + " should be parsed", attrs);
 				assertEquals("Fill type value should match", String.valueOf(expectedValues[i]), attrs.get("fillType"));
-			} catch (GpadParseException | CircularDefinitionException e) {
+			} catch (GpadParseException e) {
 				throw new AssertionError("Parse failed for fill type " + fillTypes[i] + ": " + e.getMessage(), e);
 			}
 		}
@@ -330,7 +330,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 			java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("objColor");
 			assertNotNull(attrs);
 			assertEquals("30", attrs.get("hatchAngle"));
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -348,7 +348,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 			java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("objColor");
 			assertNotNull(attrs);
 			assertEquals("15", attrs.get("hatchDistance"));
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -367,7 +367,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 			assertNotNull(attrs);
 			assertEquals("path/to/image.png", attrs.get("image"));
 			assertEquals("9", attrs.get("fillType")); // IMAGE
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -385,7 +385,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 			java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("objColor");
 			assertNotNull(attrs);
 			assertEquals("path/to/image with spaces.png", attrs.get("image"));
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -404,7 +404,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 			assertNotNull(attrs);
 			assertEquals("$", attrs.get("fillSymbol"));
 			assertEquals("8", attrs.get("fillType")); // SYMBOLS
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -422,7 +422,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 			java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("objColor");
 			assertNotNull(attrs);
 			assertEquals("*", attrs.get("fillSymbol"));
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -440,7 +440,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 			java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("objColor");
 			assertNotNull(attrs);
 			assertEquals("true", attrs.get("inverseFill"));
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -458,7 +458,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 			java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("objColor");
 			assertNotNull(attrs);
 			assertEquals("false", attrs.get("inverseFill")); // ~inverse clears inverse
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -482,7 +482,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 			assertEquals("30", attrs.get("hatchAngle"));
 			assertEquals("15", attrs.get("hatchDistance"));
 			assertEquals("true", attrs.get("inverseFill"));
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -510,7 +510,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 			assertEquals("test.png", attrs.get("image"));
 			assertEquals("*", attrs.get("fillSymbol"));
 			assertEquals("true", attrs.get("inverseFill"));
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -532,7 +532,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 			assertEquals("30", attrs.get("hatchAngle"));
 			assertEquals("15", attrs.get("hatchDistance"));
 			assertEquals("true", attrs.get("inverseFill"));
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -547,7 +547,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 			assertEquals(1, geos.size());
 			GeoElement geo = geos.get(0);
 			assertEquals("A", geo.getLabelSimple());
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -567,7 +567,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 			// Should still have fillType even if no color
 			assertNotNull(attrs);
 			assertEquals("1", attrs.get("fillType"));
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -589,7 +589,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 			assertEquals("cos(z)", attrs.get("dynamicb"));
 			assertEquals("abs(a)", attrs.get("dynamica"));
 			assertEquals("1", attrs.get("colorSpace")); // HSB
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -611,7 +611,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 			assertEquals("l+0.2", attrs.get("dynamicb"));
 			assertEquals("min(a,1)", attrs.get("dynamica"));
 			assertEquals("2", attrs.get("colorSpace")); // HSL
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -629,7 +629,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 			java.util.LinkedHashMap<String, String> attrs = styleSheet.getProperty("objColor");
 			assertNotNull(attrs);
 			assertEquals("path\nwith\tnewlines.png", attrs.get("image")); // Escape sequences processed
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -671,7 +671,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		assertNotNull(gpad);
 		assertTrue("Should contain objColor", gpad.contains("objColor"));
 		assertTrue("Should contain 8-digit hex with alpha", gpad.contains("#FF0000"));
-		// Alpha = 0.5 * 255 = 127.5 â‰ˆ 128 = 0x80
+		// Alpha = 0.5 * 255 = 127.5 â‰?128 = 0x80
 		assertTrue("Should contain alpha component", gpad.contains("80") || gpad.contains("7F"));
 	}
 

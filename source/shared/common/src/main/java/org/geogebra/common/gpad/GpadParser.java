@@ -8,7 +8,6 @@ import java.util.Map;
 import org.geogebra.common.kernel.CircularDefinitionException;
 import org.geogebra.common.kernel.Kernel;
 import org.geogebra.common.kernel.geos.GeoElement;
-import org.geogebra.common.kernel.parser.ParseException;
 import org.geogebra.common.kernel.parser.Parser;
 
 /**
@@ -41,78 +40,19 @@ public class GpadParser {
 	 * @throws CircularDefinitionException
 	 *             if circular definition is detected
 	 */
-	public List<GeoElement> parse(String gpadText) throws GpadParseException, CircularDefinitionException {
+	public List<GeoElement> parse(String gpadText) throws GpadParseException {
 		if (gpadText == null || gpadText.trim().isEmpty())
 			return new ArrayList<>();
 
-		try {
-			List<GeoElement> results = parser.parseGpad(gpadText);
-			
-			// Update global style sheets
-			Map<String, GpadStyleSheet> parserStyleSheets = parser.getGpadStyleSheets();
-			if (parserStyleSheets != null)
-				globalStyleSheets.putAll(parserStyleSheets);
-			
-			return results;
-		} catch (CircularDefinitionException e) {
-			// Let CircularDefinitionException propagate
-			throw e;
-		} catch (ParseException e) {
-			// Extract line and column information if available
-			int line = -1;
-			int column = -1;
-			try {
-				if (e.currentToken != null) {
-					line = e.currentToken.beginLine;
-					column = e.currentToken.beginColumn;
-				}
-			} catch (Exception ex) {
-				// Ignore if we can't access token information
-			}
-			String errorMsg = e.getMessage();
-			if (errorMsg == null) {
-				errorMsg = "Parse error";
-			}
-			throw new GpadParseException("Parse error: " + errorMsg, line, column);
-		} catch (Exception e) {
-			if (e instanceof GpadParseException) {
-				throw e;
-			}
-			String errorMsg = e.getMessage();
-			if (errorMsg == null) {
-				errorMsg = e.getClass().getSimpleName();
-			}
-			throw new GpadParseException("Error parsing Gpad: " + errorMsg, e);
-		}
-	}
-
-	/**
-	 * Parses a partial Gpad text (for partial parsing support).
-	 * Style sheets are local to this parsing session.
-	 * 
-	 * @param gpadText
-	 *            partial Gpad text
-	 * @return list of created GeoElements
-	 * @throws GpadParseException
-	 *             if parsing fails
-	 * @throws CircularDefinitionException
-	 *             if circular definition is detected
-	 */
-	public List<GeoElement> parsePartial(String gpadText) throws GpadParseException, CircularDefinitionException {
-		// Save current style sheets
-		Map<String, GpadStyleSheet> savedStyleSheets = new HashMap<>(globalStyleSheets);
+		// parseGpad now only throws GpadParseException, so we can directly propagate
+		List<GeoElement> results = parser.parseGpad(gpadText);
 		
-		try {
-			// Parse (this will use local style sheets)
-			List<GeoElement> results = parse(gpadText);
-			// Style sheets from parsing are merged into globalStyleSheets
-			// We don't need to restore since they're already merged
-			return results;
-		} catch (GpadParseException | CircularDefinitionException e) {
-			// Restore style sheets on error
-			globalStyleSheets = savedStyleSheets;
-			throw e;
-		}
+		// Update global style sheets
+		Map<String, GpadStyleSheet> parserStyleSheets = parser.getGpadStyleSheets();
+		if (parserStyleSheets != null)
+			globalStyleSheets.putAll(parserStyleSheets);
+		
+		return results;
 	}
 
 	/**
@@ -127,5 +67,16 @@ public class GpadParser {
 	 */
 	public Kernel getKernel() {
 		return kernel;
+	}
+
+	/**
+	 * Gets the list of warnings collected during the last parse operation.
+	 * 
+	 * @return list of warning messages, or null if no warnings were collected
+	 */
+	public List<String> getGpadWarnings() {
+		if (parser == null)
+			return null;
+		return parser.getGpadWarnings();
 	}
 }

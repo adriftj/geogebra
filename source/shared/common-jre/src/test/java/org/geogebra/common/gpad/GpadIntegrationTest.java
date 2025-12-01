@@ -7,7 +7,7 @@ import static org.junit.Assert.assertTrue;
 import java.util.List;
 
 import org.geogebra.common.BaseUnitTest;
-import org.geogebra.common.kernel.CircularDefinitionException;
+
 import org.geogebra.common.kernel.geos.GeoElement;
 import org.geogebra.common.kernel.geos.GeoPoint;
 import org.junit.Test;
@@ -37,7 +37,7 @@ public class GpadIntegrationTest extends BaseUnitTest {
 			assertNotNull(convertedGpad);
 			assertTrue(convertedGpad.contains("A"));
 			assertTrue(convertedGpad.contains("="));
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -61,7 +61,7 @@ public class GpadIntegrationTest extends BaseUnitTest {
 			// Should contain the label
 			assertNotNull(convertedGpad);
 			assertTrue(convertedGpad.contains("A"));
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -81,7 +81,7 @@ public class GpadIntegrationTest extends BaseUnitTest {
 			// Check that style sheets were registered
 			assertTrue(parser.getGlobalStyleSheets().containsKey("g"));
 			assertTrue(parser.getGlobalStyleSheets().containsKey("h"));
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -100,7 +100,7 @@ public class GpadIntegrationTest extends BaseUnitTest {
 			GeoElement geo = getKernel().lookupLabel("A");
 			assertNotNull(geo);
 			assertTrue(geo instanceof GeoPoint);
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -134,7 +134,7 @@ public class GpadIntegrationTest extends BaseUnitTest {
 			GeoElement geo = geos.get(0);
 			assertEquals("A", geo.getLabelSimple());
 			assertTrue(parser.getGlobalStyleSheets().containsKey("style1"));
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -149,7 +149,7 @@ public class GpadIntegrationTest extends BaseUnitTest {
 			List<GeoElement> geos = parser.parse(gpad);
 			// Nested calls should be supported
 			assertTrue(geos.size() >= 0); // May succeed or fail depending on command syntax
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}

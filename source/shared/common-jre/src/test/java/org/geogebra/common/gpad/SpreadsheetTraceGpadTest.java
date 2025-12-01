@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.geogebra.common.BaseUnitTest;
-import org.geogebra.common.kernel.CircularDefinitionException;
+
 import org.geogebra.common.kernel.geos.GeoElement;
 import org.geogebra.common.kernel.geos.GeoNumeric;
 import org.geogebra.common.kernel.geos.GeoPoint;
@@ -44,7 +44,7 @@ public class SpreadsheetTraceGpadTest extends BaseUnitTest {
 			assertEquals(0, settings.traceColumn1);
 			assertEquals(10, settings.traceRow1);
 			assertEquals(false, settings.doRowLimit);
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -70,7 +70,7 @@ public class SpreadsheetTraceGpadTest extends BaseUnitTest {
 			assertEquals(5, settings.traceRow1);
 			assertEquals(20, settings.numRows);
 			assertEquals(true, settings.doRowLimit);
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -99,7 +99,7 @@ public class SpreadsheetTraceGpadTest extends BaseUnitTest {
 			assertEquals(true, settings.doColumnReset);
 			assertEquals(true, settings.showLabel);
 			assertEquals(true, settings.doTraceGeoCopy);
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -121,7 +121,7 @@ public class SpreadsheetTraceGpadTest extends BaseUnitTest {
 			
 			// Verify spreadsheetTrace is disabled (no trace attribute means default false)
 			assertEquals(false, geo.getSpreadsheetTrace());
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -144,7 +144,7 @@ public class SpreadsheetTraceGpadTest extends BaseUnitTest {
 			assertNotNull(settings);
 			assertEquals(true, settings.pause);
 			assertEquals(true, settings.showTraceList);
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -170,7 +170,7 @@ public class SpreadsheetTraceGpadTest extends BaseUnitTest {
 			assertEquals(0, settings.traceRow1);
 			assertEquals(15, settings.numRows);
 			assertEquals(true, settings.doRowLimit);
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -403,7 +403,7 @@ public class SpreadsheetTraceGpadTest extends BaseUnitTest {
 			}
 			// If spreadsheetTrace is not in XML (due to isUsingFullGui() being false),
 			// that's acceptable - we've already verified the properties were set correctly
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		} catch (Exception e) {
 			throw new AssertionError("XML parsing failed: " + e.getMessage(), e);
@@ -468,7 +468,7 @@ public class SpreadsheetTraceGpadTest extends BaseUnitTest {
 			}
 			// If spreadsheetTrace is not in XML (due to isUsingFullGui() being false),
 			// that's acceptable - we've already verified the properties were set correctly
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		} catch (Exception e) {
 			throw new AssertionError("XML parsing failed: " + e.getMessage(), e);
@@ -536,7 +536,7 @@ public class SpreadsheetTraceGpadTest extends BaseUnitTest {
 			}
 			// If spreadsheetTrace is not in XML (due to isUsingFullGui() being false),
 			// that's acceptable - we've already verified the properties were set correctly
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		} catch (Exception e) {
 			throw new AssertionError("XML parsing failed: " + e.getMessage(), e);
@@ -599,7 +599,7 @@ public class SpreadsheetTraceGpadTest extends BaseUnitTest {
 			}
 			// If spreadsheetTrace is not in XML (due to isUsingFullGui() being false),
 			// that's acceptable - we've already verified the properties were set correctly
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		} catch (Exception e) {
 			throw new AssertionError("XML parsing failed: " + e.getMessage(), e);

@@ -382,7 +382,7 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain coordStyle", gpad.contains("coordStyle"));
-		// 根据新语法，不包含特殊字符的值可以不带引号
+		// 根据新语法，不包含特殊字符的值可以不带引�?
 		assertTrue("Should contain value polar", gpad.contains("polar"));
 	}
 
@@ -439,7 +439,7 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain endStyle", gpad.contains("endStyle"));
-		// 根据新语法，不包含特殊字符的值可以不带引号
+		// 根据新语法，不包含特殊字符的值可以不带引�?
 		assertTrue("Should contain value arrow", gpad.contains("arrow"));
 	}
 
@@ -552,7 +552,7 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain startStyle", gpad.contains("startStyle"));
-		// 根据新语法，不包含特殊字符的值可以不带引号
+		// 根据新语法，不包含特殊字符的值可以不带引�?
 		assertTrue("Should contain value arrow", gpad.contains("arrow"));
 	}
 
@@ -581,7 +581,7 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain textAlign", gpad.contains("textAlign"));
-		// 根据新语法，不包含特殊字符的值可以不带引号
+		// 根据新语法，不包含特殊字符的值可以不带引�?
 		assertTrue("Should contain value center", gpad.contains("center"));
 	}
 
@@ -638,7 +638,7 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain verticalAlign", gpad.contains("verticalAlign"));
-		// 根据新语法，不包含特殊字符的值可以不带引号
+		// 根据新语法，不包含特殊字符的值可以不带引�?
 		assertTrue("Should contain value middle", gpad.contains("middle"));
 	}
 

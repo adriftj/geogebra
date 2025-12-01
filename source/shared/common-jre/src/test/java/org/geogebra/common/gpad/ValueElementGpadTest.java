@@ -7,7 +7,7 @@ import static org.junit.Assert.assertTrue;
 import java.util.List;
 
 import org.geogebra.common.BaseUnitTest;
-import org.geogebra.common.kernel.CircularDefinitionException;
+
 import org.geogebra.common.kernel.geos.GeoButton;
 import org.geogebra.common.kernel.geos.GeoElement;
 import org.geogebra.common.kernel.geos.GeoNumeric;
@@ -44,7 +44,7 @@ public class ValueElementGpadTest extends BaseUnitTest {
 			assertNotNull("Button should have click script", clickScript);
 			assertTrue("Script should contain SetValue", 
 					clickScript.getText().contains("SetValue"));
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -66,7 +66,7 @@ public class ValueElementGpadTest extends BaseUnitTest {
 			// Verify button has script set
 			Script clickScript = button.getScript(EventType.CLICK);
 			assertNotNull("Button should have click script", clickScript);
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -90,7 +90,7 @@ public class ValueElementGpadTest extends BaseUnitTest {
 			assertNotNull("Button should have click script", clickScript);
 			assertTrue("Script should contain semicolon", 
 					clickScript.getText().contains(";"));
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -115,7 +115,7 @@ public class ValueElementGpadTest extends BaseUnitTest {
 			System.out.println("["+convertedGpad+"]");
 			assertTrue("Should contain javascript style", convertedGpad.contains("javascript:"));
 			assertTrue("Should contain the javascript value", convertedGpad.contains("SetValue"));
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -141,7 +141,7 @@ public class ValueElementGpadTest extends BaseUnitTest {
 			
 			// Verify numeric has random set
 			assertTrue("Numeric should have random=true", num.isRandom());
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			String errorMsg = e.getMessage();
 			if (errorMsg == null) {
 				errorMsg = e.getClass().getSimpleName();
@@ -165,7 +165,7 @@ public class ValueElementGpadTest extends BaseUnitTest {
 			
 			// Verify numeric does not have random (default false)
 			assertTrue("Numeric should have random=false (default)", !num.isRandom());
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -189,7 +189,7 @@ public class ValueElementGpadTest extends BaseUnitTest {
 			
 			assertNotNull("Converted gpad should not be null", convertedGpad);
 			assertTrue("Should contain random style", convertedGpad.contains("random"));
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -213,7 +213,7 @@ public class ValueElementGpadTest extends BaseUnitTest {
 			if (convertedGpad != null) {
 				assertTrue("Should not contain random when random=false", !convertedGpad.contains("random"));
 			}
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -236,7 +236,7 @@ public class ValueElementGpadTest extends BaseUnitTest {
 			// Verify numeric has random and fixed set
 			assertTrue("Numeric should have random=true", num.isRandom());
 			assertTrue("Numeric should have fixed=true", num.isLockedPosition());
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -271,7 +271,7 @@ public class ValueElementGpadTest extends BaseUnitTest {
 			// Verify script is preserved
 			Script clickScript2 = button2.getScript(EventType.CLICK);
 			assertNotNull("Button should have click script after round trip", clickScript2);
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -304,7 +304,7 @@ public class ValueElementGpadTest extends BaseUnitTest {
 			
 			// Verify random is preserved
 			assertTrue("Numeric should have random=true after round trip", num2.isRandom());
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -330,7 +330,7 @@ public class ValueElementGpadTest extends BaseUnitTest {
 			if (convertedGpad != null) {
 				assertTrue("Should not contain javascript when javascript is empty", !convertedGpad.contains("javascript:"));
 			}
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
@@ -353,7 +353,7 @@ public class ValueElementGpadTest extends BaseUnitTest {
 			assertTrue("Numeric should have random=true", num.isRandom());
 			assertEquals(0.0, num.getIntervalMin(), 1e-10);
 			assertEquals(10.0, num.getIntervalMax(), 1e-10);
-		} catch (GpadParseException | CircularDefinitionException e) {
+		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}
 	}
