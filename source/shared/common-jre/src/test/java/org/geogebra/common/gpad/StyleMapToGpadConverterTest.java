@@ -136,7 +136,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain eqnStyle", gpad.contains("eqnStyle"));
-		assertTrue("Should not contain pointSize", !gpad.contains("pointSize")); // 因为取了默认值被省略�?
+		assertTrue("Should not contain pointSize", !gpad.contains("pointSize")); // skipped for default value
 	}
 
 	// ========== Animation Tests ==========

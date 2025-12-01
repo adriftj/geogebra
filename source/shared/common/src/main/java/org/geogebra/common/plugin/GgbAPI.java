@@ -290,20 +290,6 @@ public abstract class GgbAPI implements JavaScriptAPI {
 			parser = new org.geogebra.common.gpad.GpadParser(kernel);
 			java.util.List<org.geogebra.common.kernel.geos.GeoElement> geos = parser.parse(gpadText);
 			
-			// Collect warnings from parser (even if parsing succeeded, there may be warnings)
-			java.util.List<String> warnings = parser.getGpadWarnings();
-			if (warnings != null && !warnings.isEmpty()) {
-				StringBuilder warningBuilder = new StringBuilder();
-				boolean first = true;
-				for (String warning : warnings) {
-					if (!first)
-						warningBuilder.append("\n");
-					first = false;
-					warningBuilder.append(warning);
-				}
-				lastWarning = warningBuilder.toString();
-			}
-			
 			if (geos.isEmpty())
 				return "";
 			
@@ -319,31 +305,12 @@ public abstract class GgbAPI implements JavaScriptAPI {
 		} catch (org.geogebra.common.gpad.GpadParseException e) {
 			// GpadParseException already contains position info in message, just extract it
 			lastError = e.getMessage();
-			
-			// Even if parsing failed, try to collect warnings that may have been generated before the error
-			if (parser != null) {
-				java.util.List<String> warnings = parser.getGpadWarnings();
-				if (warnings != null && !warnings.isEmpty()) {
-					StringBuilder warningBuilder = new StringBuilder();
-					boolean first = true;
-					for (String warning : warnings) {
-						if (!first)
-							warningBuilder.append("\n");
-						first = false;
-						warningBuilder.append(warning);
-					}
-					lastWarning = warningBuilder.toString();
-				}
-			}
-			
-			// Don't use Log.error() here - let the caller handle error output
-			return null;
 		} catch (Throwable t) {
 			lastError = t.getMessage();
 			if (lastError == null)
 				lastError = t.getClass().getSimpleName();
-			
-			// Even if parsing failed, try to collect warnings that may have been generated before the error
+		} finally {
+			// Collect warnings from parser (even if parsing failed, there may be warnings)
 			if (parser != null) {
 				java.util.List<String> warnings = parser.getGpadWarnings();
 				if (warnings != null && !warnings.isEmpty()) {
@@ -358,10 +325,9 @@ public abstract class GgbAPI implements JavaScriptAPI {
 					lastWarning = warningBuilder.toString();
 				}
 			}
-			
-			// Don't use Log.error() here - let the caller handle error output
-			return null;
 		}
+		// Don't use Log.error() here - let the caller handle error output
+		return null;
 	}
 
 	/**

@@ -372,7 +372,7 @@ public class LineStyleTest extends BaseUnitTest {
 		assertTrue(gpad1.contains("arrow"));
 		assertTrue(!gpad1.contains("~arrow"));
 		
-		// Test drawArrow="false" -> 不出�?
+		// Test drawArrow="false" -> default value
 		LinkedHashMap<String, String> attrs2 = new LinkedHashMap<>();
 		attrs2.put("drawArrow", "false");
 		Map<String, LinkedHashMap<String, String>> styleMap2 = new LinkedHashMap<>();

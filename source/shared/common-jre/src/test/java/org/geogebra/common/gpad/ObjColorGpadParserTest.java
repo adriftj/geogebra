@@ -671,7 +671,7 @@ public class ObjColorGpadParserTest extends BaseUnitTest {
 		assertNotNull(gpad);
 		assertTrue("Should contain objColor", gpad.contains("objColor"));
 		assertTrue("Should contain 8-digit hex with alpha", gpad.contains("#FF0000"));
-		// Alpha = 0.5 * 255 = 127.5 â‰?128 = 0x80
+		// Alpha = 0.5 * 255 = 127.5 => 128 = 0x80
 		assertTrue("Should contain alpha component", gpad.contains("80") || gpad.contains("7F"));
 	}
 

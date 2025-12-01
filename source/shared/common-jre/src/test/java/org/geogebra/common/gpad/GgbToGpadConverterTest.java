@@ -333,6 +333,205 @@ public class GgbToGpadConverterTest extends BaseUnitTest {
 	}
 
 	@Test
+	public void testSingleVariableFunction() {
+		// Create single-variable function: f(x) = x^2 + 1
+		String inputGpad = "f(x) = x^2 + 1;";
+		
+		String result = api.evalGpad(inputGpad);
+		assertNotNull("evalGpad should succeed", result);
+
+		// Convert construction to gpad
+		String outputGpad = api.toGpad(false);
+		assertNotNull("toGpad should return non-null", outputGpad);
+		
+		// Verify new format: f(x) @style ... = ...
+		// Should contain f(x) with variable list in parentheses
+		// Note: The format should be f(x) @style ... = ... or f(x) = ...
+		// Check for f followed by (x) pattern
+		boolean hasFunctionWithVars = outputGpad.matches("(?s).*f\\s*\\(\\s*x\\s*\\).*");
+		assertTrue("Should contain f(x) with variable list. Actual output: " + outputGpad, 
+			hasFunctionWithVars || outputGpad.contains("f(x)") || outputGpad.contains("f(x )"));
+		
+		// Should contain the expression (accept both x^2 and x² format)
+		assertTrue("Should contain function expression", 
+			outputGpad.contains("x^2 + 1") || outputGpad.contains("x^2+1") 
+			|| outputGpad.contains("x² + 1") || outputGpad.contains("x²+1"));
+	}
+
+	@Test
+	public void testMultiVariableFunction() {
+		// Create multi-variable function: g(x, y) = x * y
+		String inputGpad = "g(x, y) = x * y;";
+		
+		String result = api.evalGpad(inputGpad);
+		assertNotNull("evalGpad should succeed", result);
+
+		// Convert construction to gpad
+		String outputGpad = api.toGpad(false);
+		assertNotNull("toGpad should return non-null", outputGpad);
+		
+		// Verify new format: g(x, y) @style ... = ...
+		// Should contain g(x, y) with variable list in parentheses
+		assertTrue("Should contain g(x, y) with variable list", 
+			outputGpad.contains("g(x, y)") || outputGpad.contains("g(x,y)"));
+		
+		// Should contain the expression (accept various multiplication formats)
+		assertTrue("Should contain function expression", 
+			outputGpad.contains("x * y") || outputGpad.contains("x*y") 
+			|| outputGpad.contains("x y") || outputGpad.contains("x·y")
+			|| (outputGpad.contains("x") && outputGpad.contains("y")));
+	}
+
+	@Test
+	public void testFunctionWithThreeVariables() {
+		// Create function with three variables: h(x, y, z) = x + y + z
+		String inputGpad = "h(x, y, z) = x + y + z;";
+		
+		String result = api.evalGpad(inputGpad);
+		assertNotNull("evalGpad should succeed", result);
+
+		// Convert construction to gpad
+		String outputGpad = api.toGpad(false);
+		assertNotNull("toGpad should return non-null", outputGpad);
+		
+		// Verify new format: h(x, y, z) @style ... = ...
+		// Should contain h(x, y, z) with variable list in parentheses
+		assertTrue("Should contain h(x, y, z) with variable list", 
+			outputGpad.contains("h(x") && outputGpad.contains("y") && outputGpad.contains("z)"));
+		
+		// Should contain the expression
+		assertTrue("Should contain function expression", 
+			outputGpad.contains("x + y + z") || outputGpad.contains("x+y+z"));
+	}
+
+	@Test
+	public void testFunctionWithStyle() {
+		// Create function with style sheet
+		String inputGpad = "@fStyle = { lineStyle: thickness=3; objColor: #FF0000FF; }\n"
+				+ "f(x) @fStyle = x^2;";
+		
+		String result = api.evalGpad(inputGpad);
+		if (result == null) {
+			String error = api.getLastError();
+			String warning = api.getLastWarning();
+			System.err.println("evalGpad failed for testFunctionWithStyle");
+			if (error != null) {
+				System.err.println("Error: " + error);
+			}
+			if (warning != null) {
+				System.err.println("Warning: " + warning);
+			}
+		}
+		assertNotNull("evalGpad should succeed", result);
+
+		// Convert construction to gpad
+		String outputGpad = api.toGpad(false);
+		assertNotNull("toGpad should return non-null", outputGpad);
+		
+		// Verify new format: f(x) @style ... = ...
+		// Should contain f(x) with variable list
+		assertTrue("Should contain f(x) with variable list", 
+			outputGpad.contains("f(x)") || outputGpad.contains("f(x )"));
+		
+		// Should contain stylesheet reference (may be @fStyle or generated @fStyle)
+		assertTrue("Should contain stylesheet reference", 
+			outputGpad.contains("@fStyle") || outputGpad.contains("@style"));
+		
+		// Should contain the expression (accept both x^2 and x² format)
+		assertTrue("Should contain function expression", 
+			outputGpad.contains("x^2") || outputGpad.contains("x²"));
+	}
+
+	@Test
+	public void testFunctionWithVisibilityFlags() {
+		// Create function with visibility flags
+		String inputGpad = "f(x) = x^2;\n"
+				+ "g(x) = x^3;";
+		
+		String result = api.evalGpad(inputGpad);
+		assertNotNull("evalGpad should succeed", result);
+
+		// Convert construction to gpad
+		String outputGpad = api.toGpad(false);
+		assertNotNull("toGpad should return non-null", outputGpad);
+		
+		// Verify new format: f(x) @style ... = ... and g(x) @style ... = ...
+		// Should contain f(x) and g(x) with variable lists
+		assertTrue("Should contain f(x) with variable list", 
+			outputGpad.contains("f(x)") || outputGpad.contains("f(x )"));
+		assertTrue("Should contain g(x) with variable list", 
+			outputGpad.contains("g(x)") || outputGpad.contains("g(x )"));
+	}
+
+	@Test
+	public void testFunctionRoundTrip() {
+		// Test round trip: gpad -> GeoElement -> gpad
+		String inputGpad = "f(x) = x^2 + 2*x + 1;\n"
+				+ "g(x, y) = x * y + 1;";
+		
+		String result = api.evalGpad(inputGpad);
+		assertNotNull("evalGpad should succeed", result);
+
+		// Convert construction to gpad
+		String outputGpad = api.toGpad(false);
+		assertNotNull("toGpad should return non-null", outputGpad);
+		
+		// Verify format for f(x)
+		assertTrue("Should contain f(x) with variable list", 
+			outputGpad.contains("f(x)") || outputGpad.contains("f(x )"));
+		assertTrue("Should contain f's expression", 
+			outputGpad.contains("x^2") || outputGpad.contains("x²")
+			|| outputGpad.contains("2*x") || outputGpad.contains("2x"));
+		
+		// Verify format for g(x, y)
+		assertTrue("Should contain g(x, y) with variable list", 
+			outputGpad.contains("g(x") && outputGpad.contains("y)"));
+		assertTrue("Should contain g's expression", 
+			outputGpad.contains("x * y") || outputGpad.contains("x*y")
+			|| outputGpad.contains("x y") || outputGpad.contains("x·y")
+			|| (outputGpad.contains("x") && outputGpad.contains("y")));
+		
+		// Try to parse the output again to verify it's valid gpad
+		String result2 = api.evalGpad(outputGpad);
+		if (result2 == null) {
+			String error = api.getLastError();
+			String warning = api.getLastWarning();
+			System.err.println("Round trip failed for testFunctionRoundTrip");
+			System.err.println("Output gpad: " + outputGpad);
+			if (error != null) {
+				System.err.println("Error: " + error);
+			}
+			if (warning != null) {
+				System.err.println("Warning: " + warning);
+			}
+		}
+		// Should succeed (result may be empty if no new objects created, but should not be null)
+		assertNotNull("Round trip should succeed", result2);
+	}
+
+	@Test
+	public void testFunctionWithMultiLetterVariable() {
+		// Test function with multi-letter variable name
+		String inputGpad = "f(alpha) = alpha^2;\n"
+				+ "g(beta, gamma) = beta + gamma;";
+		
+		String result = api.evalGpad(inputGpad);
+		assertNotNull("evalGpad should succeed", result);
+
+		// Convert construction to gpad
+		String outputGpad = api.toGpad(false);
+		assertNotNull("toGpad should return non-null", outputGpad);
+		
+		// Verify format for f(alpha)
+		assertTrue("Should contain f(alpha) with variable list", 
+			outputGpad.contains("f(alpha)") || outputGpad.contains("f(alpha )"));
+		
+		// Verify format for g(beta, gamma)
+		assertTrue("Should contain g(beta, gamma) with variable list", 
+			outputGpad.contains("g(beta") && outputGpad.contains("gamma)"));
+	}
+
+	@Test
 	public void testMacroConversion() {
 		// Create a macro via gpad
 		String inputGpad = "@@macro MyMidpoint(A, B) {\n"

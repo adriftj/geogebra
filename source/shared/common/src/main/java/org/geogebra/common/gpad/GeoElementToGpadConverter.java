@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.geogebra.common.kernel.StringTemplate;
+import org.geogebra.common.kernel.arithmetic.FunctionalNVar;
 import org.geogebra.common.kernel.geos.GeoBoolean;
 import org.geogebra.common.kernel.geos.GeoButton;
 import org.geogebra.common.kernel.geos.GeoElement;
@@ -163,8 +164,77 @@ public class GeoElementToGpadConverter {
 			return false;
 		}
 
-		// Build output specification
-		sb.append(label);
+		// Check if this is a function (GeoFunction or GeoFunctionNVar)
+		// For functions: f(u,v,...) instead of just f
+		if (geo instanceof FunctionalNVar) {
+			FunctionalNVar func = (FunctionalNVar) geo;
+			org.geogebra.common.kernel.arithmetic.FunctionVariable[] vars = null;
+			
+			// First, try to get from fun field directly (most reliable)
+			if (geo instanceof GeoFunction) {
+				GeoFunction geoFunc = (GeoFunction) geo;
+				org.geogebra.common.kernel.arithmetic.Function fun = geoFunc.getFunction();
+				if (fun != null)
+					vars = fun.getFunctionVariables();
+			} else if (geo instanceof org.geogebra.common.kernel.geos.GeoFunctionNVar) {
+				org.geogebra.common.kernel.geos.GeoFunctionNVar geoFuncNVar = 
+					(org.geogebra.common.kernel.geos.GeoFunctionNVar) geo;
+				org.geogebra.common.kernel.arithmetic.FunctionNVar fun = geoFuncNVar.getFunction();
+				if (fun != null)
+					vars = fun.getFunctionVariables();
+			}
+			
+			// If still no variables, try getFunctionVariables() from interface
+			if (vars == null || vars.length == 0)
+				vars = func.getFunctionVariables();
+			
+			// If still no variables, try to get from definition's ExpressionNode left field
+			// FunctionParser.assignment() creates ExpressionNode with FunctionNVar in left field
+			if ((vars == null || vars.length == 0) && geo.getDefinition() != null) {
+				org.geogebra.common.kernel.arithmetic.ExpressionValue def = geo.getDefinition().unwrap();
+				if (def instanceof org.geogebra.common.kernel.arithmetic.ExpressionNode) {
+					org.geogebra.common.kernel.arithmetic.ExpressionNode defNode = 
+						(org.geogebra.common.kernel.arithmetic.ExpressionNode) def;
+					org.geogebra.common.kernel.arithmetic.ExpressionValue left = defNode.getLeft();
+					if (left instanceof org.geogebra.common.kernel.arithmetic.FunctionNVar)
+						vars = ((org.geogebra.common.kernel.arithmetic.FunctionNVar) left).getFunctionVariables();
+					else if (left instanceof org.geogebra.common.kernel.arithmetic.Function)
+						vars = ((org.geogebra.common.kernel.arithmetic.Function) left).getFunctionVariables();
+				} else if (def instanceof org.geogebra.common.kernel.arithmetic.FunctionNVar)
+					vars = ((org.geogebra.common.kernel.arithmetic.FunctionNVar) def).getFunctionVariables();
+				else if (def instanceof org.geogebra.common.kernel.arithmetic.Function)
+					vars = ((org.geogebra.common.kernel.arithmetic.Function) def).getFunctionVariables();
+			}
+			
+			// Last resort: try to get from definition's local variables
+			// FunctionParser.assignment() stores local variables in ExpressionNode via setLocalVariables()
+			if ((vars == null || vars.length == 0) && geo.getDefinition() != null) {
+				java.util.List<String> localVars = geo.getDefinition().getLocalVariables();
+				if (localVars != null && !localVars.isEmpty()) {
+					// Create FunctionVariable array from local variable names
+					vars = new org.geogebra.common.kernel.arithmetic.FunctionVariable[localVars.size()];
+					for (int i = 0; i < localVars.size(); i++) {
+						vars[i] = new org.geogebra.common.kernel.arithmetic.FunctionVariable(
+							geo.getKernel(), localVars.get(i));
+					}
+				}
+			}
+			
+			// Build label with variable list: f(u,v,...)
+			sb.append(label);
+			
+			// Add variable list in parentheses
+			if (vars != null && vars.length > 0) {
+				sb.append("(");
+				for (int i = 0; i < vars.length; i++) {
+					if (i > 0)
+						sb.append(", ");
+					sb.append(vars[i].toString(myTPL));
+				}
+				sb.append(")");
+			}
+		} else // For non-function elements, use standard label
+			sb.append(label);
 		
 		// Only add visibility suffixes for objects that can be shown in EuclidianView
 		// Objects that don't show in geometry view (e.g., GeoNumeric without slider,
@@ -420,17 +490,13 @@ public class GeoElementToGpadConverter {
 				org.geogebra.common.kernel.arithmetic.ExpressionNode exprNode = func.getFunctionExpression();
 				if (exprNode != null) {
 					String expr = exprNode.toString(myTPL);
-					if (expr != null && !expr.isEmpty()) {
-						System.out.println("==(exprNode)==Function:["+expr+"]===");
+					if (expr != null && !expr.isEmpty())
 						return expr;
-					}
 				}
 				// Fallback to toValueString
 				String expr = func.toValueString(myTPL);
-				if (expr != null && !expr.isEmpty() && !"?".equals(expr)) {
-					System.out.println("==(toValueString)==Function:["+expr+"]===");
+				if (expr != null && !expr.isEmpty() && !"?".equals(expr))
 					return expr;
-				}
 			}
 		}
 
