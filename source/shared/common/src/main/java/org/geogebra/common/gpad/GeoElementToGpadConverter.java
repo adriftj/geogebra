@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.geogebra.common.kernel.StringTemplate;
 import org.geogebra.common.kernel.geos.GeoBoolean;
@@ -23,6 +24,20 @@ import org.geogebra.common.util.debug.Log;
  */
 public class GeoElementToGpadConverter {
 	static final StringTemplate myTPL = StringTemplate.noLocalDefault;
+	
+	/**
+	 * Set of style properties that should be removed for objects that are not
+	 * shown in the EuclidianView (geometry view).
+	 * These styles are only relevant for visual display in the geometry view.
+	 */
+	private static final Set<String> EUCLIDIAN_DISPLAY_STYLES = Set.of(
+		"animation",
+		"bgColor",
+		"labelMode",
+		"layer",
+		"lineStyle",
+		"objColor"
+	);
 
 	private int styleSheetCounter = 0;
 	private Map<GeoElement, String> styleSheetMap = new HashMap<>();
@@ -68,6 +83,35 @@ public class GeoElementToGpadConverter {
 	}
 
 	/**
+	 * Filters style map before conversion to Gpad format.
+	 * - Removes object and label attributes from show style
+	 * - Removes EuclidianView display styles for objects that are not shown in geometry view
+	 * 
+	 * @param styleMap style map to filter (modified in place)
+	 * @param geo GeoElement to check visibility
+	 */
+	private static void filterStyleMap(Map<String, LinkedHashMap<String, String>> styleMap, GeoElement geo) {
+		if (styleMap == null)
+			return;
+		
+		// Remove object and label attributes from show style
+		LinkedHashMap<String, String> showAttrs = styleMap.get("show");
+		if (showAttrs != null) {
+			showAttrs.remove("object");
+			showAttrs.remove("label");
+			// If show style becomes empty after removal, remove it from styleMap
+			if (showAttrs.isEmpty())
+				styleMap.remove("show");
+		}
+		
+		// Remove EuclidianView display styles for objects not shown in geometry view
+		if (!geo.isEuclidianShowable()) {
+			for (String styleKey : EUCLIDIAN_DISPLAY_STYLES)
+				styleMap.remove(styleKey);
+		}
+	}
+
+	/**
 	 * Extracts style sheet content string (without name) from a GeoElement's XML.
 	 * Returns only the content part "{ ... }" without the "@name = " prefix.
 	 * 
@@ -93,6 +137,10 @@ public class GeoElementToGpadConverter {
 			Map<String, LinkedHashMap<String, String>> styleMap = xmlParser.parse(elementXML);
 			if (styleMap == null || styleMap.isEmpty())
 				return null;
+			
+			// Filter style map before conversion
+			filterStyleMap(styleMap, geo);
+			
 			return StyleMapToGpadConverter.convertToContentOnly(styleMap, geo.getTypeString());
 		} catch (GpadParseException e) {
 			// If parsing fails, return null
@@ -351,13 +399,17 @@ public class GeoElementToGpadConverter {
 				org.geogebra.common.kernel.arithmetic.ExpressionNode exprNode = func.getFunctionExpression();
 				if (exprNode != null) {
 					String expr = exprNode.toString(myTPL);
-					if (expr != null && !expr.isEmpty())
+					if (expr != null && !expr.isEmpty()) {
+						System.out.println("==(exprNode)==Function:["+expr+"]===");
 						return expr;
+					}
 				}
 				// Fallback to toValueString
 				String expr = func.toValueString(myTPL);
-				if (expr != null && !expr.isEmpty() && !"?".equals(expr))
+				if (expr != null && !expr.isEmpty() && !"?".equals(expr)) {
+					System.out.println("==(toValueString)==Function:["+expr+"]===");
 					return expr;
+				}
 			}
 		}
 

@@ -172,10 +172,14 @@ public class ConstructionToGpadConverter {
 		// Get expression string - use outputGeo's definition if available,
 		// otherwise use algo's definition (same logic as AlgoElement.getExpXML() uses toExpString())
 		String expString = null;
-		if (outputGeo.getDefinition() != null)
+		if (outputGeo.getDefinition() != null) {
 			expString = outputGeo.getDefinition().toString(myTPL);
-		if (expString == null || expString.isEmpty())
+			System.out.println("==(outputGeo.getDefinition())==["+expString+"]");
+		}
+		if (expString == null || expString.isEmpty()) {
 			expString = algo.getDefinition(myTPL);
+			System.out.println("==(algo.getDefinition)==["+expString+"]");
+		}
 		if (expString == null || expString.isEmpty()) {
 			Log.error("Expression has no exp string");
 			return;
