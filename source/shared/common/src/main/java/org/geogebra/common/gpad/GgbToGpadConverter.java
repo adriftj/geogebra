@@ -1,11 +1,15 @@
 package org.geogebra.common.gpad;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.geogebra.common.kernel.Construction;
+import org.geogebra.common.kernel.Kernel;
+import org.geogebra.common.kernel.Macro;
 import org.geogebra.common.kernel.StringTemplate;
 import org.geogebra.common.kernel.algos.AlgoElement;
 import org.geogebra.common.kernel.algos.ConstructionElement;
@@ -13,10 +17,11 @@ import org.geogebra.common.kernel.geos.GeoElement;
 import org.geogebra.common.util.debug.Log;
 
 /**
- * Converts an entire Construction to Gpad format.
+ * Converts an entire GeoGebra construction (including macros) to Gpad format.
  * Enumerates all construction elements in order and converts them to gpad format.
+ * Macros are converted first, then the main construction.
  */
-public class ConstructionToGpadConverter {
+public class GgbToGpadConverter {
 	static final StringTemplate myTPL = StringTemplate.noLocalDefault;
 
 	private final Construction construction;
@@ -28,23 +33,166 @@ public class ConstructionToGpadConverter {
 	private int styleSheetCounter = 0;
 
 	/**
-	 * Creates a new ConstructionToGpadConverter.
+	 * Creates a new GgbToGpadConverter.
 	 * 
 	 * @param construction the construction to convert
 	 * @param mergeStylesheets whether to merge identical stylesheets
 	 */
-	public ConstructionToGpadConverter(Construction construction, boolean mergeStylesheets) {
+	public GgbToGpadConverter(Construction construction, boolean mergeStylesheets) {
 		this.construction = construction;
 		this.mergeStylesheets = mergeStylesheets;
 	}
 
 	/**
-	 * Converts the entire construction to Gpad format.
+	 * Converts the entire construction (including macros) to Gpad format.
+	 * Macros are converted first, then the main construction.
 	 * 
 	 * @return Gpad string representation of the construction
 	 */
 	public String toGpad() {
 		StringBuilder sb = new StringBuilder();
+		
+		// Convert all macros first
+		convertMacros(sb);
+		
+		// Then convert the main construction
+		convertConstruction(sb);
+		
+		return sb.toString();
+	}
+
+	/**
+	 * Converts all macros to gpad format.
+	 * 
+	 * @param sb string builder to append to
+	 */
+	private void convertMacros(StringBuilder sb) {
+		Kernel kernel = construction.getKernel();
+		if (kernel == null)
+			return;
+		
+		List<Macro> macros = kernel.getAllMacros();
+		if (macros == null || macros.isEmpty())
+			return;
+		
+		// Convert each macro
+		for (Macro macro : macros) {
+			if (macro != null) {
+				convertMacro(macro, sb);
+			}
+		}
+	}
+
+	/**
+	 * Converts a single macro to gpad format.
+	 * Format: @@macro macroName(input1, input2, ...) { ... @@return output1, output2, ... }
+	 * Note: @@return statement does NOT end with semicolon (see Parser.jj line 4458)
+	 * 
+	 * @param macro the macro to convert
+	 * @param sb string builder to append to
+	 */
+	private void convertMacro(Macro macro, StringBuilder sb) {
+		// Get macro name
+		String macroName = macro.getCommandName();
+		if (macroName == null || macroName.isEmpty()) {
+			Log.error("Macro has no command name, skipping");
+			return;
+		}
+		
+		// Get input labels
+		GeoElement[] macroInput = macro.getMacroInput();
+		List<String> inputLabels = new ArrayList<>();
+		if (macroInput != null) {
+			for (GeoElement inputGeo : macroInput) {
+				if (inputGeo != null) {
+					String label = inputGeo.getLabelSimple();
+					if (label != null && !label.isEmpty()) {
+						inputLabels.add(label);
+					}
+				}
+			}
+		}
+		
+		// Get output labels
+		GeoElement[] macroOutput = macro.getMacroOutput();
+		List<String> outputLabels = new ArrayList<>();
+		if (macroOutput != null) {
+			for (GeoElement outputGeo : macroOutput) {
+				if (outputGeo != null) {
+					String label = outputGeo.getLabelSimple();
+					if (label != null && !label.isEmpty()) {
+						outputLabels.add(label);
+					}
+				}
+			}
+		}
+		
+		// Get macro construction
+		Construction macroCons = macro.getMacroConstruction();
+		if (macroCons == null) {
+			Log.error("Macro " + macroName + " has no construction, skipping");
+			return;
+		}
+		
+		// Start macro definition: @@macro macroName(input1, input2, ...) {
+		sb.append("@@macro ").append(macroName).append("(");
+		boolean first = true;
+		for (String inputLabel : inputLabels) {
+			if (!first)
+				sb.append(", ");
+			first = false;
+			sb.append(inputLabel);
+		}
+		sb.append(") {\n");
+		
+		// Convert macro construction using a new converter instance
+		// This ensures macro's stylesheets are independent from main construction
+		GgbToGpadConverter macroConverter = new GgbToGpadConverter(macroCons, mergeStylesheets);
+		String macroConstructionGpad = macroConverter.convertConstructionOnly();
+		
+		// Append macro construction content (indented)
+		if (macroConstructionGpad != null && !macroConstructionGpad.isEmpty()) {
+			// Indent each line of the macro construction
+			String[] lines = macroConstructionGpad.split("\n");
+			for (String line : lines) {
+				if (!line.trim().isEmpty()) {
+					sb.append("    ").append(line).append("\n");
+				}
+			}
+		}
+		
+		// End macro definition: @@return output1, output2, ... }
+		// Note: @@return statement does NOT end with semicolon
+		sb.append("    @@return ");
+		first = true;
+		for (String outputLabel : outputLabels) {
+			if (!first)
+				sb.append(", ");
+			first = false;
+			sb.append(outputLabel);
+		}
+		sb.append("\n}\n\n");
+	}
+
+	/**
+	 * Converts only the construction (without macros) to gpad format.
+	 * This is used internally for macro construction conversion.
+	 * 
+	 * @param sb string builder to append to (optional, if null, returns string)
+	 * @return Gpad string representation of the construction
+	 */
+	private String convertConstructionOnly() {
+		StringBuilder sb = new StringBuilder();
+		convertConstruction(sb);
+		return sb.toString();
+	}
+
+	/**
+	 * Converts the main construction to gpad format.
+	 * 
+	 * @param sb string builder to append to
+	 */
+	private void convertConstruction(StringBuilder sb) {
 		int steps = construction.steps();
 
 		for (int i = 0; i < steps; i++) {
@@ -81,8 +229,6 @@ public class ConstructionToGpadConverter {
 					processIndependentElement(geo, sb);
 			}
 		}
-
-		return sb.toString();
 	}
 
 	/**
@@ -178,7 +324,7 @@ public class ConstructionToGpadConverter {
 		}
 		if (expString == null || expString.isEmpty()) {
 			expString = algo.getDefinition(myTPL);
-			System.out.println("==(algo.getDefinition)==["+expString+"]");
+			System.out.println("==(algo.getDefinition())==["+expString+"]");
 		}
 		if (expString == null || expString.isEmpty()) {
 			Log.error("Expression has no exp string");
@@ -326,3 +472,4 @@ public class ConstructionToGpadConverter {
 		return "@" + styleSheetName + " = " + contentOnly;
 	}
 }
+

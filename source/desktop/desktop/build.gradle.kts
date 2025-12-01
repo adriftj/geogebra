@@ -132,9 +132,9 @@ tasks {
     }
 
     register<JavaExec>("runGgbToGpad") {
-        description = "Run GgbToGpadConverter tool"
+        description = "Run GgbToGpad tool"
         group = "application"
-        mainClass = "org.geogebra.desktop.gpadtools.GgbToGpadConverter"
+        mainClass = "org.geogebra.desktop.gpadtools.GgbToGpad"
         classpath = sourceSets.main.get().runtimeClasspath
         
         // 传递命令行参数
@@ -143,8 +143,8 @@ tasks {
         }
     }
 
-    register<Jar>("gpadConverterJar") {
-        description = "Create executable JAR for GgbToGpadConverter"
+    register<Jar>("ggb2gpadJar") {
+        description = "Create executable JAR for GgbToGpad"
         group = "build"
         archiveBaseName = "ggb2gpad"
         archiveClassifier = ""
@@ -157,7 +157,7 @@ tasks {
         dependsOn(configurations.runtimeClasspath.get().buildDependencies)
         
         manifest {
-            attributes["Main-Class"] = "org.geogebra.desktop.gpadtools.GgbToGpadConverter"
+            attributes["Main-Class"] = "org.geogebra.desktop.gpadtools.GgbToGpad"
         }
         
         // 包含所有编译后的类文件
@@ -180,9 +180,9 @@ tasks {
     }
 
     register<JavaExec>("runGpadToGgb") {
-        description = "Run GpadToGgbConverter tool"
+        description = "Run GpadToGgb tool"
         group = "application"
-        mainClass = "org.geogebra.desktop.gpadtools.GpadToGgbConverter"
+        mainClass = "org.geogebra.desktop.gpadtools.GpadToGgb"
         classpath = sourceSets.main.get().runtimeClasspath
         
         // 传递命令行参数
@@ -191,8 +191,8 @@ tasks {
         }
     }
 
-    register<Jar>("gpadToGgbJar") {
-        description = "Create executable JAR for GpadToGgbConverter"
+    register<Jar>("gpad2ggbJar") {
+        description = "Create executable JAR for GpadToGgb"
         group = "build"
         archiveBaseName = "gpad2ggb"
         archiveClassifier = ""
@@ -204,7 +204,7 @@ tasks {
         dependsOn(configurations.runtimeClasspath.get().buildDependencies)
         
         manifest {
-            attributes["Main-Class"] = "org.geogebra.desktop.gpadtools.GpadToGgbConverter"
+            attributes["Main-Class"] = "org.geogebra.desktop.gpadtools.GpadToGgb"
         }
         
         // 包含所有编译后的类文件

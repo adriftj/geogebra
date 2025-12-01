@@ -4,33 +4,40 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.geogebra.common.io.XMLParseException;
 import org.geogebra.common.util.debug.Log;
 import org.geogebra.desktop.headless.AppDNoGui;
+import org.geogebra.desktop.headless.GFileHandler;
 import org.geogebra.desktop.main.LocalizationD;
 import org.geogebra.common.plugin.GgbAPI;
-import org.geogebra.common.jre.io.MyXMLioJre;
 
 /**
- * Command-line tool to convert GPAD format files to GeoGebra (.ggb) files.
+ * Command-line tool to convert GeoGebra (.ggb) files to GPAD format.
+ * 
+ * This tool uses {@link org.geogebra.common.gpad.GgbToGpadConverter} internally
+ * to perform the conversion, which supports converting both the construction
+ * and all macros to GPAD format.
  * 
  * Usage:
- *   Single file: java GpadToGgbConverter input.gpad
- *   Single file with output: java GpadToGgbConverter -i input.gpad -o output.ggb
- *   Directory: java GpadToGgbConverter -i inputDir -o outputDir
+ *   Single file: java GgbToGpad input.ggb
+ *   Single file with output: java GgbToGpad -i input.ggb -o output.gpad
+ *   Directory: java GgbToGpad -i inputDir -o outputDir
  * 
  * Options:
  *   -i <file|dir>  Input file or directory
  *   -o <file|dir>  Output file or directory
+ *   -m             Merge identical stylesheets (default: false)
  *   -w             Overwrite existing files (default: skip and prompt)
  */
-public class GpadToGgbConverter {
+public class GgbToGpad {
 
+	private static boolean mergeStylesheets = false;
 	private static boolean overwrite = false;
 	private static List<String> errors = new ArrayList<>();
 	private static int successCount = 0;
@@ -69,6 +76,8 @@ public class GpadToGgbConverter {
 					System.exit(1);
 				}
 				output = new File(args[++i]);
+			} else if ("-m".equals(arg)) {
+				mergeStylesheets = true;
 			} else if ("-w".equals(arg)) {
 				overwrite = true;
 			} else if (arg.startsWith("-")) {
@@ -103,13 +112,13 @@ public class GpadToGgbConverter {
 		// Determine output location
 		if (output == null) {
 			if (input.isFile()) {
-				// Default: same directory, change extension to .ggb
+				// Default: same directory, change extension to .gpad
 				String inputPath = input.getAbsolutePath();
 				int lastDot = inputPath.lastIndexOf('.');
 				if (lastDot > 0) {
-					output = new File(inputPath.substring(0, lastDot) + ".ggb");
+					output = new File(inputPath.substring(0, lastDot) + ".gpad");
 				} else {
-					output = new File(inputPath + ".ggb");
+					output = new File(inputPath + ".gpad");
 				}
 			} else {
 				System.err.println("Error: Output directory required when input is a directory");
@@ -122,10 +131,10 @@ public class GpadToGgbConverter {
 		try {
 			if (input.isFile()) {
 				// Single file conversion
-				if (input.getName().toLowerCase().endsWith(".gpad")) {
-					convertFile(input, output, overwrite);
+				if (input.getName().toLowerCase().endsWith(".ggb")) {
+					convertFile(input, output, mergeStylesheets, overwrite);
 				} else {
-					System.err.println("Error: Input file must have .gpad extension");
+					System.err.println("Error: Input file must have .ggb extension");
 					System.exit(1);
 				}
 			} else {
@@ -137,7 +146,7 @@ public class GpadToGgbConverter {
 					System.err.println("Error: Output must be a directory when input is a directory");
 					System.exit(1);
 				}
-				convertDirectory(input, output, overwrite);
+				convertDirectory(input, output, mergeStylesheets, overwrite);
 			}
 
 			// Print summary
@@ -155,9 +164,10 @@ public class GpadToGgbConverter {
 	}
 
 	/**
-	 * Convert a single GPAD file to GGB format
+	 * Convert a single GGB file to GPAD format
 	 */
-	private static boolean convertFile(File inputFile, File outputFile, boolean overwrite) {
+	private static boolean convertFile(File inputFile, File outputFile, 
+			boolean mergeStyles, boolean overwrite) {
 		String inputPath = inputFile.getAbsolutePath();
 		
 		// Check if output file exists
@@ -180,12 +190,13 @@ public class GpadToGgbConverter {
 			
 			// Override the default Log handler to prevent AssertionError from being thrown
 			// The default handler in AppCommon throws AssertionError for RuntimeException,
-			// which may cause issues during GPAD parsing
+			// which causes the program to crash when LaTeX parsing fails
 			Log.setLogger(new Log() {
 				@Override
 				public void print(Log.Level level, Object logEntry) {
 					if (logEntry instanceof RuntimeException) {
 						// Don't throw AssertionError, just print the error
+						// This allows the program to continue even if LaTeX parsing fails
 						Throwable t = (Throwable) logEntry;
 						Throwable cause = t.getCause();
 						if (cause != null && cause.getClass().getName().contains("ParseException")) {
@@ -204,64 +215,111 @@ public class GpadToGgbConverter {
 				}
 			});
 			
-			// Disable animations, repainting, and view notifications to prevent blocking
+			// Disable animations, repainting, and view notifications BEFORE loading to prevent blocking
+			// This prevents LaTeX rendering during file load which can cause AssertionError
 			app.getKernel().setNotifyRepaintActive(false);
 			app.getKernel().setNotifyViewsActive(false);
 			app.getKernel().getAnimationManager().stopAnimation();
 			
-			// Read GPAD file (UTF-8 encoding)
-			StringBuilder gpadText = new StringBuilder();
-			try (InputStreamReader reader = new InputStreamReader(
-					new FileInputStream(inputFile), StandardCharsets.UTF_8)) {
-				char[] buffer = new char[8192];
-				int read;
-				while ((read = reader.read(buffer)) != -1) {
-					gpadText.append(buffer, 0, read);
+			// Load GGB file with all notifications disabled
+			// Note: XML parsing may temporarily re-enable view notifications internally,
+			// but our custom Log handler will prevent AssertionError from crashing the program
+			boolean loaded = false;
+			try (FileInputStream fis = new FileInputStream(inputFile)) {
+				// Ensure all notifications are disabled during load
+				app.getKernel().setNotifyRepaintActive(false);
+				app.getKernel().setNotifyViewsActive(false);
+				
+				loaded = GFileHandler.loadXML(app, fis, false);
+				
+				// Keep all notifications disabled after load
+				app.getKernel().setNotifyRepaintActive(false);
+				app.getKernel().setNotifyViewsActive(false);
+			} catch (AssertionError ae) {
+				// Handle AssertionError during file loading (often LaTeX parsing errors)
+				// Our custom Log handler should prevent this, but catch it just in case
+				Throwable cause = ae.getCause();
+				if (cause != null && cause.getClass().getName().contains("ParseException")) {
+					String error = "LaTeX parsing error during load (non-fatal): " + cause.getMessage();
+					errors.add(inputPath + ": " + error);
+					System.err.println("Warning [" + inputPath + "]: " + error);
+					System.err.println("File may have loaded partially, attempting to continue conversion...");
+					
+					// File may have loaded partially despite the error
+					// Re-disable notifications and try to continue
+					app.getKernel().setNotifyRepaintActive(false);
+					app.getKernel().setNotifyViewsActive(false);
+					app.getKernel().getAnimationManager().stopAnimation();
+					loaded = true; // Assume loaded, try to continue
+				} else {
+					// Re-throw if it's not a LaTeX parsing error
+					throw ae;
 				}
 			}
 			
-			if (gpadText.length() == 0) {
-				String error = "GPAD file is empty: " + inputPath;
+			if (!loaded) {
+				String error = "Failed to load GGB file: " + inputPath;
 				errors.add(error);
 				System.err.println("Error [" + inputPath + "]: " + error);
 				failCount++;
 				return false;
 			}
 			
-			// Parse GPAD and create construction
+			// After loading, ensure animations are stopped and all notifications are disabled
+			// Some files may have auto-start animations
+			app.getKernel().getAnimationManager().stopAnimation();
+			app.getKernel().setNotifyRepaintActive(false);
+			app.getKernel().setNotifyViewsActive(false);
+			
+			// Disable all animating objects to prevent any timers from running
+			org.geogebra.common.kernel.geos.GeoElement[] allObjects = 
+				app.getKernel().getConstruction().getGeoSetConstructionOrder()
+					.toArray(new org.geogebra.common.kernel.geos.GeoElement[0]);
+			for (org.geogebra.common.kernel.geos.GeoElement geo : allObjects) {
+				if (geo != null && geo.isAnimating()) {
+					geo.setAnimating(false);
+				}
+			}
+			
+			// Force stop animation manager again after disabling objects
+			app.getKernel().getAnimationManager().stopAnimation();
+			
+			// Small delay to let any pending AWT events complete (if any)
+			// This helps prevent blocking in headless mode
+			try {
+				Thread.sleep(100);
+			} catch (InterruptedException ie) {
+				Thread.currentThread().interrupt();
+			}
+
+			// Convert to GPAD format
 			GgbAPI ggbApi = app.getGgbApi();
-			String result = ggbApi.evalGpad(gpadText.toString());
-			
-			if (result == null) {
-				// Check for error message
-				String lastError = ggbApi.getLastError();
-				String error = "Failed to parse GPAD: " + (lastError != null ? lastError : "Unknown error");
-				errors.add(inputPath + ": " + error);
-				System.err.println("Error [" + inputPath + "]: " + error);
-				failCount++;
-				return false;
-			}
-			
-			// Get XML representation of the construction
-			String xmlString = ggbApi.getXML();
-			
-			if (xmlString == null || xmlString.isEmpty()) {
-				String error = "Conversion produced empty XML: " + inputPath;
+			String gpadText = ggbApi.toGpad(mergeStyles);
+
+			if (gpadText == null || gpadText.isEmpty()) {
+				String error = "Conversion produced empty result: " + inputPath;
 				errors.add(error);
 				System.err.println("Error [" + inputPath + "]: " + error);
 				failCount++;
 				return false;
 			}
-			
-			// Write to GGB file (ZIP format)
-			try (FileOutputStream fos = new FileOutputStream(outputFile)) {
-				MyXMLioJre.writeZipped(fos, new StringBuilder(xmlString));
+
+			// Write to output file with UTF-8 encoding
+			try (OutputStreamWriter writer = new OutputStreamWriter(
+					new FileOutputStream(outputFile), StandardCharsets.UTF_8)) {
+				writer.write(gpadText);
 			}
 
 			System.out.println("Converted: " + inputFile.getName() + " -> " + outputFile.getName());
 			successCount++;
 			return true;
 
+		} catch (XMLParseException e) {
+			String error = "XML parse error: " + e.getMessage();
+			errors.add(inputPath + ": " + error);
+			System.err.println("Error [" + inputPath + "]: " + error);
+			failCount++;
+			return false;
 		} catch (IOException e) {
 			String error = "IO error: " + e.getMessage();
 			errors.add(inputPath + ": " + error);
@@ -269,7 +327,8 @@ public class GpadToGgbConverter {
 			failCount++;
 			return false;
 		} catch (AssertionError e) {
-			// Handle AssertionError (may be caused by LaTeX parsing errors)
+			// Handle AssertionError (often caused by LaTeX parsing errors during rendering)
+			// Check if it's a LaTeX parsing error
 			Throwable cause = e.getCause();
 			if (cause != null && cause.getClass().getName().contains("ParseException")) {
 				String error = "LaTeX parsing error (non-fatal): " + cause.getMessage();
@@ -283,13 +342,14 @@ public class GpadToGgbConverter {
 					app.getKernel().setNotifyRepaintActive(false);
 					app.getKernel().getAnimationManager().stopAnimation();
 					
-					// Get XML and write to file
+					// Convert to GPAD format (this should work even with LaTeX errors)
 					GgbAPI ggbApi = app.getGgbApi();
-					String xmlString = ggbApi.getXML();
+					String gpadText = ggbApi.toGpad(mergeStyles);
 					
-					if (xmlString != null && !xmlString.isEmpty()) {
-						try (FileOutputStream fos = new FileOutputStream(outputFile)) {
-							MyXMLioJre.writeZipped(fos, new StringBuilder(xmlString));
+					if (gpadText != null && !gpadText.isEmpty()) {
+						try (OutputStreamWriter writer = new OutputStreamWriter(
+								new FileOutputStream(outputFile), StandardCharsets.UTF_8)) {
+							writer.write(gpadText);
 						}
 						System.out.println("Converted (with LaTeX warning): " + inputFile.getName() + " -> " + outputFile.getName());
 						successCount++;
@@ -312,6 +372,43 @@ public class GpadToGgbConverter {
 			failCount++;
 			return false;
 		} catch (RuntimeException e) {
+			// Handle concurrent modification and other runtime exceptions
+			if (e.getCause() instanceof java.util.ConcurrentModificationException) {
+				// This is expected in headless mode, try to continue
+				System.err.println("Warning [" + inputPath + "]: Concurrent modification detected, retrying...");
+				// Retry once
+				try {
+					if (app != null) {
+						app.reset();
+					}
+					app = new AppDNoGui(new LocalizationD(3), true);
+					app.getKernel().getAnimationManager().stopAnimation();
+					app.getKernel().setNotifyRepaintActive(false);
+					
+					try (FileInputStream fis = new FileInputStream(inputFile)) {
+						boolean loaded = GFileHandler.loadXML(app, fis, false);
+						if (loaded) {
+							GgbAPI ggbApi = app.getGgbApi();
+							String gpadText = ggbApi.toGpad(mergeStyles);
+							if (gpadText != null && !gpadText.isEmpty()) {
+								try (OutputStreamWriter writer = new OutputStreamWriter(
+										new FileOutputStream(outputFile), StandardCharsets.UTF_8)) {
+									writer.write(gpadText);
+								}
+								System.out.println("Converted: " + inputFile.getName() + " -> " + outputFile.getName());
+								successCount++;
+								return true;
+							}
+						}
+					}
+				} catch (Exception retryException) {
+					String error = "Retry failed: " + retryException.getMessage();
+					errors.add(inputPath + ": " + error);
+					System.err.println("Error [" + inputPath + "]: " + error);
+					failCount++;
+					return false;
+				}
+			}
 			String error = "Runtime error: " + e.getMessage();
 			errors.add(inputPath + ": " + error);
 			System.err.println("Error [" + inputPath + "]: " + error);
@@ -354,9 +451,10 @@ public class GpadToGgbConverter {
 	}
 
 	/**
-	 * Recursively convert all GPAD files in a directory
+	 * Recursively convert all GGB files in a directory
 	 */
-	private static void convertDirectory(File inputDir, File outputDir, boolean overwrite) {
+	private static void convertDirectory(File inputDir, File outputDir, 
+			boolean mergeStyles, boolean overwrite) {
 		if (!inputDir.isDirectory()) {
 			errors.add("Input is not a directory: " + inputDir.getAbsolutePath());
 			return;
@@ -366,86 +464,87 @@ public class GpadToGgbConverter {
 		Path inputPath = inputDir.toPath();
 		Path outputPath = outputDir.toPath();
 
-		// Recursively find all .gpad files
-		List<File> gpadFiles = findGpadFiles(inputDir);
+		// Recursively find all .ggb files
+		List<File> ggbFiles = findGgbFiles(inputDir);
 
-		if (gpadFiles.isEmpty()) {
-			System.out.println("No .gpad files found in: " + inputDir.getAbsolutePath());
+		if (ggbFiles.isEmpty()) {
+			System.out.println("No .ggb files found in: " + inputDir.getAbsolutePath());
 			return;
 		}
 
-		System.out.println("Found " + gpadFiles.size() + " .gpad file(s) to convert");
+		System.out.println("Found " + ggbFiles.size() + " .ggb file(s) to convert");
 
 		// Convert each file
-		for (File gpadFile : gpadFiles) {
+		for (File ggbFile : ggbFiles) {
 			// Output current file being processed
-			System.out.println("Processing: " + gpadFile.getAbsolutePath());
+			System.out.println("Processing: " + ggbFile.getAbsolutePath());
 			
 			// Calculate relative path
-			Path relativePath = inputPath.relativize(gpadFile.toPath());
+			Path relativePath = inputPath.relativize(ggbFile.toPath());
 			
 			// Determine output file path
-			String gpadFileName = gpadFile.getName();
-			String ggbFileName = gpadFileName.substring(0, gpadFileName.lastIndexOf('.')) + ".ggb";
+			String ggbFileName = ggbFile.getName();
+			String gpadFileName = ggbFileName.substring(0, ggbFileName.lastIndexOf('.')) + ".gpad";
 			
 			// Build output path: preserve directory structure
 			Path parentPath = relativePath.getParent();
 			Path outputFilePath;
 			if (parentPath != null) {
-				outputFilePath = outputPath.resolve(parentPath).resolve(ggbFileName);
+				outputFilePath = outputPath.resolve(parentPath).resolve(gpadFileName);
 			} else {
 				// File is directly in the input directory root
-				outputFilePath = outputPath.resolve(ggbFileName);
+				outputFilePath = outputPath.resolve(gpadFileName);
 			}
 			File outputFile = outputFilePath.toFile();
 
 			// Convert file
-			convertFile(gpadFile, outputFile, overwrite);
+			convertFile(ggbFile, outputFile, mergeStyles, overwrite);
 		}
 	}
 
 	/**
-	 * Recursively find all .gpad files in a directory
+	 * Recursively find all .ggb files in a directory
 	 */
-	private static List<File> findGpadFiles(File dir) {
-		List<File> gpadFiles = new ArrayList<>();
+	private static List<File> findGgbFiles(File dir) {
+		List<File> ggbFiles = new ArrayList<>();
 		if (!dir.isDirectory()) {
-			return gpadFiles;
+			return ggbFiles;
 		}
 
 		File[] files = dir.listFiles();
 		if (files == null) {
-			return gpadFiles;
+			return ggbFiles;
 		}
 
 		for (File file : files) {
 			if (file.isDirectory()) {
 				// Recursively search subdirectories
-				gpadFiles.addAll(findGpadFiles(file));
-			} else if (file.isFile() && file.getName().toLowerCase().endsWith(".gpad")) {
-				gpadFiles.add(file);
+				ggbFiles.addAll(findGgbFiles(file));
+			} else if (file.isFile() && file.getName().toLowerCase().endsWith(".ggb")) {
+				ggbFiles.add(file);
 			}
 		}
 
-		return gpadFiles;
+		return ggbFiles;
 	}
 
 	/**
 	 * Print usage information
 	 */
 	private static void printUsage() {
-		System.err.println("Usage: GpadToGgbConverter [options] [input] [output]");
+		System.err.println("Usage: GgbToGpad [options] [input] [output]");
 		System.err.println();
 		System.err.println("Options:");
 		System.err.println("  -i <file|dir>  Input file or directory");
 		System.err.println("  -o <file|dir>  Output file or directory");
+		System.err.println("  -m             Merge identical stylesheets (default: false)");
 		System.err.println("  -w             Overwrite existing files (default: skip)");
 		System.err.println();
 		System.err.println("Examples:");
-		System.err.println("  GpadToGgbConverter input.gpad");
-		System.err.println("  GpadToGgbConverter -i input.gpad -o output.ggb");
-		System.err.println("  GpadToGgbConverter -i inputDir -o outputDir");
-		System.err.println("  GpadToGgbConverter -i dir -o dir -w");
+		System.err.println("  GgbToGpad input.ggb");
+		System.err.println("  GgbToGpad -i input.ggb -o output.gpad");
+		System.err.println("  GgbToGpad -i inputDir -o outputDir");
+		System.err.println("  GgbToGpad -i dir -o dir -m -w");
 	}
 
 	/**

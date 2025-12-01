@@ -287,18 +287,16 @@ public abstract class GgbAPI implements JavaScriptAPI {
 			java.util.List<org.geogebra.common.kernel.geos.GeoElement> geos = parser.parse(gpadText);
 			
 			if (geos.isEmpty())
-				return null;
+				return "";
 			
 			StringBuilder ret = new StringBuilder();
+			boolean first = true;
 			for (org.geogebra.common.kernel.geos.GeoElement geo : geos) {
+				if (!first)
+					ret.append(",");
+				first = false;
 				ret.append(geo.getLabelSimple());
-				ret.append(",");
 			}
-			
-			// Remove last comma
-			if (ret.length() > 0)
-				ret.setLength(ret.length() - 1);
-			
 			return ret.toString();
 		} catch (org.geogebra.common.main.MyError e) {
 			lastError = e.getLocalizedMessage();
@@ -314,9 +312,8 @@ public abstract class GgbAPI implements JavaScriptAPI {
 			return null;
 		} catch (Throwable t) {
 			lastError = t.getMessage();
-			if (lastError == null) {
+			if (lastError == null)
 				lastError = t.getClass().getSimpleName();
-			}
 			Log.error("Gpad unexpected error: " + lastError);
 			return null;
 		}
@@ -338,7 +335,7 @@ public abstract class GgbAPI implements JavaScriptAPI {
 	 *            object name
 	 * @return Gpad string representation, or empty string if object not found
 	 */
-	public synchronized String toGpad(String objName) {
+	public synchronized String geoToGpad(String objName) {
 		GeoElement geo = kernel.lookupLabel(objName);
 		if (geo == null)
 			return "";
@@ -355,9 +352,9 @@ public abstract class GgbAPI implements JavaScriptAPI {
 	 * @param mergeStylesheets whether to merge identical stylesheets
 	 * @return Gpad string representation of the entire construction
 	 */
-	public synchronized String constructionToGpad(boolean mergeStylesheets) {
-		org.geogebra.common.gpad.ConstructionToGpadConverter converter = 
-				new org.geogebra.common.gpad.ConstructionToGpadConverter(construction, mergeStylesheets);
+	public synchronized String toGpad(boolean mergeStylesheets) {
+		org.geogebra.common.gpad.GgbToGpadConverter converter = 
+				new org.geogebra.common.gpad.GgbToGpadConverter(construction, mergeStylesheets);
 		return converter.toGpad();
 	}
 
