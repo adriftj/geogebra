@@ -299,7 +299,7 @@ public class GpadToGgb {
 			
 			// Write to GGB file (ZIP format) with embedded files
 			try (FileOutputStream fos = new FileOutputStream(outputFile)) {
-				writeZippedWithEmbeddedFiles(fos, xmlString, filesToEmbed, embedRootDir);
+				writeZippedWithEmbeddedFiles(fos, xmlString, filesToEmbed, embedRootDir, app);
 			}
 
 			// Output success message, including warning indicator if warnings were present
@@ -348,8 +348,9 @@ public class GpadToGgb {
 							}
 						}
 						Set<String> filesToEmbed = collectFilesToEmbed(gpadTextForEmbed.toString(), inputFile, embedRootDir);
+						
 						try (FileOutputStream fos = new FileOutputStream(outputFile)) {
-							writeZippedWithEmbeddedFiles(fos, xmlString, filesToEmbed, embedRootDir);
+							writeZippedWithEmbeddedFiles(fos, xmlString, filesToEmbed, embedRootDir, app);
 						}
 						System.out.println("Converted (with LaTeX warning): " + inputFile.getName() + " -> " + outputFile.getName());
 						successCount++;
@@ -448,7 +449,7 @@ public class GpadToGgb {
 		Set<String> filesToEmbed = new HashSet<>();
 		
 		// Extract filenames from gpad content using regex
-		// Pattern: filename:"path" or filename:path; (allows whitespace after : and before ;)
+		// Pattern 1: filename:"path" or filename:path; (allows whitespace after : and before ;)
 		Pattern filenamePattern = Pattern.compile("filename:\\s*(\"([^\"]+)\"|([^;]+?)\\s*;)", Pattern.CASE_INSENSITIVE);
 		Matcher matcher = filenamePattern.matcher(gpadContent);
 		while (matcher.find()) {
@@ -464,7 +465,26 @@ public class GpadToGgb {
 				filename = filename.trim();
 			}
 			if (filename != null && !filename.isEmpty()) {
-				filesToEmbed.add(filename);
+				// Skip URLs and data URLs
+				if (!filename.startsWith("http://") && !filename.startsWith("https://") 
+						&& !filename.startsWith("data:") && !filename.startsWith("/")) {
+					filesToEmbed.add(filename);
+				}
+			}
+		}
+		
+		// Pattern 2: Image("path") - extract path from Image command
+		// Match Image("path") or Image('path'), allowing whitespace
+		Pattern imagePattern = Pattern.compile("Image\\s*\\(\\s*[\"']([^\"']+)[\"']\\s*\\)", Pattern.CASE_INSENSITIVE);
+		Matcher imageMatcher = imagePattern.matcher(gpadContent);
+		while (imageMatcher.find()) {
+			String imagePath = imageMatcher.group(1);
+			if (imagePath != null && !imagePath.isEmpty()) {
+				// Skip URLs and data URLs
+				if (!imagePath.startsWith("http://") && !imagePath.startsWith("https://") 
+						&& !imagePath.startsWith("data:") && !imagePath.startsWith("/")) {
+					filesToEmbed.add(imagePath);
+				}
 			}
 		}
 		
@@ -547,13 +567,26 @@ public class GpadToGgb {
 	 * Write GGB file with embedded files
 	 */
 	private static void writeZippedWithEmbeddedFiles(FileOutputStream fos, String xmlString, 
-			Set<String> filesToEmbed, File embedRootDir) throws IOException {
+			Set<String> filesToEmbed, File embedRootDir, AppDNoGui app) throws IOException {
 		ZipOutputStream zip = new ZipOutputStream(fos);
 		
 		// Write XML file
 		zip.putNextEntry(new ZipEntry(MyXMLio.XML_FILE));
 		zip.write(xmlString.getBytes(StandardCharsets.UTF_8));
 		zip.closeEntry();
+		
+		// Write macro XML file if macros exist
+		if (app != null && app.getKernel() != null && app.getKernel().hasMacros()) {
+			java.util.ArrayList<org.geogebra.common.kernel.Macro> macros = app.getKernel().getAllMacros();
+			if (macros != null && !macros.isEmpty()) {
+				String macroXML = app.getXMLio().getFullMacroXML(macros);
+				if (macroXML != null && !macroXML.isEmpty()) {
+					zip.putNextEntry(new ZipEntry(MyXMLio.XML_FILE_MACRO));
+					zip.write(macroXML.getBytes(StandardCharsets.UTF_8));
+					zip.closeEntry();
+				}
+			}
+		}
 		
 		// Write embedded files
 		int embeddedCount = 0;
@@ -564,7 +597,9 @@ public class GpadToGgb {
 				
 				// Security check: ensure file is within embed root directory
 				Path embedRootPath = embedRootDir.toPath().toAbsolutePath().normalize();
-				if (!filePath.toAbsolutePath().normalize().startsWith(embedRootPath)) {
+				Path fileAbsolutePath = filePath.toAbsolutePath().normalize();
+				
+				if (!fileAbsolutePath.startsWith(embedRootPath)) {
 					String error = "Skipping embedded file with dangerous path (would escape embed root): " + relativePath;
 					errors.add(error);
 					System.err.println("Error: " + error);
@@ -573,14 +608,15 @@ public class GpadToGgb {
 				
 				File fileToEmbed = filePath.toFile();
 				if (!fileToEmbed.exists() || !fileToEmbed.isFile()) {
-					String error = "Embedded file not found: " + relativePath;
+					String error = "Embedded file not found: " + relativePath + " (resolved to: " + filePath.toAbsolutePath() + ")";
 					errors.add(error);
 					System.err.println("Warning: " + error);
 					continue;
 				}
 				
 				// Add file to zip
-				zip.putNextEntry(new ZipEntry(relativePath.replace('\\', '/')));
+				String zipEntryName = relativePath.replace('\\', '/');
+				zip.putNextEntry(new ZipEntry(zipEntryName));
 				try (FileInputStream fis = new FileInputStream(fileToEmbed)) {
 					byte[] buffer = new byte[8192];
 					int read;

@@ -78,8 +78,24 @@ public class GgbToGpadConverter {
 		
 		// Convert each macro
 		for (Macro macro : macros) {
-			if (macro != null) {
+			if (macro != null)
 				convertMacro(macro, sb);
+		}
+	}
+
+	private void buildLabels(StringBuilder sb, GeoElement[] geos) {
+		boolean first = true;
+		if (geos != null) {
+			for (GeoElement geo : geos) {
+				if (geo != null) {
+					String label = geo.getLabelSimple();
+					if (label != null && !label.isEmpty()) {
+						if (!first)
+							sb.append(", ");
+						first = false;
+						sb.append(label);
+					}
+				}
 			}
 		}
 	}
@@ -100,34 +116,6 @@ public class GgbToGpadConverter {
 			return;
 		}
 		
-		// Get input labels
-		GeoElement[] macroInput = macro.getMacroInput();
-		List<String> inputLabels = new ArrayList<>();
-		if (macroInput != null) {
-			for (GeoElement inputGeo : macroInput) {
-				if (inputGeo != null) {
-					String label = inputGeo.getLabelSimple();
-					if (label != null && !label.isEmpty()) {
-						inputLabels.add(label);
-					}
-				}
-			}
-		}
-		
-		// Get output labels
-		GeoElement[] macroOutput = macro.getMacroOutput();
-		List<String> outputLabels = new ArrayList<>();
-		if (macroOutput != null) {
-			for (GeoElement outputGeo : macroOutput) {
-				if (outputGeo != null) {
-					String label = outputGeo.getLabelSimple();
-					if (label != null && !label.isEmpty()) {
-						outputLabels.add(label);
-					}
-				}
-			}
-		}
-		
 		// Get macro construction
 		Construction macroCons = macro.getMacroConstruction();
 		if (macroCons == null) {
@@ -137,13 +125,7 @@ public class GgbToGpadConverter {
 		
 		// Start macro definition: @@macro macroName(input1, input2, ...) {
 		sb.append("@@macro ").append(macroName).append("(");
-		boolean first = true;
-		for (String inputLabel : inputLabels) {
-			if (!first)
-				sb.append(", ");
-			first = false;
-			sb.append(inputLabel);
-		}
+		buildLabels(sb, macro.getMacroInput());
 		sb.append(") {\n");
 		
 		// Convert macro construction using a new converter instance
@@ -156,22 +138,15 @@ public class GgbToGpadConverter {
 			// Indent each line of the macro construction
 			String[] lines = macroConstructionGpad.split("\n");
 			for (String line : lines) {
-				if (!line.trim().isEmpty()) {
+				if (!line.trim().isEmpty())
 					sb.append("    ").append(line).append("\n");
-				}
 			}
 		}
 		
 		// End macro definition: @@return output1, output2, ... }
 		// Note: @@return statement does NOT end with semicolon
 		sb.append("    @@return ");
-		first = true;
-		for (String outputLabel : outputLabels) {
-			if (!first)
-				sb.append(", ");
-			first = false;
-			sb.append(outputLabel);
-		}
+		buildLabels(sb, macro.getMacroOutput());
 		sb.append("\n}\n\n");
 	}
 
@@ -208,27 +183,27 @@ public class GgbToGpadConverter {
 					continue;
 			}
 
-		if (ce.isAlgoElement()) {
-			AlgoElement algo = (AlgoElement) ce;
-			// Use getDefinitionName() to determine if it's an Expression (same logic as XML generation)
-			String cmdName = algo.getDefinitionName(myTPL);
-			
-			// Check if it's an Expression (same logic as AlgoElement.hasExpXML())
-			if ("Expression".equals(cmdName))
-				processExpression(algo, sb);
-			else
-				processCommand(algo, sb);
-		} else if (ce.isGeoElement()) {
-			GeoElement geo = (GeoElement) ce;
-			AlgoElement parentAlgo = geo.getParentAlgorithm();
-			
-			// Skip if this geo has a parent algorithm - it should be processed by its parent
-			if (parentAlgo != null)
-				continue;
-			
-			if (geo.isIndependent())
-				processIndependentElement(geo, sb);
-		}
+			if (ce.isAlgoElement()) {
+				AlgoElement algo = (AlgoElement) ce;
+				// Use getDefinitionName() to determine if it's an Expression (same logic as XML generation)
+				String cmdName = algo.getDefinitionName(myTPL);
+				
+				// Check if it's an Expression (same logic as AlgoElement.hasExpXML())
+				if ("Expression".equals(cmdName))
+					processExpression(algo, sb);
+				else
+					processCommand(algo, sb);
+			} else if (ce.isGeoElement()) {
+				GeoElement geo = (GeoElement) ce;
+				AlgoElement parentAlgo = geo.getParentAlgorithm();
+				
+				// Skip if this geo has a parent algorithm - it should be processed by its parent
+				if (parentAlgo != null)
+					continue;
+				
+				if (geo.isIndependent())
+					processIndependentElement(geo, sb);
+			}
 		}
 	}
 
@@ -258,59 +233,28 @@ public class GgbToGpadConverter {
 		if (outputGeos.isEmpty())
 			return;
 
-		// Check if any output is a function - functions should have only one output
-		// If there are multiple outputs but one is a function, still process as single function
-		boolean hasFunction = false;
-		GeoElement functionOutput = null;
-		for (GeoElement outputGeo : outputGeos) {
-			if (outputGeo instanceof FunctionalNVar) {
-				hasFunction = true;
-				functionOutput = outputGeo;
-				break;
-			}
+		// Generate stylesheet definitions first (only once per unique stylesheet)
+		// Note: Stylesheet definitions do NOT end with semicolon (format: @name = { ... })
+		for (int i = 0; i < outputGeos.size(); i++) {
+			GeoElement outputGeo = outputGeos.get(i);
+			String styleSheetName = styleSheetNames.get(i);
+			appendStyleSheetDefinitionIfNeeded(sb, outputGeo, styleSheetName);
 		}
 
-		// If there's a function output or only one output, process as single output
-		// This ensures functions get proper f(x) format via buildOutputLabel
-		if (hasFunction && functionOutput != null || outputGeos.size() == 1) {
-			// Process single output (function or non-function)
-			GeoElement outputGeo = hasFunction ? functionOutput : outputGeos.get(0);
-			int outputIndex = outputGeos.indexOf(outputGeo);
-			String styleSheetName = styleSheetNames.get(outputIndex);
-			
-			// Generate stylesheet definition first
-			appendStyleSheetDefinitionIfNeeded(sb, outputGeo, styleSheetName);
+		// Generate command instruction
+		// Format: label1, label2, ... = CommandName(input1, input2, ...);
+		boolean first = true;
+		for (int i = 0; i < outputGeos.size(); i++) {
+			if (!first)
+				sb.append(", ");
+			first = false;
 
-			// Generate command instruction: f(x) @style ... = CommandName(...); or label @style ... = CommandName(...);
-			GeoElementToGpadConverter.buildOutputLabel(sb, outputGeo);
+			GeoElementToGpadConverter.buildOutputLabel(sb, outputGeos.get(i));
 
 			// Add stylesheet reference
+			String styleSheetName = styleSheetNames.get(i);
 			if (styleSheetName != null)
 				sb.append(" @").append(styleSheetName);
-		} else {
-			// Generate stylesheet definitions first (only once per unique stylesheet)
-			// Note: Stylesheet definitions do NOT end with semicolon (format: @name = { ... })
-			for (int i = 0; i < outputGeos.size(); i++) {
-				GeoElement outputGeo = outputGeos.get(i);
-				String styleSheetName = styleSheetNames.get(i);
-				appendStyleSheetDefinitionIfNeeded(sb, outputGeo, styleSheetName);
-			}
-
-			// Generate command instruction
-			// Format: label1, label2, ... = CommandName(input1, input2, ...);
-			boolean first = true;
-			for (int i = 0; i < outputGeos.size(); i++) {
-				if (!first)
-					sb.append(", ");
-				first = false;
-
-				GeoElementToGpadConverter.buildOutputLabel(sb, outputGeos.get(i));
-
-				// Add stylesheet reference
-				String styleSheetName = styleSheetNames.get(i);
-				if (styleSheetName != null)
-					sb.append(" @").append(styleSheetName);
-			}
 		}
 
 		// Get command definition (includes command name and input parameters)
@@ -400,65 +344,6 @@ public class GgbToGpadConverter {
 		// Generate stylesheet definition first (only once per unique stylesheet)
 		appendStyleSheetDefinitionIfNeeded(sb, geo, styleSheetName);
 
-		// Check if this is a function - functions should always use buildOutputLabel
-		if (geo instanceof FunctionalNVar) {
-			// For functions, always use buildOutputLabel to get f(x) format
-			// Get definition string - try multiple sources
-			String def = null;
-			if (geo.getDefinition() != null)
-				def = geo.getDefinition(myTPL);
-			if (def == null || def.isEmpty()) {
-				// Try to get from the function expression (same as GeoElementToGpadConverter)
-				if (geo instanceof org.geogebra.common.kernel.geos.GeoFunction) {
-					org.geogebra.common.kernel.geos.GeoFunction geoFunc = 
-						(org.geogebra.common.kernel.geos.GeoFunction) geo;
-					org.geogebra.common.kernel.arithmetic.ExpressionNode exprNode = geoFunc.getFunctionExpression();
-					if (exprNode != null)
-						def = exprNode.toString(myTPL);
-					if (def == null || def.isEmpty()) {
-						org.geogebra.common.kernel.arithmetic.Function fun = geoFunc.getFunction();
-						if (fun != null)
-							def = fun.toValueString(myTPL);
-					}
-				} else if (geo instanceof org.geogebra.common.kernel.geos.GeoFunctionNVar) {
-					org.geogebra.common.kernel.geos.GeoFunctionNVar geoFuncNVar = 
-						(org.geogebra.common.kernel.geos.GeoFunctionNVar) geo;
-					org.geogebra.common.kernel.arithmetic.FunctionNVar fun = geoFuncNVar.getFunction();
-					if (fun != null)
-						def = fun.toValueString(myTPL);
-				}
-			}
-			if (def == null || def.isEmpty()) // Last resort: use toValueString
-				def = geo.toValueString(myTPL);
-			if (def != null && !def.isEmpty()) {
-				// Generate expression instruction: f(u,v,...) @style ... = ... for functions
-				GeoElementToGpadConverter.buildOutputLabel(sb, geo);
-				if (styleSheetName != null)
-					sb.append(" @").append(styleSheetName);
-				sb.append(" = ").append(def).append(";\n");
-				processedOutputs.add(geo);
-				return;
-			}
-		}
-
-		// Check if this should be treated as an expression (same logic as GeoElement.getExpressionXML())
-		// Condition: isIndependent() && definition != null && getDefaultGeoType() < 0
-		if (geo.getDefinition() != null && geo.getDefaultGeoType() < 0) {
-			// This is an independent element with a definition - treat as expression
-			// Use getDefinitionXML() logic to get the definition string
-			String def = geo.getDefinition(myTPL);
-			if (def != null && !def.isEmpty()) {
-				// Generate expression instruction: label = definition; or f(u,v,...) @style ... = ... for functions
-				GeoElementToGpadConverter.buildOutputLabel(sb, geo);
-				if (styleSheetName != null)
-					sb.append(" @").append(styleSheetName);
-				sb.append(" = ").append(def).append(";\n");
-				processedOutputs.add(geo);
-				return;
-			}
-		}
-
-		// Otherwise, treat as regular independent element
 		// Build command using GeoElementToGpadConverter
 		if (GeoElementToGpadConverter.buildCommand(sb, geo, styleSheetName))
 			sb.append("\n");

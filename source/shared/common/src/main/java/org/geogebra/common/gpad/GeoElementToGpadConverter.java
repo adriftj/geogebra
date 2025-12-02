@@ -15,7 +15,6 @@ import org.geogebra.common.kernel.geos.GeoFunction;
 import org.geogebra.common.kernel.geos.GeoImage;
 import org.geogebra.common.kernel.geos.GeoNumeric;
 import org.geogebra.common.kernel.geos.GeoText;
-import org.geogebra.common.kernel.kernelND.GeoLineND;
 import org.geogebra.common.kernel.kernelND.GeoPointND;
 import org.geogebra.common.kernel.kernelND.GeoVectorND;
 import org.geogebra.common.util.StringUtil;
@@ -311,8 +310,6 @@ public class GeoElementToGpadConverter {
 		return sb.toString();
 	}
 
-
-
 	/**
 	 * Extracts command definition from GeoElement.
 	 * Uses the same logic as XML generation to determine how to represent the element.
@@ -340,53 +337,50 @@ public class GeoElementToGpadConverter {
 			}
 		}
 
-		// For independent elements, check if they should use expression format
-		// (same logic as GeoElement.getExpressionXML() and GeoText.getExpressionXML())
-		// Condition: isIndependent() && getDefaultGeoType() < 0
-		// For most types: also requires definition != null
-		// For GeoText: uses toOutputValueString() even without definition
-		// This corresponds to XML <expression> tag generation
-		if (geo.isIndependent() && geo.getDefaultGeoType() < 0) {
-			// Special handling for GeoText: uses toOutputValueString() (same as GeoText.getExpressionXML())
-			if (geo instanceof GeoText) {
-				GeoText text = (GeoText) geo;
-				String expStr = text.toOutputValueString(myTPL);
-				if (expStr != null && !expStr.isEmpty())
-					return expStr;
-			}
-			// For other types: requires definition != null (same as GeoElement.getExpressionXML())
-			else if (geo.getDefinition() != null) {
-				// This element should be represented as an expression
-				// Use getDefinitionXML() logic to get the definition string
-				return geo.getDefinition(myTPL);
-			}
-		}
-
-		// Special handling for Button objects
-		if (geo instanceof GeoButton) {
-			GeoButton button = (GeoButton) geo;
-			String caption = button.getCaption(myTPL);
-			if (caption != null && !caption.isEmpty()) // with caption
-				return "Button(\"" + escapeString(caption) + "\")";
-			else // without caption
-				return "Button()";
-		}
-
-		// Special handling for Image objects
-		if (geo instanceof GeoImage) {
-			GeoImage image = (GeoImage) geo;
-			// Only handle independent images (not created by commands)
-			if (image.isIndependent()) {
-				String fileName = image.getGraphicsAdapter().getImageFileName();
-				if (fileName != null && !fileName.isEmpty()) // with filename/URL
-					return "Image(\"" + escapeString(fileName) + "\")";
-				else // without filename
-					return "Image()";
+		if (geo instanceof GeoPointND) {
+			GeoPointND point = (GeoPointND) geo;
+			if (point.isDefined() && point.isFinite()) {
+				// Check if label starts with lowercase (would be parsed as vector)
+				String label = geo.getLabelSimple();
+				boolean labelIsLowercase = label != null && !label.isEmpty() 
+					&& StringUtil.isLowerCase(label.charAt(0));
+				
+				// If label is lowercase, use explicit Point command to avoid ambiguity
+				if (labelIsLowercase) {
+					double x = point.getInhomX();
+					double y = point.getInhomY();
+					double z = point.getInhomZ();
+					// Use Point[{x, y}] or Point[{x, y, z}] format (list syntax)
+					if (point.getDimension() == 3 && z != 1.0)
+						return "Point[{" + x + ", " + y + ", " + z + "}]";
+					else
+						return "Point[{" + x + ", " + y + "}]";
+				}
 			}
 		}
 
-		// Special handling for Slider objects (GeoNumeric with slider properties)
-		// This corresponds to XML <element type="numeric"> with slider properties
+		if (geo instanceof GeoVectorND) {
+			GeoVectorND vector = (GeoVectorND) geo;
+			if (vector.isDefined() && vector.isFinite()) {
+				// Check if label starts with uppercase (would be parsed as point)
+				String label = geo.getLabelSimple();
+				boolean labelIsUppercase = label != null && !label.isEmpty() 
+					&& !StringUtil.isLowerCase(label.charAt(0));
+				
+				// If label is uppercase, use explicit Vector command to avoid ambiguity
+				if (labelIsUppercase) {
+					double x = vector.getX();
+					double y = vector.getY();
+					double z = vector.getZ();
+					// Use Vector[{x, y}] or Vector[{x, y, z}] format (list syntax, same as Point)
+					if (vector.getDimension() == 3 && z != 0.0)
+						return "Vector[{" + x + ", " + y + ", " + z + "}]";
+					else
+						return "Vector[{" + x + ", " + y + "}]";
+				}
+			}
+		}
+
 		if (geo instanceof GeoNumeric) {
 			GeoNumeric num = (GeoNumeric) geo;
 			if (num.isSliderable()) {
@@ -413,10 +407,8 @@ public class GeoElementToGpadConverter {
 		// This corresponds to XML <element type="boolean"><value val="true"/>
 		if (geo instanceof GeoBoolean) {
 			GeoBoolean bool = (GeoBoolean) geo;
-			if (bool.isDefined()) {
-				// Return boolean value as string: "true" or "false"
+			if (bool.isDefined()) // Return boolean value as string: "true" or "false"
 				return bool.getBoolean() ? "true" : "false";
-			}
 			// If undefined, return "?" (though this shouldn't happen for independent booleans)
 			return "?";
 		}
@@ -438,89 +430,6 @@ public class GeoElementToGpadConverter {
 			return "Text(\"\")";
 		}
 
-		// Special handling for GeoPointND: use toValueString() to get coordinates
-		// This corresponds to XML <coords> tag for independent points without definition
-		// (like PDilate: <element type="point"><coords x="1" y="1" z="1"/>)
-		if (geo instanceof GeoPointND) {
-			GeoPointND point = (GeoPointND) geo;
-			if (point.isDefined() && point.isFinite()) {
-				// Get coordinates
-				double x = point.getInhomX();
-				double y = point.getInhomY();
-				double z = point.getInhomZ();
-				
-				// Check if label starts with lowercase (would be parsed as vector)
-				String label = geo.getLabelSimple();
-				boolean labelIsLowercase = label != null && !label.isEmpty() 
-					&& StringUtil.isLowerCase(label.charAt(0));
-				
-				// If label is lowercase, use explicit Point command to avoid ambiguity
-				if (labelIsLowercase) {
-					// Use Point[{x, y}] or Point[{x, y, z}] format (list syntax)
-					if (point.getDimension() == 3 && z != 1.0)
-						return "Point[{" + x + ", " + y + ", " + z + "}]";
-					else
-						return "Point[{" + x + ", " + y + "}]";
-				} else {
-					// Use toValueString() to get properly formatted point coordinates
-					// This will return format like "(1, 1)" or "(1; 1)" depending on template
-					// Same as what XML <coords> tag stores
-					String pointStr = point.toValueString(myTPL);
-					if (pointStr != null && !pointStr.isEmpty() && !"?".equals(pointStr))
-						return pointStr;
-				}
-			}
-		}
-
-		// Special handling for GeoVectorND: use toValueString() to get coordinates
-		// This corresponds to XML <coords> tag for independent vectors without definition
-		// (<element type="vector"><coords x="1" y="2" z="0"/>)
-		if (geo instanceof GeoVectorND) {
-			GeoVectorND vector = (GeoVectorND) geo;
-			if (vector.isDefined() && vector.isFinite()) {
-				// Get coordinates
-				double x = vector.getX();
-				double y = vector.getY();
-				double z = vector.getZ();
-				
-				// Check if label starts with uppercase (would be parsed as point)
-				String label = geo.getLabelSimple();
-				boolean labelIsUppercase = label != null && !label.isEmpty() 
-					&& !StringUtil.isLowerCase(label.charAt(0));
-				
-				// If label is uppercase, use explicit Vector command to avoid ambiguity
-				if (labelIsUppercase) {
-					// Use Vector[{x, y}] or Vector[{x, y, z}] format (list syntax, same as Point)
-					if (vector.getDimension() == 3 && z != 0.0)
-						return "Vector[{" + x + ", " + y + ", " + z + "}]";
-					else
-						return "Vector[{" + x + ", " + y + "}]";
-				} else {
-					// Use toValueString() to get properly formatted vector coordinates
-					// This will return format like "(1, 2)" or "(1; 2)" depending on template
-					// Same as what XML <coords> tag stores
-					String vectorStr = vector.toValueString(myTPL);
-					if (vectorStr != null && !vectorStr.isEmpty() && !"?".equals(vectorStr))
-						return vectorStr;
-				}
-			}
-		}
-
-		// Special handling for GeoLineND: use toValueString() to get equation
-		// This corresponds to XML <coords> tag for independent lines without definition
-		// (<element type="line"><coords x="1" y="2" z="3"/>)
-		// Note: toValueString() returns equation form (e.g., "x + 2y = 3"), not coordinates
-		if (geo instanceof GeoLineND) {
-			GeoLineND line = (GeoLineND) geo;
-			if (line.isDefined()) {
-				// Use toValueString() to get line equation
-				// This will return format like "x + 2y = 3" or parametric form
-				String lineStr = line.toValueString(myTPL);
-				if (lineStr != null && !lineStr.isEmpty() && !"?".equals(lineStr))
-					return lineStr;
-			}
-		}
-
 		// Special handling for GeoFunction: extract expression from function
 		if (geo instanceof GeoFunction) {
 			GeoFunction func = (GeoFunction) geo;
@@ -532,24 +441,36 @@ public class GeoElementToGpadConverter {
 					if (expr != null && !expr.isEmpty())
 						return expr;
 				}
-				// Fallback to toValueString
-				String expr = func.toValueString(myTPL);
-				if (expr != null && !expr.isEmpty() && !"?".equals(expr))
-					return expr;
 			}
 		}
 
-		// Generic fallback for other independent elements with toValueString()
-		// This covers types like GeoList, GeoAngle, etc. that use <value> or other XML tags
-		// This corresponds to XML <element> tags with <value> or other value-related tags
-		if (geo.isIndependent() && geo.isDefined() && geo.getDefinition() == null) {
-			String valStr = geo.toValueString(myTPL);
-			if (valStr != null && !valStr.isEmpty() && !"?".equals(valStr))
-				return valStr;
+		if (geo instanceof GeoButton) {
+			GeoButton button = (GeoButton) geo;
+			String caption = button.getCaption(myTPL);
+			if (caption != null && !caption.isEmpty()) // with caption
+				return "Button(\"" + escapeString(caption) + "\")";
+			else // without caption
+				return "Button()";
 		}
 
-		// No command available
-		return null;
+		if (geo instanceof GeoImage) {
+			GeoImage image = (GeoImage) geo;
+			// Only handle independent images (not created by commands)
+			if (image.isIndependent()) {
+				String fileName = image.getGraphicsAdapter().getImageFileName();
+				if (fileName != null && !fileName.isEmpty()) // with filename/URL
+					return "Image(\"" + escapeString(fileName) + "\")";
+				else // without filename
+					return "Image()";
+			}
+		}
+
+		if (geo.getDefinition() != null && geo.getDefaultGeoType() < 0) {
+			String str = geo.getDefinition(myTPL);
+			if (str != null && !str.isEmpty())
+				return str;
+		}
+		return geo.toValueString(myTPL); // fallback
 	}
 	
 	/**
