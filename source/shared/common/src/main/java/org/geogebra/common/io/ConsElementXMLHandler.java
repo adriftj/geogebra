@@ -2548,6 +2548,14 @@ public class ConsElementXMLHandler {
 				GeoPointND P = pair.point != null ? pair.point
 						: algProc.evaluateToPoint(pair.exp,
 								ErrorHelper.silent(), true);
+				if (P == null) {
+					// evaluateToPoint returned null, which means evaluation failed
+					String errorMsg = "Failed to evaluate start point expression: " + pair.exp;
+					if (pair.locateable instanceof GeoElement)
+						errorMsg += " for " + ((GeoElement) pair.locateable).getLabelSimple();
+					addError(errorMsg);
+					continue; // Skip this start point
+				}
 				pair.locateable.setStartPoint(P, pair.number);
 			}
 			for (Locateable updated: changedLocateables) {

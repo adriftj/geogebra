@@ -242,8 +242,6 @@ public class GpadOtherTest extends BaseUnitTest {
 			"pulsingSpeed = 8;\n" +
 			"@pulsingStyle = { slider: min=0 max=1 width=200.0 @screen algebra; lineStyle: full thickness=8 hidden=dashed; objColor: #0000001A; bgColor: #000000FF; layer: 4; labelMode: namevalue; animation: + speed=\"pulsingSpeed\" }\n" +
 			"pulsing* @pulsingStyle = Slider(0.0, 1.0);\n" +
-			"@onboardingArrowUpStyle = { showIf: onboarding; startPoint: absolute \"(onboardingX, onboardingY)\" }\n" +
-			"onboardingArrowUp @onboardingArrowUpStyle = Image(\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==\");\n" +
 			"@onboardingCaseStyle = { slider: min=1 max=4 width=200.0 x=266.0 y=350.0 @screen; lineStyle: full thickness=8 hidden=dashed; objColor: #0000001A; bgColor: #000000FF; layer: 4; labelMode: namevalue; animation: 1 }\n" +
 			"onboardingCase* @onboardingCaseStyle = Slider(1.0, 4.0);\n" +
 			"@layoutAppSizeStyle = { show: 3d; objColor: #52525200; layer: 4; animation: +1; pointSize: 7; coords: 800.0 500.0 }\n" +
@@ -252,6 +250,8 @@ public class GpadOtherTest extends BaseUnitTest {
 			"onboardingPX* @onboardingPXStyle = PointToPixels[(xMin, yMin), (xMax, yMax), layoutAppSize, (0, -1)];\n" +
 			"onboardingX = x(onboardingPX) - 12;\n" +
 			"onboardingY = y(onboardingPX) + 36;\n" +
+			"@onboardingArrowUpStyle = { showIf: onboarding; startPoint: absolute \"(onboardingX, onboardingY)\" }\n" +
+			"onboardingArrowUp @onboardingArrowUpStyle = Image(\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==\");\n" +
 			"@altTextStyle = { show: ~3d; objColor: #00000000; layer: 4; isLaTeX; startPoint: 6.422187344952864 4.251074692411592 1.0 }\n" +
 			"altText* @altTextStyle = \"\\text{Describe the applet here}\";\n" +
 			"@inputCStyle = { show: ~3d; objColor: #00000000; layer: 4; startPoint: 6.198556216753847 2.2101079015668352 1.0 }\n" +
