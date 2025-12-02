@@ -4626,6 +4626,7 @@ void gpadMacroDefinition() throws GpadParseException :
     MacroKernel macroKernel;
     org.geogebra.common.kernel.Construction macroCons;
     Kernel savedKernel;
+    FunctionParser savedFunctionParser;
     java.util.List<GeoElement> savedResults;
     java.util.Map<String, GpadStyleSheet> savedStyleSheets;
 }
@@ -4653,6 +4654,7 @@ void gpadMacroDefinition() throws GpadParseException :
         
         // Save current context
         savedKernel = kernel;
+        savedFunctionParser = functionParser;
         savedResults = gpadResults;
         savedStyleSheets = gpadStyleSheets;
         
@@ -4662,6 +4664,8 @@ void gpadMacroDefinition() throws GpadParseException :
         // and the macro can only reference stylesheets defined within itself.
         // The parser (this) will use the switched kernel automatically.
         kernel = macroKernel;
+        // Update functionParser to use the new macroKernel
+        functionParser = new FunctionParser(kernel, undecided);
         gpadResults = new java.util.ArrayList<>();
         gpadStyleSheets = new java.util.HashMap<>();
     }
@@ -4673,6 +4677,8 @@ void gpadMacroDefinition() throws GpadParseException :
         // The macro's isolated gpadStyleSheets is discarded here,
         // ensuring stylesheets defined in the macro don't affect the global scope.
         kernel = savedKernel;
+        // Restore functionParser to use the original kernel
+        functionParser = savedFunctionParser;
         gpadResults = savedResults;
         gpadStyleSheets = savedStyleSheets;
         

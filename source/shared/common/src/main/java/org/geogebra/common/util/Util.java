@@ -133,6 +133,12 @@ public final class Util {
 
 		String ret;
 
+		// Don't modify data URLs or HTTP/HTTPS URLs
+		if (fn != null && (fn.startsWith("data:") || fn.startsWith("http://") 
+				|| fn.startsWith("https://"))) {
+			return fn;
+		}
+
 		FileExtensions ext = StringUtil.getFileExtension(fn);
 
 		if (!ext.isAllowedImage() && !"".equals(fn)) {
