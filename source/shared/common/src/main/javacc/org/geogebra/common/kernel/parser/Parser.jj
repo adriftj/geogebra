@@ -1015,7 +1015,7 @@ TOKEN : {
  < GK_tempUserInput_eval: "eval" > |
  < GK_tempUserInput_display: "display" > |
  < GK_EXPR_LABEL: <GLABEL> > |
- < GK_EXPR_FLOAT: <GINTEGER> ("." <GINTEGER>)? > |
+ < GK_EXPR_FLOAT: ("-")? <GINTEGER> ("." <GINTEGER>)? > |
  < GK_objColor_fill_equals_value: "fill" ([" ", "\t"])* "=" ([" ", "\t"])* (["a"-"z"])+ > |
  < GK_objColor_angle_equals_value: "angle" ([" ", "\t"])* "=" ([" ", "\t"])* (["0"-"9"])+ > |
  < GK_objColor_dist_equals_value: "dist" ([" ", "\t"])* "=" ([" ", "\t"])* (["0"-"9"])+ > |

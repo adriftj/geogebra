@@ -18,6 +18,7 @@ import org.geogebra.common.kernel.geos.GeoText;
 import org.geogebra.common.kernel.kernelND.GeoLineND;
 import org.geogebra.common.kernel.kernelND.GeoPointND;
 import org.geogebra.common.kernel.kernelND.GeoVectorND;
+import org.geogebra.common.util.StringUtil;
 import org.geogebra.common.util.debug.Log;
 
 /**
@@ -443,12 +444,31 @@ public class GeoElementToGpadConverter {
 		if (geo instanceof GeoPointND) {
 			GeoPointND point = (GeoPointND) geo;
 			if (point.isDefined() && point.isFinite()) {
-				// Use toValueString() to get properly formatted point coordinates
-				// This will return format like "(1, 1)" or "(1; 1)" depending on template
-				// Same as what XML <coords> tag stores
-				String pointStr = point.toValueString(myTPL);
-				if (pointStr != null && !pointStr.isEmpty() && !"?".equals(pointStr))
-					return pointStr;
+				// Get coordinates
+				double x = point.getInhomX();
+				double y = point.getInhomY();
+				double z = point.getInhomZ();
+				
+				// Check if label starts with lowercase (would be parsed as vector)
+				String label = geo.getLabelSimple();
+				boolean labelIsLowercase = label != null && !label.isEmpty() 
+					&& StringUtil.isLowerCase(label.charAt(0));
+				
+				// If label is lowercase, use explicit Point command to avoid ambiguity
+				if (labelIsLowercase) {
+					// Use Point[{x, y}] or Point[{x, y, z}] format (list syntax)
+					if (point.getDimension() == 3 && z != 1.0)
+						return "Point[{" + x + ", " + y + ", " + z + "}]";
+					else
+						return "Point[{" + x + ", " + y + "}]";
+				} else {
+					// Use toValueString() to get properly formatted point coordinates
+					// This will return format like "(1, 1)" or "(1; 1)" depending on template
+					// Same as what XML <coords> tag stores
+					String pointStr = point.toValueString(myTPL);
+					if (pointStr != null && !pointStr.isEmpty() && !"?".equals(pointStr))
+						return pointStr;
+				}
 			}
 		}
 
@@ -458,12 +478,31 @@ public class GeoElementToGpadConverter {
 		if (geo instanceof GeoVectorND) {
 			GeoVectorND vector = (GeoVectorND) geo;
 			if (vector.isDefined() && vector.isFinite()) {
-				// Use toValueString() to get properly formatted vector coordinates
-				// This will return format like "(1, 2)" or "(1; 2)" depending on template
-				// Same as what XML <coords> tag stores
-				String vectorStr = vector.toValueString(myTPL);
-				if (vectorStr != null && !vectorStr.isEmpty() && !"?".equals(vectorStr))
-					return vectorStr;
+				// Get coordinates
+				double x = vector.getX();
+				double y = vector.getY();
+				double z = vector.getZ();
+				
+				// Check if label starts with uppercase (would be parsed as point)
+				String label = geo.getLabelSimple();
+				boolean labelIsUppercase = label != null && !label.isEmpty() 
+					&& !StringUtil.isLowerCase(label.charAt(0));
+				
+				// If label is uppercase, use explicit Vector command to avoid ambiguity
+				if (labelIsUppercase) {
+					// Use Vector[{x, y}] or Vector[{x, y, z}] format (list syntax, same as Point)
+					if (vector.getDimension() == 3 && z != 0.0)
+						return "Vector[{" + x + ", " + y + ", " + z + "}]";
+					else
+						return "Vector[{" + x + ", " + y + "}]";
+				} else {
+					// Use toValueString() to get properly formatted vector coordinates
+					// This will return format like "(1, 2)" or "(1; 2)" depending on template
+					// Same as what XML <coords> tag stores
+					String vectorStr = vector.toValueString(myTPL);
+					if (vectorStr != null && !vectorStr.isEmpty() && !"?".equals(vectorStr))
+						return vectorStr;
+				}
 			}
 		}
 

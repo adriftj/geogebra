@@ -6,6 +6,8 @@ import static org.junit.Assert.assertTrue;
 
 import org.geogebra.common.BaseUnitTest;
 import org.geogebra.common.jre.headless.GgbAPIHeadless;
+import org.geogebra.common.kernel.geos.GeoPoint;
+import org.geogebra.common.kernel.geos.GeoVector;
 import org.geogebra.common.plugin.GgbAPI;
 import org.junit.Before;
 import org.junit.Test;
@@ -873,6 +875,179 @@ public class GgbToGpadConverterTest extends BaseUnitTest {
 			assertTrue("Macro1 should appear before R", macro1Index < rIndex);
 			assertTrue("Macro2 should appear before R", macro2Index < rIndex);
 		}
+	}
+
+	@Test
+	public void testPointWithLowercaseLabel() {
+		// Create a point with lowercase label programmatically
+		// This should generate Point[{x, y}] format to avoid ambiguity
+		GeoPoint point = new GeoPoint(getConstruction(), 800, 500, 1.0);
+		point.setLabel("layoutAppSize");
+		
+		// Convert to gpad
+		String outputGpad = api.toGpad(false);
+		assertNotNull("toGpad should return non-null", outputGpad);
+		
+		// Should contain the label
+		assertTrue("Should contain label layoutAppSize", outputGpad.contains("layoutAppSize"));
+		
+		// Should use Point[{800.0, 500.0}] format (not (800, 500))
+		// Note: coordinates are doubles, so they have decimal points
+		assertTrue("Should contain Point[{800, 500}] format. Actual gpad: " + outputGpad, 
+			outputGpad.contains("Point[{") && outputGpad.contains("800") && outputGpad.contains("500") && outputGpad.contains("}]"));
+		
+		// Should NOT contain plain (800, 500) format for this lowercase label
+		// (unless it's in a different context, but the main assignment should use Point[])
+		String pointLine = findLineContaining(outputGpad, "layoutAppSize");
+		assertTrue("Point with lowercase label should use Point[{x, y}] format: " + pointLine,
+			pointLine.contains("Point[{") || pointLine.contains("Point[{"));
+
+		// Verify it can be parsed back correctly
+		String result = api.evalGpad(outputGpad);
+		assertNotNull("Round trip should succeed", result);
+		assertTrue("Should contain layoutAppSize in result", result.contains("layoutAppSize"));
+	}
+
+	@Test
+	public void testPointWithUppercaseLabel() {
+		// Create a point with uppercase label programmatically
+		// This should generate (x, y) format (normal format)
+		GeoPoint point = new GeoPoint(getConstruction(), 800, 500, 1.0);
+		point.setLabel("LayoutAppSize");
+		
+		// Convert to gpad
+		String outputGpad = api.toGpad(false);
+		assertNotNull("toGpad should return non-null", outputGpad);
+		
+		// Should contain the label
+		assertTrue("Should contain label LayoutAppSize", outputGpad.contains("LayoutAppSize"));
+		
+		// Should use (800.0, 500.0) format (normal format for uppercase label)
+		// Note: coordinates are doubles, so they have decimal points
+		String pointLine = findLineContaining(outputGpad, "LayoutAppSize");
+		assertTrue("Point with uppercase label should use (x, y) format: " + pointLine,
+			pointLine.contains("(800") && pointLine.contains("500)"));
+		
+		// Should NOT use Point[{x, y}] format for uppercase label
+		assertTrue("Point with uppercase label should NOT use Point[{x, y}] format",
+			!pointLine.contains("Point[{800") || !pointLine.contains("500}]"));
+	}
+
+	@Test
+	public void testVectorWithUppercaseLabel() {
+		// Create a vector with uppercase label programmatically
+		// This should generate Vector[{x, y}] format to avoid ambiguity
+		GeoVector vector = new GeoVector(getConstruction());
+		vector.setCoords(3, 4, 0);
+		vector.setLabel("VecAB");
+		
+		// Convert to gpad
+		String outputGpad = api.toGpad(false);
+		assertNotNull("toGpad should return non-null", outputGpad);
+		
+		// Should contain the label
+		assertTrue("Should contain label VecAB", outputGpad.contains("VecAB"));
+		
+		// Should use Vector[{3.0, 4.0}] format (not (3, 4))
+		// Note: coordinates are doubles, so they have decimal points
+		String vectorLine = findLineContaining(outputGpad, "VecAB");
+		assertTrue("Vector with uppercase label should use Vector[{x, y}] format: " + vectorLine,
+			vectorLine.contains("Vector[{") && vectorLine.contains("3") && vectorLine.contains("4") && vectorLine.contains("}]"));
+	}
+
+	@Test
+	public void testVectorWithLowercaseLabel() {
+		// Create a vector with lowercase label programmatically
+		// This should generate (x, y) format (normal format)
+		GeoVector vector = new GeoVector(getConstruction());
+		vector.setCoords(3, 4, 0);
+		vector.setLabel("vecAB");
+		
+		// Convert to gpad
+		String outputGpad = api.toGpad(false);
+		assertNotNull("toGpad should return non-null", outputGpad);
+		
+		// Should contain the label
+		assertTrue("Should contain label vecAB", outputGpad.contains("vecAB"));
+		
+		// Should use (3.0, 4.0) format (normal format for lowercase label)
+		// Note: coordinates are doubles, so they have decimal points
+		String vectorLine = findLineContaining(outputGpad, "vecAB");
+		assertTrue("Vector with lowercase label should use (x, y) format: " + vectorLine,
+			vectorLine.contains("(3") && vectorLine.contains("4)"));
+		
+		// Should NOT use Vector[x, y] format for lowercase label
+		assertTrue("Vector with lowercase label should NOT use Vector[x, y] format",
+			!vectorLine.contains("Vector[3") || !vectorLine.contains("4]"));
+	}
+
+	@Test
+	public void testMixedPointAndVectorLabels() {
+		// Create multiple points and vectors with different label cases
+		GeoPoint pointLower = new GeoPoint(getConstruction(), 100, 200, 1.0);
+		pointLower.setLabel("pointLower");
+		
+		GeoPoint pointUpper = new GeoPoint(getConstruction(), 300, 400, 1.0);
+		pointUpper.setLabel("PointUpper");
+		
+		GeoVector vectorLower = new GeoVector(getConstruction());
+		vectorLower.setCoords(5, 6, 0);
+		vectorLower.setLabel("vectorLower");
+		
+		GeoVector vectorUpper = new GeoVector(getConstruction());
+		vectorUpper.setCoords(7, 8, 0);
+		vectorUpper.setLabel("VectorUpper");
+		
+		// Convert to gpad
+		String outputGpad = api.toGpad(false);
+		assertNotNull("toGpad should return non-null", outputGpad);
+		
+		// Verify all labels are present
+		assertTrue("Should contain pointLower", outputGpad.contains("pointLower"));
+		assertTrue("Should contain PointUpper", outputGpad.contains("PointUpper"));
+		assertTrue("Should contain vectorLower", outputGpad.contains("vectorLower"));
+		assertTrue("Should contain VectorUpper", outputGpad.contains("VectorUpper"));
+		
+		// Verify formats
+		String pointLowerLine = findLineContaining(outputGpad, "pointLower");
+		assertTrue("pointLower should use Point[{x, y}] format: " + pointLowerLine,
+			pointLowerLine.contains("Point[{"));
+		
+		String pointUpperLine = findLineContaining(outputGpad, "PointUpper");
+		assertTrue("PointUpper should use (x, y) format: " + pointUpperLine,
+			pointUpperLine.contains("(300") && pointUpperLine.contains("400)"));
+		
+		String vectorLowerLine = findLineContaining(outputGpad, "vectorLower");
+		assertTrue("vectorLower should use (x, y) format: " + vectorLowerLine,
+			vectorLowerLine.contains("(5") && vectorLowerLine.contains("6)"));
+		
+		String vectorUpperLine = findLineContaining(outputGpad, "VectorUpper");
+		assertTrue("VectorUpper should use Vector[{x, y}] format: " + vectorUpperLine,
+			vectorUpperLine.contains("Vector[{") && vectorUpperLine.contains("7") && vectorUpperLine.contains("8") && vectorUpperLine.contains("}]"));
+	}
+
+	/**
+	 * Helper method to find the line containing a specific label in gpad output.
+	 * Prefers lines that contain "=" (command lines) over style sheet definitions.
+	 * @param gpad the gpad string
+	 * @param label the label to search for
+	 * @return the line containing the label, or empty string if not found
+	 */
+	private String findLineContaining(String gpad, String label) {
+		String[] lines = gpad.split("\n");
+		// First try to find a line with "=" (command line)
+		for (String line : lines) {
+			if (line.contains(label) && line.contains("=") && !line.trim().startsWith("@")) {
+				return line;
+			}
+		}
+		// Fallback to any line containing the label
+		for (String line : lines) {
+			if (line.contains(label)) {
+				return line;
+			}
+		}
+		return "";
 	}
 }
 

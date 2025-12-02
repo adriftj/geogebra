@@ -1,391 +1,20 @@
 package org.geogebra.common.gpad;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-
-import java.util.ArrayList;
-import java.util.List;
-
 import org.geogebra.common.BaseUnitTest;
-import org.geogebra.common.kernel.CircularDefinitionException;
-import org.geogebra.common.kernel.arithmetic.ValidExpression;
-import org.geogebra.common.kernel.commands.EvalInfo;
-import org.geogebra.common.kernel.geos.GeoCurveCartesian;
-import org.geogebra.common.kernel.geos.GeoElement;
-import org.geogebra.common.kernel.parser.ParseException;
-import org.geogebra.common.kernel.parser.Parser;
-import org.geogebra.common.main.MyError;
 import org.junit.Test;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertNotNull;
 
 /**
- * Unit tests for other Gpad-related functionality.
+ * Integrated tests for actual Gpad script.
  */
 public class GpadOtherTest extends BaseUnitTest {
-
 	/**
-	 * Test creating CurveCartesian from ValidExpression.
-	 * This test reproduces the issue where variable 't' is not defined
-	 * when processing CurveCartesian command directly.
-	 * 
-	 * Expected behavior: The test should succeed and create a GeoCurveCartesian.
-	 * If it fails with "t is not defined", it indicates that the parameter
-	 * variable needs to be registered before processing the command.
+	 * Test the actual Gpad script.
 	 */
 	@Test
-	public void testCurveCartesianFromValidExpression() {
-		// Parse the command string
-		String cmdString = "Curve[cos(t), sin(t), t, 0, 2*pi]";
-		Parser parser = getKernel().getParser();
-		
-		try {
-			// Step 1: Parse to get ValidExpression
-			ValidExpression ve = parser.parseGeoGebraExpression(cmdString);
-			assertNotNull("ValidExpression should not be null", ve);
-			
-			// Step 2: Add label
-			List<String> names = new ArrayList<>();
-			names.add("c");
-			ve.addLabel(names);
-			
-			// Step 3: Create EvalInfo
-			EvalInfo info = new EvalInfo(true);
-			
-			// Step 4: Process ValidExpression - this should create GeoCurveCartesian
-			// This is where the error "t is not defined" might occur
-			// The issue is that when processing directly, the parameter variable 't'
-			// may not be registered in the construction before the command processor
-			// tries to resolve the expressions cos(t) and sin(t)
-			GeoElement[] geos = getKernel().getAlgebraProcessor()
-					.processValidExpression(ve, info);
-			
-			// Verify results
-			assertNotNull("GeoElement array should not be null", geos);
-			assertTrue("Should have at least one element", geos.length > 0);
-			assertTrue("First element should be GeoCurveCartesian", 
-					geos[0] instanceof GeoCurveCartesian);
-			
-			GeoCurveCartesian curve = (GeoCurveCartesian) geos[0];
-			// Note: Label might be auto-generated if 'c' is already taken
-			// The important thing is that the curve is created successfully
-			assertNotNull("Curve should have a label", curve.getLabelSimple());
-			assertTrue("Curve should be defined", curve.isDefined());
-			
-			// Verify curve properties
-			assertTrue("Curve should have valid parameter range", 
-					curve.getMinParameter() < curve.getMaxParameter());
-			
-		} catch (ParseException e) {
-			// Print the parse error
-			System.err.println("ParseException occurred: " + e.getMessage());
-			e.printStackTrace();
-			throw new AssertionError("Failed to parse command: " 
-					+ e.getMessage(), e);
-		} catch (MyError e) {
-			// Print the error message to understand what went wrong
-			// This is where "t is not defined" error would appear
-			System.err.println("MyError occurred: " + e.getMessage());
-			System.err.println("Error details: " + e.toString());
-			
-			// Check if the error is about undefined variable
-			if (e.getMessage() != null && 
-					(e.getMessage().contains("not defined") 
-					|| e.getMessage().contains("未定义")
-					|| e.getMessage().toLowerCase().contains("undefined"))) {
-				throw new AssertionError(
-					"Variable 't' is not defined. This indicates that the parameter " +
-					"variable needs to be registered in the construction before " +
-					"processing the CurveCartesian command. Error: " + e.getMessage(), e);
-			}
-			
-			throw new AssertionError("Failed to create CurveCartesian: " 
-					+ e.getMessage(), e);
-		} catch (CircularDefinitionException e) {
-			// Print the circular definition error
-			System.err.println("CircularDefinitionException occurred: " + e.getMessage());
-			e.printStackTrace();
-			throw new AssertionError("Circular definition: " 
-					+ e.getMessage(), e);
-		} catch (Exception e) {
-			// Print any other exception
-			System.err.println("Exception occurred: " + e.getMessage());
-			e.printStackTrace();
-			throw new AssertionError("Unexpected exception: " 
-					+ e.getMessage(), e);
-		}
-	}
-
-	/**
-	 * Test creating CurveCartesian with different parameter variable name.
-	 */
-	@Test
-	public void testCurveCartesianWithDifferentVariable() {
-		String cmdString = "Curve[cos(u), sin(u), u, 0, 2*pi]";
-		Parser parser = getKernel().getParser();
-		
-		try {
-			ValidExpression ve = parser.parseGeoGebraExpression(cmdString);
-			assertNotNull("ValidExpression should not be null", ve);
-			
-			List<String> names = new ArrayList<>();
-			names.add("c1");
-			ve.addLabel(names);
-			
-			EvalInfo info = new EvalInfo(true);
-			GeoElement[] geos = getKernel().getAlgebraProcessor()
-					.processValidExpression(ve, info);
-			
-			assertNotNull("GeoElement array should not be null", geos);
-			assertTrue("Should have at least one element", geos.length > 0);
-			assertTrue("First element should be GeoCurveCartesian", 
-					geos[0] instanceof GeoCurveCartesian);
-			
-		} catch (ParseException e) {
-			System.err.println("ParseException occurred: " + e.getMessage());
-			throw new AssertionError("Failed to parse command: " 
-					+ e.getMessage(), e);
-		} catch (MyError e) {
-			System.err.println("MyError occurred: " + e.getMessage());
-			throw new AssertionError("Failed to create CurveCartesian: " 
-					+ e.getMessage(), e);
-		} catch (CircularDefinitionException e) {
-			System.err.println("CircularDefinitionException occurred: " + e.getMessage());
-			throw new AssertionError("Circular definition: " 
-					+ e.getMessage(), e);
-		}
-	}
-
-	/**
-	 * Test creating CurveCartesian using evalCommand (for comparison).
-	 * This should work because evalCommand goes through the full command processing.
-	 */
-	@Test
-	public void testCurveCartesianViaEvalCommand() {
-		// This should work because evalCommand processes the full command
-		String cmdString = "c2=Curve[cos(t), sin(t), t, 0, 2*pi]";
-		
-		try {
-			boolean success = getApp().getGgbApi().evalCommand(cmdString);
-			assertTrue("evalCommand should succeed", success);
-			
-			GeoElement geo = getKernel().lookupLabel("c2");
-			assertNotNull("GeoElement should be found", geo);
-			assertTrue("Should be GeoCurveCartesian", 
-					geo instanceof GeoCurveCartesian);
-			
-			GeoCurveCartesian curve = (GeoCurveCartesian) geo;
-			assertTrue("Curve should be defined", curve.isDefined());
-			
-		} catch (Exception e) {
-			throw new AssertionError("Unexpected exception: " 
-					+ e.getMessage(), e);
-		}
-	}
-
-	/**
-	 * Test to understand the issue: When processing CurveCartesian command
-	 * directly via ValidExpression, the parameter variable (e.g., 't') might
-	 * not be registered in the construction before the command processor
-	 * tries to resolve expressions like cos(t) and sin(t).
-	 * 
-	 * The issue occurs because:
-	 * 1. Parser creates a Command object with arguments as ExpressionNodes
-	 * 2. When processValidExpression is called, it goes to CmdCurveCartesian.process()
-	 * 3. CmdCurveCartesian.process() calls resArgsLocalNumVar() which:
-	 *    - Registers the parameter variable in the construction
-	 *    - Resolves the arguments
-	 *    - Removes the variable after processing
-	 * 
-	 * However, if the arguments (cos(t), sin(t)) are resolved BEFORE
-	 * resArgsLocalNumVar() is called, 't' won't be defined yet.
-	 * 
-	 * Solution: The command processor should register the local variable
-	 * BEFORE resolving any arguments that might depend on it.
-	 */
-	@Test
-	public void testCurveCartesianParameterVariableRegistration() {
-		String cmdString = "Curve[cos(t), sin(t), t, 0, 2*pi]";
-		Parser parser = getKernel().getParser();
-		
-		try {
-			ValidExpression ve = parser.parseGeoGebraExpression(cmdString);
-			assertNotNull("ValidExpression should not be null", ve);
-			
-			// Check if the command is properly parsed
-			assertTrue("ValidExpression should contain a Command", 
-					ve.unwrap() instanceof org.geogebra.common.kernel.arithmetic.Command);
-			
-			org.geogebra.common.kernel.arithmetic.Command cmd = 
-					(org.geogebra.common.kernel.arithmetic.Command) ve.unwrap();
-			// Command name is "CurveCartesian" in the internal representation
-			assertTrue("Command name should be CurveCartesian", 
-					"CurveCartesian".equals(cmd.getName()));
-			// Note: Command might have 4 or 5 arguments depending on format
-			assertTrue("Command should have 4 or 5 arguments", 
-					cmd.getArgumentNumber() == 4 || cmd.getArgumentNumber() == 5);
-			
-			// Add label
-			List<String> names = new ArrayList<>();
-			names.add("c3");
-			ve.addLabel(names);
-			
-			// Process - this should work because CmdCurveCartesian.process()
-			// properly handles the parameter variable registration
-			EvalInfo info = new EvalInfo(true);
-			GeoElement[] geos = getKernel().getAlgebraProcessor()
-					.processValidExpression(ve, info);
-			
-			assertNotNull("GeoElement array should not be null", geos);
-			assertTrue("Should have at least one element", geos.length > 0);
-			assertTrue("First element should be GeoCurveCartesian", 
-					geos[0] instanceof GeoCurveCartesian);
-			
-		} catch (MyError e) {
-			// If we get a "variable not defined" error, it means the parameter
-			// variable wasn't registered before resolving the coordinate expressions
-			String errorMsg = e.getMessage();
-			if (errorMsg != null && 
-					(errorMsg.contains("not defined") 
-					|| errorMsg.contains("未定义")
-					|| errorMsg.toLowerCase().contains("undefined"))) {
-				System.err.println("ERROR REPRODUCED: Variable not defined error occurred!");
-				System.err.println("Error message: " + errorMsg);
-				System.err.println("This indicates that the parameter variable 't' needs to be");
-				System.err.println("registered in the construction BEFORE resolving cos(t) and sin(t).");
-				throw new AssertionError(
-					"Variable 't' is not defined. The parameter variable must be registered " +
-					"in the construction before processing the coordinate expressions. " +
-					"Error: " + errorMsg, e);
-			}
-			throw new AssertionError("Unexpected MyError: " + errorMsg, e);
-		} catch (ParseException | CircularDefinitionException e) {
-			throw new AssertionError("Unexpected exception: " + e.getMessage(), e);
-		} catch (Exception e) {
-			throw new AssertionError("Unexpected exception: " + e.getMessage(), e);
-		}
-	}
-
-	/**
-	 * Test reproducing the actual issue: "Undefined variable u" when using evalGpad
-	 * with CurveCartesian command that has expressions containing the parameter variable.
-	 * 
-	 * The user sends ALL commands together to evalGpad in one call.
-	 * The Gpad commands are:
-	 * Corner5 = (568, 443);
-	 * Corner3 = (1.25, 4.76);
-	 * Corner1 = (-0.61, -9.84);
-	 * pixelGap = 12.1;
-	 * distanceX = pixelGap / x(Corner5) (x(Corner3) - x(Corner1));
-	 * distanceY = pixelGap / y(Corner5) (y(Corner3) - y(Corner1));
-	 * pointGap = distanceX;
-	 * xyScale = distanceY / distanceX;
-	 * curveFunction = CurveCartesian[pointGap cos(u), pointGap xyScale sin(u), u, 0, 2π];
-	 * 
-	 * The issue occurs because when parsing the CurveCartesian command arguments,
-	 * the expressions "pointGap cos(u)" and "pointGap xyScale sin(u)" are parsed
-	 * and their variables are resolved BEFORE the parameter variable 'u' is registered
-	 * as a local variable by CmdCurveCartesian.process().
-	 */
-	@Test
-	public void testCurveCartesianWithEvalGpadUndefinedVariable() {
-		// All commands sent together to evalGpad (as the user does)
-		// Note: The user's original command has implicit multiplication:
-		// "pixelGap / x(Corner5) (x(Corner3) - x(Corner1))" means
-		// "pixelGap / (x(Corner5) * (x(Corner3) - x(Corner1)))"
-		String allGpadCommands = 
-			"Corner5 = (568, 443);\n" +
-			"Corner3 = (1.25, 4.76);\n" +
-			"Corner1 = (-0.61, -9.84);\n" +
-			"pixelGap = 12.1;\n" +
-			"distanceX = pixelGap / x(Corner5) * (x(Corner3) - x(Corner1));\n" +
-			"distanceY = pixelGap / y(Corner5) * (y(Corner3) - y(Corner1));\n" +
-			"pointGap = distanceX;\n" +
-			"xyScale = distanceY / distanceX;\n" +
-			"curveFunction = CurveCartesian[pointGap cos(u), pointGap xyScale sin(u), u, 0, 2*pi];";
-		
-		try {
-			// Send all commands together to evalGpad
-			String result = getApp().getGgbApi().evalGpad(allGpadCommands);
-			
-			if (result == null) {
-				// Check if there was an error about undefined variable
-				String lastError = getApp().getGgbApi().getLastError();
-				if (lastError != null && 
-						(lastError.contains("Undefined variable") 
-						|| lastError.contains("未定义")
-						|| lastError.toLowerCase().contains("undefined")
-						|| lastError.contains("u"))) {
-					System.err.println("ERROR REPRODUCED: Undefined variable error!");
-					System.err.println("Error message: " + lastError);
-					System.err.println("\nThis indicates that when parsing CurveCartesian command,");
-					System.err.println("the parameter variable 'u' is not registered before resolving");
-					System.err.println("the coordinate expressions 'pointGap cos(u)' and 'pointGap xyScale sin(u)'.");
-					System.err.println("\nThe issue is likely in the parsing/resolution order:");
-					System.err.println("1. gpadCommandExpression() calls expressionOrEquation() to parse the command");
-					System.err.println("2. When parsing CurveCartesian[pointGap cos(u), ...], the parser");
-					System.err.println("   may try to resolve variables in the arguments");
-					System.err.println("3. At this point, 'u' hasn't been registered as a local variable yet");
-					System.err.println("4. CmdCurveCartesian.process() calls resArgsLocalNumVar() which registers 'u'");
-					System.err.println("5. But by then it's too late - the error already occurred during parsing");
-					System.err.println("\nPossible solution:");
-					System.err.println("The parameter variable should be registered BEFORE parsing/resolving");
-					System.err.println("the coordinate expressions that depend on it.");
-					
-					throw new AssertionError(
-						"Undefined variable 'u' error reproduced. " +
-						"The parameter variable must be registered BEFORE resolving " +
-						"expressions that contain it. Error: " + lastError);
-				}
-				throw new AssertionError("evalGpad failed with error: " + lastError);
-			}
-			
-			// If we get here, all commands succeeded
-			assertNotNull("All commands should succeed", result);
-			assertTrue("Result should contain curveFunction label", 
-					result.contains("curveFunction"));
-			
-			// Verify the curve was created
-			GeoElement geo = getKernel().lookupLabel("curveFunction");
-			assertNotNull("curveFunction should exist", geo);
-			assertTrue("Should be GeoCurveCartesian", 
-					geo instanceof GeoCurveCartesian);
-			
-			GeoCurveCartesian curve = (GeoCurveCartesian) geo;
-			assertTrue("Curve should be defined", curve.isDefined());
-			
-		} catch (Exception e) {
-			// Print detailed error information
-			System.err.println("Exception occurred: " + e.getMessage());
-			e.printStackTrace();
-			
-			// Check for the specific error
-			String lastError = getApp().getGgbApi().getLastError();
-			if (lastError != null) {
-				System.err.println("Last error from evalGpad: " + lastError);
-			}
-			
-			throw new AssertionError("Unexpected exception: " + e.getMessage(), e);
-		}
-	}
-
-	/**
-	 * Test reproducing the issue with the actual Gpad script provided by the user.
-	 * The error is reported at line 46, column 40: "Undefined variable u"
-	 * 
-	 * Line 46 contains:
-	 * curveFunction* @curveFunctionStyle = CurveCartesian[pointGap cos(u), pointGap xyScale sin(u), u, 0, 2π];
-	 * 
-	 * Column 40 is approximately at the position of "cos(u)" in the expression.
-	 * This confirms that the error occurs when parsing the first coordinate expression
-	 * "pointGap cos(u)" before the parameter variable 'u' is registered.
-	 */
-	@Test
-	public void testCurveCartesianInMacroUndefinedVariable() {
-		// The complete Gpad script from the user
-		// Error is reported at line 46, column 40: "Undefined variable u"
-		// Line 46: curveFunction* @curveFunctionStyle = CurveCartesian[pointGap cos(u), pointGap xyScale sin(u), u, 0, 2π];
-		// Column 40 is approximately at "cos(u)" in the expression
-		String macroGpad = 
+	public void testAbsolute_Value_Functions_as_Piecewise_Functions() {
+		String gpad =
 			"@@macro PixelsToPoint(Corner1, Corner3, Corner5, InputPixels) {\n" +
 			"    @InputPixelsStyle = { show: 3d; objColor: #4D4DFF00; animation: +; coords: 100.0 200.0 }\n" +
 			"    InputPixels @InputPixelsStyle = (100, 200);\n" +
@@ -405,7 +34,6 @@ public class GpadOtherTest extends BaseUnitTest {
 			"    OutputPoint @OutputPointStyle = (xCoord, yCoord);\n" +
 			"    @@return OutputPoint\n" +
 			"}\n" +
-			"\n" +
 			"\n" +
 			"@@macro expandSegment(A, B, pixelGap, Corner1, Corner3, Corner5) {\n" +
 			"    @Corner5Style = { show: 3d; objColor: #4D4DFF00; animation: +; coords: 568.0 443.0 }\n" +
@@ -442,82 +70,260 @@ public class GpadOtherTest extends BaseUnitTest {
 			"    @newPolyStyle = { lineStyle: full thickness=5 hidden=dashed opacity=178; objColor: #9933001A }\n" +
 			"    newPoly~ @newPolyStyle = Polygon[allPoints];\n" +
 			"    @@return newPoly\n" +
-			"}";
+			"}\n" +
+			"\n" +
+			"@@macro onboardingTextOffset(CornerText1, CornerText3, case, Corner1, Corner3, Corner5) {\n" +
+			"    @CornerText1Style = { objColor: #44444400; animation: +; pointSize: 4; coords: 1.32 2.06 }\n" +
+			"    CornerText1 @CornerText1Style = (1.32, 2.06);\n" +
+			"    @CornerText3Style = { show: 3d; objColor: #44444400; animation: +; pointSize: 4; coords: 3.22 2.54 }\n" +
+			"    CornerText3 @CornerText3Style = (3.22, 2.54);\n" +
+			"    @Corner1Style = { objColor: #44444400; animation: +; pointSize: 4; coords: -4.32 -2.58 }\n" +
+			"    Corner1 @Corner1Style = (-4.32, -2.58);\n" +
+			"    @Corner3Style = { objColor: #44444400; animation: +; pointSize: 4; coords: 7.08 6.32 }\n" +
+			"    Corner3 @Corner3Style = (7.08, 6.32);\n" +
+			"    @Corner5Style = { objColor: #44444400; animation: +; pointSize: 4; coords: 568.0 443.0 }\n" +
+			"    Corner5 @Corner5Style = (568, 443);\n" +
+			"    case = 4;\n" +
+			"    xPixels = (x(CornerText3) - x(CornerText1)) x(Corner5) / (x(Corner3) - x(Corner1));\n" +
+			"    yPixels = (y(CornerText3) - y(CornerText1)) y(Corner5) / (y(Corner3) - y(Corner1));\n" +
+			"    xOffset = Element[{27, -xPixels + 2, 16 - xPixels / 2, 16 - xPixels / 2}, case];\n" +
+			"    yOffset = Element[{-23, -23, yPixels - 27, -49}, case];\n" +
+			"    @TextOffsetStyle = { objColor: #44444400; pointSize: 4; coords: -31.33333333333333 -49.0 }\n" +
+			"    TextOffset @TextOffsetStyle = (xOffset, yOffset);\n" +
+			"    @@return TextOffset\n" +
+			"}\n" +
+			"\n" +
+			"@@macro expandCircle(A, pixelRadius, Corner1, Corner3, Corner5) {\n" +
+			"    pixelRadius = 14;\n" +
+			"    @Corner1Style = { objColor: #4D4DFF00; animation: +; coords: -12.0 -11.875 }\n" +
+			"    Corner1 @Corner1Style = (-12, -11.88);\n" +
+			"    @Corner3Style = { objColor: #4D4DFF00; animation: +; coords: 31.0 15.0 }\n" +
+			"    Corner3 @Corner3Style = (31, 15);\n" +
+			"    @Corner5Style = { show: 3d; objColor: #4D4DFF00; animation: +; coords: 800.0 500.0 }\n" +
+			"    Corner5 @Corner5Style = (800, 500);\n" +
+			"    @distanceXStyle = { symbolic }\n" +
+			"    distanceX @distanceXStyle = pixelRadius / x(Corner5) (x(Corner3) - x(Corner1));\n" +
+			"    @distanceYStyle = { symbolic }\n" +
+			"    distanceY @distanceYStyle = pixelRadius / y(Corner5) (y(Corner3) - y(Corner1));\n" +
+			"    xyScale = distanceY / (distanceX);\n" +
+			"    pointGap = distanceX;\n" +
+			"    cMinor = Min[pointGap, pointGap xyScale];\n" +
+			"    cMajor = Max[pointGap, pointGap xyScale];\n" +
+			"    f1 = sqrt(cMajor² - cMinor²);\n" +
+			"    @AStyle = { show: 3d; objColor: #4D4DFF00; animation: +; coords: 0.0 0.0 }\n" +
+			"    A @AStyle = (0, 0);\n" +
+			"    @newEllipseStyle = { show: 3d; objColor: #00000000; lineStyle: full thickness=5 hidden=dashed opacity=178; eqnStyle: implicit }\n" +
+			"    newEllipse @newEllipseStyle = If[xyScale < 1, Ellipse[A + (f1, 0), A + (-f1, 0), A + (cMajor, 0)], Ellipse[A + (0, f1), A + (0, -f1), A + (0, cMajor)]];\n" +
+			"    @@return newEllipse\n" +
+			"}\n" +
+			"\n" +
+			"@@macro PointToPixels(Corner1, Corner3, Corner5, InputPoint) {\n" +
+			"    @Corner1Style = { objColor: #4D4DFF00; animation: +; coords: -12.0 -11.875 }\n" +
+			"    Corner1 @Corner1Style = (-12, -11.88);\n" +
+			"    @Corner3Style = { objColor: #4D4DFF00; animation: +; coords: 31.0 15.0 }\n" +
+			"    Corner3 @Corner3Style = (31, 15);\n" +
+			"    @Corner5Style = { show: 3d; objColor: #4D4DFF00; animation: +; coords: 800.0 500.0 }\n" +
+			"    Corner5 @Corner5Style = (800, 500);\n" +
+			"    @InputPointStyle = { show: 3d; objColor: #4D4DFF00; animation: +; coords: 0.0 -1.0 }\n" +
+			"    InputPoint @InputPointStyle = (0, -1);\n" +
+			"    xLeft = x(Corner1);\n" +
+			"    xRight = x(Corner3);\n" +
+			"    yTop = y(Corner3);\n" +
+			"    yBottom = y(Corner1);\n" +
+			"    yPixels = y(Corner5) (yTop - y(InputPoint)) / (yTop - yBottom);\n" +
+			"    xPixels = x(Corner5) (x(InputPoint) - xLeft) / (xRight - xLeft);\n" +
+			"    @OutputPixelsStyle = { show: 3d; objColor: #44444400; pointSize: 4; coords: 223.25581395348837 297.6744186046512 }\n" +
+			"    OutputPixels @OutputPixelsStyle = (xPixels, yPixels);\n" +
+			"    @@return OutputPixels\n" +
+			"}\n" +
+			"\n" +
+			"@@macro asCoeff(coeff) {\n" +
+			"    coeff = 0;\n" +
+			"    @prefixStyle = { objColor: #00000000 }\n" +
+			"    prefix @prefixStyle = If[coeff < 0, \"-\", \"+\"];\n" +
+			"    @coeffStringStyle = { objColor: #00000000; startPoint: 2.0499999999999994 2.5600000000000014 1.0 }\n" +
+			"    coeffString @coeffStringStyle = prefix If[abs(coeff) ≟ 1, \"\", \"\" abs(coeff)];\n" +
+			"    @@return coeffString\n" +
+			"}\n" +
+			"\n" +
+			"@@macro addConstantString(myNum) {\n" +
+			"    myNum = 7;\n" +
+			"    @outputStringStyle = { objColor: #00000000 }\n" +
+			"    outputString @outputStringStyle = If[myNum ≟ 0, \"\", If[myNum < 0, \"-\", \"+\"] abs(myNum)];\n" +
+			"    @@return outputString\n" +
+			"}\n" +
+			"\n" +
+			"@@macro addColoredConstant(myNum, color) {\n" +
+			"    myNum = 0;\n" +
+			"    @colorStyle = { objColor: #00000000; startPoint: 5.33882319942803 6.630892454837512 1.0 }\n" +
+			"    color @colorStyle = \"#6557D2\";\n" +
+			"    @outputStringStyle = { show: ~3d; objColor: #00000000; isLaTeX; decimals: 2; startPoint: 0.0 0.0 1.0 }\n" +
+			"    outputString @outputStringStyle = If[myNum ≟ 0, \"\", If[myNum < 0, \"-\", \"+\"] \"\\textcolor{\" color \"}{\" abs(myNum)] \"}\";\n" +
+			"    @@return outputString\n" +
+			"}\n" +
+			"\n" +
+			"@onboardingStyle = { objColor: #00000000; checkbox; fixed }\n" +
+			"onboarding* @onboardingStyle = true;\n" +
+			"@colorGreyDarkStyle = { show: ~3d; objColor: #4D4D4D00; layer: 3; auxiliary; startPoint: 5.33882319942803 6.630892454837512 1.0 }\n" +
+			"colorGreyDark* @colorGreyDarkStyle = \"#4D4D4D\";\n" +
+			"tries = 1;\n" +
+			"@moveBoxStyle = { lineStyle: full thickness=7 hidden=dashed; show: 3d; objColor: #1565C01A; layer: 4 }\n" +
+			"moveBox* @moveBoxStyle = Polygon[{(-9, -10), (9, -10), (9, 10), (-9, 10)}];\n" +
+			"@PVertexStyle = { show: 3d; objColor: #6557D200; layer: 3; animation: +1; pointSize: 7; pointStyle: no_outline; coords: 0.0 0.0 }\n" +
+			"PVertex~ @PVertexStyle = PointIn[moveBox];\n" +
+			"xPosition = x(PVertex);\n" +
+			"@PDilateStyle = { show: 3d; objColor: #DA257000; layer: 5; animation: +1; pointSize: 7; pointStyle: no_outline; coords: 1.0 1.0 }\n" +
+			"PDilate~ @PDilateStyle = (1, 1);\n" +
+			"@scriptResetAppStyle = { objColor: #1565C000; bgColor: #FFFFFFFF; layer: 3; labelOffset: 569 1; fixed; auxiliary; caption: \"Reset app\"; font: bold }\n" +
+			"scriptResetApp* @scriptResetAppStyle = Button(\"Reset app\");\n" +
+			"@helpTextHintTypicalErrorStyle = { show: ~3d; objColor: #4D4D4D00; layer: 3; isLaTeX; @screen: 11 247 }\n" +
+			"helpTextHintTypicalError* @helpTextHintTypicalErrorStyle = \"\\text{This is the error specific hint}\";\n" +
+			"@colorTealSuccessStyle = { show: ~3d; objColor: #00675800; layer: 3; auxiliary; startPoint: 5.33882319942803 6.630892454837512 1.0 }\n" +
+			"colorTealSuccess* @colorTealSuccessStyle = \"#006758\";\n" +
+			"@colorRedErrorStyle = { show: ~3d; objColor: #B0002000; layer: 3; auxiliary; startPoint: 5.33882319942803 6.630892454837512 1.0 }\n" +
+			"colorRedError* @colorRedErrorStyle = \"#B00020\";\n" +
+			"@colorBlackStyle = { show: ~3d; objColor: #25252500; layer: 3; auxiliary; startPoint: 5.33882319942803 6.630892454837512 1.0 }\n" +
+			"colorBlack* @colorBlackStyle = \"#252525\";\n" +
+			"@colorGreyMediumStyle = { show: ~3d; objColor: #75757500; layer: 3; auxiliary; startPoint: 5.33882319942803 6.630892454837512 1.0 }\n" +
+			"colorGreyMedium* @colorGreyMediumStyle = \"#757575\";\n" +
+			"@colorGreyGridStyle = { show: ~3d; objColor: #94949400; layer: 3; auxiliary; startPoint: 5.33882319942803 6.630892454837512 1.0 }\n" +
+			"colorGreyGrid* @colorGreyGridStyle = \"#949494\";\n" +
+			"@colorRedLightStyle = { show: ~3d; objColor: #E4446100; layer: 3; auxiliary; startPoint: 5.33882319942803 6.630892454837512 1.0 }\n" +
+			"colorRedLight* @colorRedLightStyle = \"#E44461\";\n" +
+			"@colorPinkStyle = { show: ~3d; objColor: #DA257000; layer: 3; auxiliary; startPoint: 5.33882319942803 6.630892454837512 1.0 }\n" +
+			"colorPink* @colorPinkStyle = \"#DA2570\";\n" +
+			"@colorPinkLightStyle = { show: ~3d; objColor: #E66B9E00; layer: 3; auxiliary; startPoint: 5.33882319942803 6.630892454837512 1.0 }\n" +
+			"colorPinkLight* @colorPinkLightStyle = \"#E66B9E\";\n" +
+			"@colorBlueStyle = { show: ~3d; objColor: #3A6ED600; layer: 3; auxiliary; startPoint: 5.33882319942803 6.630892454837512 1.0 }\n" +
+			"colorBlue* @colorBlueStyle = \"#3A6ED6\";\n" +
+			"@colorBlueLightStyle = { show: ~3d; objColor: #5991FF00; layer: 3; auxiliary; startPoint: 5.33882319942803 6.630892454837512 1.0 }\n" +
+			"colorBlueLight* @colorBlueLightStyle = \"#5991FF\";\n" +
+			"@colorTealLightStyle = { show: ~3d; objColor: #00847500; layer: 3; auxiliary; startPoint: 5.33882319942803 6.630892454837512 1.0 }\n" +
+			"colorTealLight* @colorTealLightStyle = \"#008475\";\n" +
+			"@colorGreenStyle = { show: ~3d; objColor: #0F853800; layer: 3; auxiliary; startPoint: 5.33882319942803 6.630892454837512 1.0 }\n" +
+			"colorGreen* @colorGreenStyle = \"#0F8538\";\n" +
+			"@colorGreenLightStyle = { show: ~3d; objColor: #00A83C00; layer: 3; auxiliary; startPoint: 5.33882319942803 6.630892454837512 1.0 }\n" +
+			"colorGreenLight* @colorGreenLightStyle = \"#00a83c\";\n" +
+			"@colorPurpleDarkStyle = { show: ~3d; objColor: #5145A800; layer: 3; auxiliary; startPoint: 5.33882319942803 6.630892454837512 1.0 }\n" +
+			"colorPurpleDark* @colorPurpleDarkStyle = \"#5145A8\";\n" +
+			"@colorPurpleButtonStyle = { show: ~3d; objColor: #6557D200; layer: 3; auxiliary; startPoint: 5.33882319942803 6.630892454837512 1.0 }\n" +
+			"colorPurpleButton* @colorPurpleButtonStyle = \"#6557D2\";\n" +
+			"@colorPurpleLightStyle = { show: ~3d; objColor: #8575FF00; layer: 3; auxiliary; startPoint: 5.33882319942803 6.630892454837512 1.0 }\n" +
+			"colorPurpleLight* @colorPurpleLightStyle = \"#8575FF\";\n" +
+			"@colorBrownStyle = { show: ~3d; objColor: #903D1400; layer: 3; auxiliary; startPoint: 5.33882319942803 6.630892454837512 1.0 }\n" +
+			"colorBrown* @colorBrownStyle = \"#903D14\";\n" +
+			"@colorBrownLightStyle = { show: ~3d; objColor: #BD6C4300; layer: 3; auxiliary; startPoint: 5.33882319942803 6.630892454837512 1.0 }\n" +
+			"colorBrownLight* @colorBrownLightStyle = \"#BD6C43\";\n" +
+			"@colorOrangeStyle = { show: ~3d; objColor: #C7500000; layer: 3; auxiliary; startPoint: 5.33882319942803 6.630892454837512 1.0 }\n" +
+			"colorOrange* @colorOrangeStyle = \"#C75000\";\n" +
+			"@colorOrangeLightStyle = { show: ~3d; objColor: #E0741500; layer: 3; auxiliary; startPoint: 5.33882319942803 6.630892454837512 1.0 }\n" +
+			"colorOrangeLight* @colorOrangeLightStyle = \"#E07415\";\n" +
+			"@helpTextHintStyle = { show: ~3d; objColor: #4D4D4D00; layer: 3; isLaTeX; @screen: 12 317 }\n" +
+			"helpTextHint* @helpTextHintStyle = \"\\textsf{The graph of }p(x)=\\vert{x}\\vert \\textsf{ is shown.} \\\\\n" +
+			"\\textsf{Transform the function with}\\\\\n" +
+			"\\textsf{a dilation and a translation.}\";\n" +
+			"pixelsRight = 16;\n" +
+			"pixelsLeft = 16;\n" +
+			"pixelsBottom = 16;\n" +
+			"pixelsTop = 24;\n" +
+			"xMax = 31;\n" +
+			"xMin = -12;\n" +
+			"yMax = 15;\n" +
+			"@yMinStyle = { symbolic }\n" +
+			"yMin @yMinStyle = yMax - (xMax - xMin) * 5 / 8;\n" +
+			"@colorInactiveButtonStyle = { show: ~3d; objColor: #C0C0C000; layer: 4; startPoint: 4.791457979391604 5.2966048644938475 1.0 }\n" +
+			"colorInactiveButton* @colorInactiveButtonStyle = \"#eeeeee\";\n" +
+			"@colorInputCorrectStyle = { show: ~3d; objColor: #00000000; layer: 4; startPoint: 4.791457979391604 5.2966048644938475 1.0 }\n" +
+			"colorInputCorrect* @colorInputCorrectStyle = \"#2E006758\";\n" +
+			"@colorInputIncorrectStyle = { show: ~3d; objColor: #00000000; layer: 4; startPoint: 4.791457979391604 5.2966048644938475 1.0 }\n" +
+			"colorInputIncorrect* @colorInputIncorrectStyle = \"#2EB00020\";\n" +
+			"layoutY = 250;\n" +
+			"layoutX = 455;\n" +
+			"pulsingSpeed = 8;\n" +
+			"@pulsingStyle = { slider: min=0 max=1 width=200.0 @screen algebra; lineStyle: full thickness=8 hidden=dashed; objColor: #0000001A; bgColor: #000000FF; layer: 4; labelMode: namevalue; animation: + speed=\"pulsingSpeed\" }\n" +
+			"pulsing* @pulsingStyle = Slider(0.0, 1.0);\n" +
+			"@onboardingArrowUpStyle = { showIf: onboarding; startPoint: absolute \"(onboardingX, onboardingY)\" }\n" +
+			"onboardingArrowUp @onboardingArrowUpStyle = Image(\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==\");\n" +
+			"@onboardingCaseStyle = { slider: min=1 max=4 width=200.0 x=266.0 y=350.0 @screen; lineStyle: full thickness=8 hidden=dashed; objColor: #0000001A; bgColor: #000000FF; layer: 4; labelMode: namevalue; animation: 1 }\n" +
+			"onboardingCase* @onboardingCaseStyle = Slider(1.0, 4.0);\n" +
+			"@layoutAppSizeStyle = { show: 3d; objColor: #52525200; layer: 4; animation: +1; pointSize: 7; coords: 800.0 500.0 }\n" +
+			"layoutAppSize* @layoutAppSizeStyle = Point[{800, 500}];\n" +
+			"@onboardingPXStyle = { show: 3d; objColor: #44444400; layer: 4; pointSize: 4; coords: 223.25581395348837 297.6744186046512 }\n" +
+			"onboardingPX* @onboardingPXStyle = PointToPixels[(xMin, yMin), (xMax, yMax), layoutAppSize, (0, -1)];\n" +
+			"onboardingX = x(onboardingPX) - 12;\n" +
+			"onboardingY = y(onboardingPX) + 36;\n" +
+			"@altTextStyle = { show: ~3d; objColor: #00000000; layer: 4; isLaTeX; startPoint: 6.422187344952864 4.251074692411592 1.0 }\n" +
+			"altText* @altTextStyle = \"\\text{Describe the applet here}\";\n" +
+			"@inputCStyle = { show: ~3d; objColor: #00000000; layer: 4; startPoint: 6.198556216753847 2.2101079015668352 1.0 }\n" +
+			"inputC* @inputCStyle = \"\";\n" +
+			"@onboardingPositionsStyle = { caption: \"(Element 1, element 2) = pixel location of text, element 3: text direction for x: 1=right of point, -1=left of point, 0=centered. element 4: text direction for y (-1,0,1)\" }\n" +
+			"onboardingPositions @onboardingPositionsStyle = Element[{{onboardingX + 24, onboardingY - 12, 1, 0}, {onboardingX, onboardingY - 12, -1, 0}, {onboardingX - 18, onboardingY + 18, 0, -1}, {onboardingX + 18, onboardingY - 36, 0, 0}}, onboardingCase];\n" +
+			"@viewboxStyle = { lineStyle: full thickness=0 hidden=dashed opacity=0; show: 3d; objColor: #FFFFFF inverse; layer: 3 }\n" +
+			"viewbox~ @viewboxStyle = Polygon[{(-11, 11), (-11, -11), (11, -11), (11, 11)}];\n" +
+			"@pulsingPointStyle = { show: 3d; showIf: onboarding; objColor: rgb(0.396078431372549,0.3411764705882353,0.8235294117647058,\"1 - pulsing\"); layer: 4; lineStyle: full thickness=1 hidden=dashed opacity=0; eqnStyle: implicit }\n" +
+			"pulsingPoint~ @pulsingPointStyle = expandCircle[PVertex, 7 + 7pulsing, (xMin, yMin), (xMax, yMax), (800, 500)];\n" +
+			"@onboardingBackgroundStyle = { lineStyle: full thickness=0 hidden=dashed opacity=0; show: 3d; showIf: onboarding; objColor: #FFFFFF; layer: 2 }\n" +
+			"onboardingBackground~ @onboardingBackgroundStyle = Polygon[{(-0.9, -3.5), (0.9, -3.5), (0.9, -1.5), (-0.9, -1.5)}];\n" +
+			"@axisXStyle = { show: 3d; objColor: #25252500; layer: 1; lineStyle: full thickness=4 hidden=dashed; eqnStyle: implicit; keepTypeOnTransform; startStyle: arrow; endStyle: arrow; coords: 0.0 21.9 -0.0 }\n" +
+			"axisX~ @axisXStyle = Segment[(-10.95, 0), (10.95, 0)];\n" +
+			"@axisYStyle = { show: 3d; objColor: #25252500; layer: 1; lineStyle: full thickness=4 hidden=dashed; eqnStyle: implicit; keepTypeOnTransform; startStyle: arrow; endStyle: arrow; coords: -21.9 0.0 0.0 }\n" +
+			"axisY~ @axisYStyle = Segment[(0, -10.95), (0, 10.95)];\n" +
+			"@textQuestionStyle = { symbolic; show: ~3d; objColor: #25252500; layer: 3; fixed; isLaTeX; font: serif; @screen: 11 20 }\n" +
+			"textQuestion @textQuestionStyle = \"\\textsf{Drag the points to change the graph of }f(x)\\textsf{ and observe how the equation is affected.}\";\n" +
+			"@onboardingTextStyle = { show: ~3d; showIf: onboarding; objColor: #6557D200; bgColor: #FFFFFFFF; layer: 4; isLaTeX; startPoint: 0.0 -3.0 1.0 }\n" +
+			"onboardingText~ @onboardingTextStyle = Text[\"\\text{Drag to start}\", (0, -3), true, true, 0, -1];\n" +
+			"dilationAmount = 1;\n" +
+			"@studentFuncStyle = { show: 3d; objColor: #5145A800; labelOffset: 52 61; fixed; lineStyle: full thickness=7 hidden=dashed }\n" +
+			"studentFunc(x)~ @studentFuncStyle = dilationAmount abs(x - x(PVertex)) + y(PVertex);\n" +
+			"@commonLatexStyle = { show: ~3d; objColor: #00000000; layer: 5; isLaTeX; font: serif; startPoint: 11.272839506172842 3.9505903490759753 1.0 }\n" +
+			"commonLatex* @commonLatexStyle = \"\" + (LaTeX[If[x(PVertex) ≟ 0, \"x\", \"(x\" addColoredConstant[-x(PVertex), colorPurpleButton] \")\"]]) + \" \" + (LaTeX[If[y(PVertex) ≠ 0, addColoredConstant[y(PVertex), colorPurpleButton], \"\"]]) + \"\";\n" +
+			"@noAbsValueStyle = { show: ~3d; showIf: \"y(PDilate) ≟ y(PVertex)\"; objColor: #00000000; layer: 5; isLaTeX; font: serif; labelOffset: 400 77; startPoint: absolute \"(layoutX, layoutY)\" }\n" +
+			"noAbsValue @noAbsValueStyle = \"\\(f(x)=\" + (LaTeX[x(PVertex)]) + \"\\)\\textsf{ is a line, }\\\\\\textsf{not an absolute value function.}\";\n" +
+			"@gridBorderStyle = { lineStyle: full thickness=2 hidden=dashed; show: 3d; objColor: #94949400 }\n" +
+			"gridBorder~ @gridBorderStyle = Polygon[{(-11, 11), (-11, -11), (11, -11), (11, 11)}];\n" +
+			"@lblXStyle = { show: ~3d; objColor: #25252500; layer: 5; isLaTeX; font: serif bold; startPoint: 11.0 0.1 1.0 }\n" +
+			"lblX~ @lblXStyle = Text[\"x\", (11, 0.1), true, true, 1, 0];\n" +
+			"@lblYStyle = { show: ~3d; objColor: #25252500; layer: 5; isLaTeX; font: serif bold; startPoint: 0.0 11.0 1.0 }\n" +
+			"lblY~ @lblYStyle = Text[\"y\", (0, 11), true, true, 0, 1];\n" +
+			"@studentEqnStyle = { symbolic; show: ~3d; showIf: \"y(PDilate) ≠ y(PVertex)\"; objColor: #00000000; layer: 5; fixed; isLaTeX; font: serif; labelOffset: 450 250; startPoint: absolute \"(layoutX, layoutY)\" }\n" +
+			"studentEqn~ @studentEqnStyle = \"f(x)=\\begin{cases}\" + (LaTeX[If[-dilationAmount < 0, \"-\", \"\"] If[abs(dilationAmount) > 1, \"\\textcolor{\" colorPink \"}{\" abs(dilationAmount) \"}\", \"\"]]) + \"\" + (LaTeX[commonLatex]) + \", &x\\lt \" + (LaTeX[x(PVertex)]) + \"\\\\\\textcolor{\" + (LaTeX[colorPink]) + \"}{\" + (LaTeX[If[dilationAmount < 0, \"-\", \"\"] If[abs(dilationAmount) > 1, \"\" abs(dilationAmount), \"\"]]) + \"}\" + (LaTeX[commonLatex]) + \", &x\\ge \" + (LaTeX[x(PVertex)]) + \"\n" +
+			"\\end{cases}\";\n" +
+			"@tabOrderStyle = { objColor: #00640000; layer: 5; lineStyle: full thickness=5 hidden=dashed; symbolic }\n" +
+			"tabOrder* @tabOrderStyle = {textQuestion, PVertex, PDilate, studentEqn};\n";
+		
+		// Record the GgbAPI instance to use the same one for evalGpad and getLastWarning/getLastError
+		org.geogebra.common.plugin.GgbAPI ggbApi = getApp().getGgbApi();
 		
 		try {
-			// Try to parse the complete Gpad script (all macros and commands)
-			// The error should occur at line 46, column 40 when parsing the CurveCartesian command
-			String result = getApp().getGgbApi().evalGpad(macroGpad);
+			String result = ggbApi.evalGpad(gpad);
 			
-			// Always check for errors and warnings
-			String lastError = getApp().getGgbApi().getLastError();
-			String lastWarning = getApp().getGgbApi().getLastWarning();
-			
-			if (result == null || lastError != null) {
-				// Check if there was an error about undefined variable
-				if (lastError != null && 
-						(lastError.contains("Undefined variable") 
-						|| lastError.contains("未定义")
-						|| lastError.toLowerCase().contains("undefined")
-						|| (lastError.contains("u") && lastError.contains("variable")))) {
-					System.err.println("ERROR REPRODUCED: Undefined variable 'u' error in macro!");
-					System.err.println("Error message: " + lastError);
-					System.err.println("\nThis confirms that the issue occurs when processing");
-					System.err.println("CurveCartesian command inside a macro definition.");
-					System.err.println("\nThe problem is that when parsing the macro body,");
-					System.err.println("the CurveCartesian command's parameter variable 'u'");
-					System.err.println("is not registered before resolving expressions like");
-					System.err.println("'pointGap cos(u)' and 'pointGap xyScale sin(u)'.");
-					
-					throw new AssertionError(
-						"Undefined variable 'u' error reproduced in macro. " +
-						"The parameter variable must be registered BEFORE resolving " +
-						"expressions that contain it. Error: " + lastError);
-				}
-				
-				// Print error details even if not the specific error we're looking for
-				System.err.println("evalGpad returned null or had an error:");
-				System.err.println("Result: " + result);
-				System.err.println("Last error: " + lastError);
-				System.err.println("Last warning: " + lastWarning);
-				
-				if (lastError != null) {
-					throw new AssertionError("evalGpad failed with error: " + lastError);
-				} else {
-					// Result is null but no error - this might indicate a parsing issue
-					System.err.println("Note: evalGpad returned null but no error was set.");
-					System.err.println("This might indicate a parsing issue or the macro was not recognized.");
-					// Don't fail the test - just report
-					return;
-				}
-			}
-			
-			// If we get here, the macro was parsed successfully
-			System.out.println("Macro parsed successfully. Result: " + result);
-			if (lastWarning != null) {
-				System.out.println("Warning: " + lastWarning);
-			}
-			
-		} catch (AssertionError e) {
-			// Re-throw AssertionError as-is
-			throw e;
+			// Always check for errors and warnings using the same GgbAPI instance
+			String lastError = ggbApi.getLastError();
+			String lastWarning = ggbApi.getLastWarning();
+
+			if (lastWarning != null && !lastWarning.isEmpty())
+				System.err.println("Warning: \n" + lastWarning);
+			if (lastError != null && !lastError.isEmpty())
+				System.err.println("Error: \n" + lastError);
+			assertNull(lastError);
+			assertNull(lastWarning);
+			assertNotNull(result);
+			System.out.println("Result: " + result);
 		} catch (Exception e) {
 			// Print detailed error information
 			System.err.println("Exception occurred: " + e.getMessage());
 			e.printStackTrace();
 			
-			// Check for the specific error
-			String lastError = getApp().getGgbApi().getLastError();
-			String lastWarning = getApp().getGgbApi().getLastWarning();
-			if (lastError != null) {
-				System.err.println("Last error from evalGpad: " + lastError);
-			}
-			if (lastWarning != null) {
-				System.err.println("Last warning from evalGpad: " + lastWarning);
-			}
+			// Check for the specific error using the same GgbAPI instance
+			String lastError = ggbApi.getLastError();
+			String lastWarning = ggbApi.getLastWarning();
+
+			if (lastWarning != null && !lastWarning.isEmpty())
+				System.err.println("+Warning: \n" + lastWarning);
+			if (lastError != null && !lastError.isEmpty())
+				System.err.println("+Error: \n" + lastError);
 			
 			throw new AssertionError("Unexpected exception: " + e.getMessage(), e);
 		}
 	}
 }
-
