@@ -423,7 +423,7 @@ public class GeoElementToGpadConverter {
 				if (textStr != null) {
 					// Build Text command: Text("...")
 					// Escape the string for gpad format
-					return "Text(\"" + escapeString(textStr) + "\")";
+					return "Text(\"" + safeString(textStr) + "\")";
 				}
 			}
 			// If undefined or empty, return Text("")
@@ -448,7 +448,7 @@ public class GeoElementToGpadConverter {
 			GeoButton button = (GeoButton) geo;
 			String caption = button.getCaption(myTPL);
 			if (caption != null && !caption.isEmpty()) // with caption
-				return "Button(\"" + escapeString(caption) + "\")";
+				return "Button(\"" + safeString(caption) + "\")";
 			else // without caption
 				return "Button()";
 		}
@@ -459,7 +459,7 @@ public class GeoElementToGpadConverter {
 			if (image.isIndependent()) {
 				String fileName = image.getGraphicsAdapter().getImageFileName();
 				if (fileName != null && !fileName.isEmpty()) // with filename/URL
-					return "Image(\"" + escapeString(fileName) + "\")";
+					return "Image(\"" + safeString(fileName) + "\")";
 				else // without filename
 					return "Image()";
 			}
@@ -474,16 +474,15 @@ public class GeoElementToGpadConverter {
 	}
 	
 	/**
-	 * Escapes special characters in a string for Gpad format.
+	 * Remove special characters in a string for Gpad format.
 	 * 
-	 * @param str string to escape
-	 * @return escaped string
+	 * @param str string to safe
+	 * @return get safe string
 	 */
-	private static String escapeString(String str) {
+	private static String safeString(String str) {
 		if (str == null)
 			return "";
-		// Escape backslash and double quote
-		return str.replace("\\", "\\\\").replace("\"", "\\\"");
+		return str.replace("\"", "");
 	}
 
 
