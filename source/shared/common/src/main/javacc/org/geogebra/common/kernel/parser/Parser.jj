@@ -864,6 +864,7 @@ TOKEN : {
 |   < POLAR_SEPARATOR: ( "\u2221" | ";" ) > // separator used by Giac instead of ;
 |   < GPAD_MACRO: "@@macro" >
 |   < GPAD_RETURN: "@@return" >
+|   < GPAD_SET: "@@set" >
 }
 
 <DEFAULT, GK_STR_BLOCK, GK_animation_BLOCK, GK_EXPR_BLOCK> TOKEN : {
@@ -2541,7 +2542,8 @@ void gpadStatementInMacro() throws GpadParseException :
 }
 {(
     gpadStyleSheetDefinition() |
-    gpadCommandExpression()
+    gpadCommandExpression() |
+    gpadSetStatement()
 )}
 
 /**
@@ -4610,6 +4612,48 @@ GpadStyleSheet gpadApplyStyleSheets() :
                 styleSheet.mergeFrom(styleSheet2);
         }
         return styleSheet;
+    }
+}
+
+/**
+ * Set statement: @@set label [*|~] @style { ... } @style2 ... ;
+ * Applies one or more style sheets to an existing GeoElement.
+ */
+void gpadSetStatement() throws GpadParseException :
+{
+    Token setToken;
+    String label;
+    GpadStyleSheet styleSheet;
+    GeoElement geo;
+    int[] pos = null;
+}
+{
+    try {
+        setToken = <GPAD_SET> { pos = extractPositionFromToken(setToken); }
+        label = gpadGeoLabel()
+        styleSheet = gpadApplyStyleSheets()
+        <POLAR_SEPARATOR>
+        {
+            if (styleSheet == null)
+                return;
+            
+            // Look up the GeoElement by label
+            geo = kernel.lookupLabel(label);
+            if (geo == null) // Also try CAS cell label
+                geo = kernel.lookupCasCellLabel(label);
+            
+            if (geo == null)
+                new GpadParseException("Object '" + label + "' not found", pos[0], pos[1]);
+
+            applyGeoStyleSheet(geo, styleSheet, pos[0], pos[1]);
+        }
+    }
+    catch (org.geogebra.common.main.MyError e) {
+        // Catch MyError from applyGeoStyleSheet
+        // Use setToken position if available, otherwise try to get from current token
+        if (pos == null || pos[0] < 0 || pos[1] < 0)
+            pos = extractPositionFromToken(token);
+        throw createGpadParseException(e, "Error", pos[0], pos[1], false);
     }
 }
 
