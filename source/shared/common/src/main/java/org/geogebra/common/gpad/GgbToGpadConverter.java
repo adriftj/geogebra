@@ -1,6 +1,5 @@
 package org.geogebra.common.gpad;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -11,7 +10,6 @@ import org.geogebra.common.kernel.Construction;
 import org.geogebra.common.kernel.Kernel;
 import org.geogebra.common.kernel.Macro;
 import org.geogebra.common.kernel.StringTemplate;
-import org.geogebra.common.kernel.arithmetic.FunctionalNVar;
 import org.geogebra.common.kernel.algos.AlgoElement;
 import org.geogebra.common.kernel.algos.ConstructionElement;
 import org.geogebra.common.kernel.geos.GeoElement;
@@ -28,9 +26,9 @@ public class GgbToGpadConverter {
 	private final Construction construction;
 	private final boolean mergeStylesheets;
 	private final Set<GeoElement> processedOutputs = new HashSet<>();
-	private final Map<GeoElement, String> styleSheetMap = new HashMap<>();
 	private final Map<String, String> styleSheetContentMap = new HashMap<>();
 	private final Set<String> generatedStyleSheets = new HashSet<>();
+	private final Map<GeoElement, String> deferredStyleSheets = new HashMap<>();
 	private int styleSheetCounter = 0;
 
 	/**
@@ -205,6 +203,9 @@ public class GgbToGpadConverter {
 					processIndependentElement(geo, sb);
 			}
 		}
+
+		// Generate deferred @@set statements for stylesheets with expressions
+		generateDeferredSetStatements(sb);
 	}
 
 	/**
@@ -226,20 +227,12 @@ public class GgbToGpadConverter {
 			outputGeos.add(outputGeo);
 
 			// Generate stylesheet for output object
-			String styleSheetName = generateStyleSheetForOutput(outputGeo);
+			String styleSheetName = generateStyleSheetForOutput(outputGeo, sb);
 			styleSheetNames.add(styleSheetName);
 		}
 
 		if (outputGeos.isEmpty())
 			return;
-
-		// Generate stylesheet definitions first (only once per unique stylesheet)
-		// Note: Stylesheet definitions do NOT end with semicolon (format: @name = { ... })
-		for (int i = 0; i < outputGeos.size(); i++) {
-			GeoElement outputGeo = outputGeos.get(i);
-			String styleSheetName = styleSheetNames.get(i);
-			appendStyleSheetDefinitionIfNeeded(sb, outputGeo, styleSheetName);
-		}
 
 		// Generate command instruction
 		// Format: label1, label2, ... = CommandName(input1, input2, ...);
@@ -251,7 +244,7 @@ public class GgbToGpadConverter {
 
 			GeoElementToGpadConverter.buildOutputLabel(sb, outputGeos.get(i));
 
-			// Add stylesheet reference
+			// Add stylesheet reference (skip if deferred)
 			String styleSheetName = styleSheetNames.get(i);
 			if (styleSheetName != null)
 				sb.append(" @").append(styleSheetName);
@@ -304,16 +297,12 @@ public class GgbToGpadConverter {
 		}
 
 		// Generate stylesheet for output object
-		String styleSheetName = generateStyleSheetForOutput(outputGeo);
-
-		// Generate stylesheet definition first (only once per unique stylesheet)
-		appendStyleSheetDefinitionIfNeeded(sb, outputGeo, styleSheetName);
+		String styleSheetName = generateStyleSheetForOutput(outputGeo, sb);
 
 		// Generate expression instruction
 		// Format: label = expString; or f(u,v,...) @style ... = ... for functions
 		GeoElementToGpadConverter.buildOutputLabel(sb, outputGeo);
 
-		// Add stylesheet reference
 		if (styleSheetName != null)
 			sb.append(" @").append(styleSheetName);
 
@@ -339,10 +328,7 @@ public class GgbToGpadConverter {
 		}
 
 		// Generate stylesheet for independent element (supports merging)
-		String styleSheetName = generateStyleSheetForOutput(geo);
-
-		// Generate stylesheet definition first (only once per unique stylesheet)
-		appendStyleSheetDefinitionIfNeeded(sb, geo, styleSheetName);
+		String styleSheetName = generateStyleSheetForOutput(geo, sb);
 
 		// Build command using GeoElementToGpadConverter
 		if (GeoElementToGpadConverter.buildCommand(sb, geo, styleSheetName))
@@ -353,51 +339,36 @@ public class GgbToGpadConverter {
 	}
 
 	/**
-	 * Appends stylesheet definition to StringBuilder if needed (only once per unique stylesheet).
-	 * Note: Stylesheet definitions do NOT end with semicolon (format: @name = { ... })
-	 * 
-	 * @param sb string builder to append to
-	 * @param geo the geo element
-	 * @param styleSheetName the stylesheet name, or null if no stylesheet
-	 */
-	private void appendStyleSheetDefinitionIfNeeded(StringBuilder sb, GeoElement geo, String styleSheetName) {
-		if (styleSheetName != null && !generatedStyleSheets.contains(styleSheetName)) {
-			String styleSheetGpad = generateStyleSheetGpad(geo, styleSheetName);
-			if (styleSheetGpad != null && !styleSheetGpad.isEmpty()) {
-				sb.append(styleSheetGpad);
-				sb.append("\n");
-				generatedStyleSheets.add(styleSheetName);
-			}
-		}
-	}
-
-	/**
 	 * Generates a stylesheet name for an output object.
 	 * 
 	 * @param outputGeo the output geo element
+	 * @param sb string builder to append to
 	 * @return stylesheet name, or null if no stylesheet needed
 	 */
-	private String generateStyleSheetForOutput(GeoElement outputGeo) {
-		// Check if we already have a stylesheet for this geo
-		if (styleSheetMap.containsKey(outputGeo))
-			return styleSheetMap.get(outputGeo);
-
+	private String generateStyleSheetForOutput(GeoElement outputGeo, StringBuilder sb) {
 		// Extract style sheet content directly from GeoElement
-		String contentOnly = GeoElementToGpadConverter.extractStyleSheetContent(outputGeo);
+		Object[] result = GeoElementToGpadConverter.extractStyleSheetContent(outputGeo);
+		String contentOnly = (result != null) ? (String) result[0] : null;
+		Boolean hasExpression = (result != null) ? (Boolean) result[1] : Boolean.FALSE;
 		if (contentOnly == null || contentOnly.isEmpty())
 			return null;
 
 		// Check if we should merge with existing stylesheet
-		String styleSheetName;
-		if (mergeStylesheets && styleSheetContentMap.containsKey(contentOnly)) {
-			// Reuse existing stylesheet name
+		String styleSheetName = null;
+		boolean needGenerate = true;
+		if (mergeStylesheets) {
 			styleSheetName = styleSheetContentMap.get(contentOnly);
-		} else {
+			needGenerate = styleSheetName == null;
+		}
+		if (styleSheetName == null) {
 			// Generate new name
 			String label = outputGeo.getLabelSimple();
 			if (label != null && !label.isEmpty())
 				styleSheetName = label + "Style";
 			else
+				styleSheetName = "style" + (++styleSheetCounter);
+			// check if styleSheetName is duplicated
+			while (generatedStyleSheets.contains(styleSheetName))
 				styleSheetName = "style" + (++styleSheetCounter);
 
 			// Store mapping for merging
@@ -405,25 +376,42 @@ public class GgbToGpadConverter {
 				styleSheetContentMap.put(contentOnly, styleSheetName);
 		}
 
-		styleSheetMap.put(outputGeo, styleSheetName);
+		if (needGenerate) {
+			sb.append("@").append(styleSheetName)
+			  .append(" = ").append(contentOnly).append("\n");
+			generatedStyleSheets.add(styleSheetName);
+		}
+
+		// If stylesheet contains expressions, record it for deferred application
+		if (hasExpression != null && hasExpression.booleanValue()) {
+			deferredStyleSheets.put(outputGeo, styleSheetName);
+			return null;
+		}
 		return styleSheetName;
 	}
 
 	/**
-	 * Generates the gpad stylesheet definition string.
+	 * Generates deferred @@set statements for stylesheets that contain expressions.
+	 * These statements are generated after all object creation statements to ensure
+	 * that any objects referenced in the expressions have already been created.
 	 * 
-	 * @param outputGeo the output geo element
-	 * @param styleSheetName the stylesheet name
-	 * @return gpad stylesheet string, or null if generation fails
+	 * @param sb string builder to append to
 	 */
-	private String generateStyleSheetGpad(GeoElement outputGeo, String styleSheetName) {
-		// Extract style sheet content directly from GeoElement
-		String contentOnly = GeoElementToGpadConverter.extractStyleSheetContent(outputGeo);
-		if (contentOnly == null || contentOnly.isEmpty())
-			return null;
+	private void generateDeferredSetStatements(StringBuilder sb) {
+		if (deferredStyleSheets.isEmpty())
+			return;
 
-		// Build full stylesheet definition with name
-		return "@" + styleSheetName + " = " + contentOnly;
+		for (Map.Entry<GeoElement, String> entry : deferredStyleSheets.entrySet()) {
+			GeoElement geo = entry.getKey();
+			String styleSheetName = entry.getValue();
+
+			// Get label using getLabelSimple() (no visibility flags needed)
+			String label = geo.getLabelSimple();
+			if (label == null || label.isEmpty())
+				continue;
+
+			// Generate @@set statement: @@set label @styleSheetName;
+			sb.append("@@set ").append(label).append(" @").append(styleSheetName).append(";\n");
+		}
 	}
-
 }

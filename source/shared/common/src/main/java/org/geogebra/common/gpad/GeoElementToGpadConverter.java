@@ -125,9 +125,9 @@ public class GeoElementToGpadConverter {
 	 * Returns only the content part "{ ... }" without the "@name = " prefix.
 	 * 
 	 * @param geo GeoElement to extract styles from
-	 * @return style sheet content string in format "{ ... }", or null if extraction fails or no styles found
+	 * @return null if empty (which means [null, false]), or Object array with [0]=String (style sheet content string in format "{ ... }"), [1]=Boolean (true if contains expressions)
 	 */
-	public static String extractStyleSheetContent(GeoElement geo) {
+	public static Object[] extractStyleSheetContent(GeoElement geo) {
 		if (geo == null)
 			return null;
 		
@@ -152,7 +152,6 @@ public class GeoElementToGpadConverter {
 			
 			return StyleMapToGpadConverter.convertToContentOnly(styleMap, geo.getTypeString());
 		} catch (GpadParseException e) {
-			// If parsing fails, return null
 			return null;
 		}
 	}
@@ -280,7 +279,8 @@ public class GeoElementToGpadConverter {
 	public String toGpad(GeoElement geo) {
 		if (geo != null) {
 			StringBuilder sb = new StringBuilder();
-			String styleSheetGpad = extractStyleSheetContent(geo);
+			Object[] result = extractStyleSheetContent(geo);
+			String styleSheetGpad = (result != null) ? (String) result[0] : null;
 			String styleSheetName = generateStyleSheetName(geo);
 			if (styleSheetGpad != null && !styleSheetGpad.isEmpty()) {
 				sb.append("@").append(styleSheetName).append(" = ");

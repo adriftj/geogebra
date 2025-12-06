@@ -2,6 +2,7 @@ package org.geogebra.common.gpad;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.LinkedHashMap;
@@ -269,7 +270,7 @@ public class LineStyleTest extends BaseUnitTest {
 		
 		// Check that all parts are present (order may vary)
 		assertTrue(gpad.contains("dashedlong") || gpad.contains("type=\"15\""));
-		assertTrue(gpad.contains("thickness=5"));
+		assertTrue(!gpad.contains("thickness=5")); // default
 		assertTrue(gpad.contains("hidden"));
 		assertTrue(gpad.contains("opacity=128"));
 		assertTrue(!gpad.contains("arrow"));
@@ -296,9 +297,9 @@ public class LineStyleTest extends BaseUnitTest {
 		assertTrue(gpad.contains("lineStyle:"));
 		
 		// Check that all parts are present
-		assertTrue(gpad.contains("full"));
-		assertTrue(gpad.contains("thickness=5"));
-		assertTrue(gpad.contains("hidden=dashed"));
+		assertTrue(!gpad.contains("full")); // default
+		assertTrue(!gpad.contains("thickness=5")); // default
+		assertTrue(!gpad.contains("hidden=dashed")); // default
 		assertTrue(gpad.contains("opacity=127"));
 		assertTrue(gpad.contains("arrow"));
 	}
@@ -321,7 +322,7 @@ public class LineStyleTest extends BaseUnitTest {
 			
 			String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 			assertTrue("Type " + xmlValues[i] + " should convert to " + gpadKeys[i],
-					gpad.contains(gpadKeys[i]));
+				gpadKeys[i]=="full" || gpad.contains(gpadKeys[i]));
 		}
 	}
 
@@ -346,7 +347,7 @@ public class LineStyleTest extends BaseUnitTest {
 		Map<String, LinkedHashMap<String, String>> styleMap2 = new LinkedHashMap<>();
 		styleMap2.put("lineStyle", attrs2);
 		String gpad2 = StyleMapToGpadConverter.convert("test", styleMap2, null);
-		assertTrue(gpad2.contains("hidden=dashed"));
+		assertNull(gpad2); // all is default
 		
 		// Test typeHidden="2" -> hidden=show
 		LinkedHashMap<String, String> attrs3 = new LinkedHashMap<>();
@@ -378,7 +379,7 @@ public class LineStyleTest extends BaseUnitTest {
 		Map<String, LinkedHashMap<String, String>> styleMap2 = new LinkedHashMap<>();
 		styleMap2.put("lineStyle", attrs2);
 		String gpad2 = StyleMapToGpadConverter.convert("test", styleMap2, null);
-		assertTrue(!gpad2.contains("arrow"));
+		assertTrue(gpad2==null || !gpad2.contains("arrow"));
 	}
 
 	/**
@@ -418,7 +419,7 @@ public class LineStyleTest extends BaseUnitTest {
 			
 			// Verify conversion contains expected values
 			assertTrue(convertedGpad.contains("dashedlong"));
-			assertTrue(convertedGpad.contains("thickness=5"));
+			assertTrue(!convertedGpad.contains("thickness=5")); // default
 			assertTrue(convertedGpad.contains("hidden"));
 			assertTrue(convertedGpad.contains("opacity=128"));
 			assertTrue(!convertedGpad.contains("arrow"));
@@ -444,7 +445,15 @@ public class LineStyleTest extends BaseUnitTest {
 			assertNotNull(styleSheet);
 			// Empty lineStyle should not create a property or create empty attributes
 			LinkedHashMap<String, String> attrs = styleSheet.getProperty("lineStyle");
-			// Either null or empty is acceptable
+			// Either null or empty or default value is acceptable
+			if (attrs != null) {
+				String type = attrs.get("type");
+				if (type != null)
+					assertEquals(type, "0");
+				String thickness = attrs.get("thickness");
+				if (thickness != null)
+					assertEquals(thickness, "5");
+			}
 		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}

@@ -276,6 +276,37 @@ public class GpadSerializer {
     }
     
     /**
+     * Detect startPoint corners has expression.
+     * @param serialized the serialized string (from _corners attribute)
+     * @return true if has expression, false else
+     */
+    public static boolean hasStartPointExp(String serialized) {
+        if (serialized == null || serialized.isEmpty())
+            return false;
+        
+        // Deserialize corners (separated by \u0001)
+        String[] cornerStrings = serialized.split("\u0001", -1);
+        if (cornerStrings.length == 0)
+            return false;
+        
+        for (String cornerStr : cornerStrings) {
+            if (cornerStr.isEmpty())
+                continue;
+            
+            // Parse corner format: [absolute byte][type byte][content]
+            if (cornerStr.length() < 2)
+                continue; // Invalid format
+            
+            // Parse type byte
+            char typeByte = cornerStr.charAt(1);
+            boolean isExp = (typeByte == '\u0002');
+            if (isExp)
+                return true;
+        }
+        return false;
+    }
+    
+    /**
      * Deserializes barTag bars from a serialized string and calls the handler for each bar.
      * Format: [length1 char][bar1 data][length2 char][bar2 data]...
      * Each bar: [length char][barNumber char][flags char][属性值序列]

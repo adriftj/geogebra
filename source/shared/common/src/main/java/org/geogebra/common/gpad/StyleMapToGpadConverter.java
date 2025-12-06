@@ -13,6 +13,14 @@ import org.geogebra.common.kernel.parser.Token;
  */
 public class StyleMapToGpadConverter {
 	/**
+	 * Enum representing the result of building style sheet content.
+	 */
+	public enum StyleSheetContentResult {
+		Empty,   // Style sheet is empty
+		NoExp,   // Style sheet is not empty and contains no expressions
+		HasExp   // Style sheet is not empty and contains expressions
+	}
+	/**
 	 * Converts a style map to Gpad style sheet format.
 	 * Note: The returned format is "@name = { ... }" (NO semicolon at the end).
 	 * Stylesheet definitions do not end with semicolon, unlike command/expression instructions.
@@ -30,9 +38,11 @@ public class StyleMapToGpadConverter {
 			return null;
 
 		StringBuilder sb = new StringBuilder();
-		sb.append("@").append(name).append(" = ");
-		if (!buildStyleSheetContent(sb, styleMap, objectType))
+		sb.append("@").append(name).append(" = {");
+		StyleSheetContentResult result = buildStyleSheetContent(sb, styleMap, objectType);
+		if (result == StyleSheetContentResult.Empty)
 			return null;
+		sb.append(" }");
 		return sb.toString();
 	}
 
@@ -45,16 +55,20 @@ public class StyleMapToGpadConverter {
 	 *            map from XML tag names to attribute maps
 	 * @param objectType
 	 *            object type name (e.g., "Button", "Numeric"), can be null
-	 * @return Gpad style sheet content string in format "{ ... }" (no name, no semicolon), or null if styleMap is empty
+	 * @return null or Object array with [0]=String (Gpad style sheet content string in format "{ ... }" or null), [1]=Boolean (true if contains expressions)
 	 */
-	public static String convertToContentOnly(Map<String, LinkedHashMap<String, String>> styleMap, String objectType) {
+	public static Object[] convertToContentOnly(Map<String, LinkedHashMap<String, String>> styleMap, String objectType) {
 		if (styleMap == null || styleMap.isEmpty())
 			return null;
 
 		StringBuilder sb = new StringBuilder();
-		if (!buildStyleSheetContent(sb, styleMap, objectType))
+		sb.append("{");
+		StyleSheetContentResult result = buildStyleSheetContent(sb, styleMap, objectType);
+		if (result == StyleSheetContentResult.Empty)
 			return null;
-		return sb.toString();
+		sb.append(" }");
+		boolean hasExpression = (result == StyleSheetContentResult.HasExp);
+		return new Object[] { sb.toString(), Boolean.valueOf(hasExpression) };
 	}
 
 	/**
@@ -67,18 +81,19 @@ public class StyleMapToGpadConverter {
 	 *            map from XML tag names to attribute maps
 	 * @param objectType
 	 *            object type name (e.g., "Button", "Numeric"), can be null
+	 * @return StyleSheetContentResult indicating if content is empty, has no expressions, or has expressions
 	 */
-	private static boolean buildStyleSheetContent(StringBuilder sb, Map<String, LinkedHashMap<String, String>> styleMap, String objectType) {
+	private static StyleSheetContentResult buildStyleSheetContent(StringBuilder sb, Map<String, LinkedHashMap<String, String>> styleMap, String objectType) {
 		if (styleMap == null || styleMap.isEmpty())
-			return false;
-
-		sb.append("{");
+			return StyleSheetContentResult.Empty;
 
 		boolean first = true;
+		boolean hasExpression = false;
 		for (Map.Entry<String, LinkedHashMap<String, String>> entry : styleMap.entrySet()) {
 			String tagName = entry.getKey();
 			LinkedHashMap<String, String> attrs = entry.getValue();
 			String gpadProperty = null;
+			boolean propertyHasExpression = false;
 
 			// Special handling for checkbox: if fixed="true", output both "checkbox;" and "fixed;"
 			if ("checkbox".equals(tagName)) {
@@ -89,8 +104,11 @@ public class StyleMapToGpadConverter {
 				// value: convert based on object type (e.g., "random" for Numeric)
 				// It is a special boolean property but won't be processed by convertSimplePropertyToGpad
 				gpadProperty = convertValueElement(attrs, objectType);
-			} else
+			} else {
 				gpadProperty = convertPropertyToGpad(tagName, attrs, objectType);
+				// Check if this property contains expressions
+				propertyHasExpression = checkPropertyHasExpression(tagName, attrs);
+			}
 
 			if (gpadProperty != null && !gpadProperty.isEmpty()) {
 				if (!first)
@@ -98,13 +116,97 @@ public class StyleMapToGpadConverter {
 				sb.append(" ");
 				sb.append(gpadProperty);
 				first = false;
+				if (propertyHasExpression)
+					hasExpression = true;
 			}
 		}
 
-		if (sb.length()==1)
+		if (first)
+			return StyleSheetContentResult.Empty;
+		return hasExpression ? StyleSheetContentResult.HasExp : StyleSheetContentResult.NoExp;
+	}
+
+	/**
+	 * Checks if a specific property contains expressions that may reference other objects.
+	 * 
+	 * @param tagName XML tag name
+	 * @param attrs attribute map
+	 * @return true if the property contains expressions
+	 */
+	private static boolean checkPropertyHasExpression(String tagName, LinkedHashMap<String, String> attrs) {
+		if (attrs == null || attrs.isEmpty())
 			return false;
-		sb.append(" }");
-		return true;
+
+		// Check animation for expression step/speed
+		if ("animation".equals(tagName)) {
+			String step = attrs.get("step");
+			if (step != null && !step.isEmpty() && isNotSimpleNumber(step))
+				return true;
+			String speed = attrs.get("speed");
+			if (speed != null && !speed.isEmpty() && isNotSimpleNumber(speed))
+				return true;
+		}
+
+		// Check condition for expression show
+		if ("condition".equals(tagName)) {
+			String show = attrs.get("show");
+			if (show != null && !show.isEmpty())
+				return true;
+		}
+
+		// Check dynamicCaption for expressions
+		if ("dynamicCaption".equals(tagName)) {
+			String val = attrs.get("val");
+			if (val != null && !val.isEmpty())
+				return true;
+		}
+
+		// Check incrementY for expressions
+		if ("incrementY".equals(tagName)) {
+			String val = attrs.get("val");
+			if (val != null && !val.isEmpty())
+				return true;
+		}
+
+		// Check linkedGeo for object references (may reference objects not yet created)
+		if ("linkedGeo".equals(tagName)) {
+			String exp = attrs.get("exp");
+			if (exp != null && !exp.isEmpty())
+				return true;
+		}
+
+		// Check objColor for dynamic colors (expressions)
+		if ("objColor".equals(tagName)) {
+			if (attrs.containsKey("dynamicr") || attrs.containsKey("dynamicg") 
+					|| attrs.containsKey("dynamicb") || attrs.containsKey("dynamica"))
+				return true;
+		}
+
+		// Check parentLabel for object references (may reference objects not yet created)
+		if ("parentLabel".equals(tagName)) {
+			String val = attrs.get("val");
+			if (val != null && !val.isEmpty())
+				return true;
+		}
+
+		// Check slider for expression min/max
+		if ("slider".equals(tagName)) {
+			String min = attrs.get("min");
+			if (min != null && !min.isEmpty() && isNotSimpleNumber(min))
+				return true;
+			String max = attrs.get("max");
+			if (max != null && !max.isEmpty() && isNotSimpleNumber(max))
+				return true;
+		}
+
+		// Check startPoint for expression references
+		if ("startPoint".equals(tagName)) {
+			String serialized = attrs.get("_corners");
+			if (serialized != null && !serialized.isEmpty() && GpadSerializer.hasStartPointExp(serialized))
+				return true;
+		}
+
+		return false;
 	}
 
 	/**
@@ -338,10 +440,9 @@ public class StyleMapToGpadConverter {
 		if (value == null || value.isEmpty())
 			return false;
 		
-		// Try to match unsigned integer or floating-point number
-		// Pattern: optional digits, optional decimal point, optional digits
-		// Must not start with + or -
-		return !value.matches("^\\d+(\\.\\d+)?$");
+		// Try to match integer or floating-point number
+		// Pattern: optinal +/-, digits, optional decimal point, optional digits
+		return !value.matches("^[+-]?\\d+(\\.\\d+)?$");
 	}
 
 	/**
@@ -361,7 +462,8 @@ public class StyleMapToGpadConverter {
 
 		// Convert type (no prefix)
 		String typeValue = attrs.get("type");
-		if (typeValue != null) {
+		// default is 0, so only output when different
+		if (typeValue != null && !"0".equals(typeValue)) {
 			String typeKey = GpadStyleMaps.LINE_STYLE_TYPE_REVERSE_MAP.get(typeValue);
 			if (typeKey != null) {
 				if (!first)
@@ -373,7 +475,8 @@ public class StyleMapToGpadConverter {
 
 		// Convert thickness=value
 		String thickness = attrs.get("thickness");
-		if (thickness != null) {
+		// default is 5, so only output when different
+		if (thickness != null && !"5".equals(thickness)) {
 			if (!first)
 				sb.append(" ");
 			sb.append("thickness=").append(thickness);
@@ -382,23 +485,24 @@ public class StyleMapToGpadConverter {
 
 		// Convert typeHidden (hidden, hidden=dashed, or hidden=show)
 		String typeHiddenValue = attrs.get("typeHidden");
-		if (typeHiddenValue != null) {
-			if (!first)
-				sb.append(" ");
+		// default is 1, so only output when different
+		if (typeHiddenValue != null && !"1".equals(typeHiddenValue)) {
 			String typeHiddenKey = GpadStyleMaps.LINE_STYLE_TYPE_HIDDEN_REVERSE_MAP.get(typeHiddenValue);
 			if (typeHiddenKey != null) {
+				if (!first)
+					sb.append(" ");
 				if (typeHiddenKey.isEmpty())
 					sb.append("hidden");
 				else
 					sb.append("hidden=").append(typeHiddenKey);
-			} else // Default to hidden if value not recognized
-				sb.append("hidden");
-			first = false;
+				first = false;
+			}
 		}
 
 		// Convert opacity=value
 		String opacity = attrs.get("opacity");
-		if (opacity != null) {
+		// default is 255, so only output when different
+		if (opacity != null && !"255".equals(opacity)) {
 			if (!first)
 				sb.append(" ");
 			sb.append("opacity=").append(opacity);
