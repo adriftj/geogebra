@@ -272,6 +272,17 @@ public class GeoImage extends GeoElement implements
 		if (fileName == null) {
 			return;
 		}
+
+		// Handle "@" prefix replacement
+		// If "@" is followed by "/", replace "@/" with prefix
+		// Otherwise, replace "@" with prefix
+		if (fileName.startsWith("@")) {
+			String prefix = kernel.getApplication().getLocalUrlPrefix();
+			if (prefix != null && !prefix.isEmpty())
+				fileName = prefix + fileName.substring(fileName.startsWith("@/")? 2: 1);
+			// If prefix is not set, keep the original filename with "@"
+		}
+
 		if (fileName.equals(this.getGraphicsAdapter().getImageFileName())) {
 			return;
 		}

@@ -820,6 +820,23 @@ public abstract class GgbAPI implements JavaScriptAPI {
 		return geo.getImageFileName();
 	}
 
+	/**
+	 * Sets the URL prefix for local URLs starting with "@"
+	 * If the prefix doesn't end with "/", a "/" will be automatically appended
+	 * @param prefix the URL prefix (e.g., "https://example.com/images" or "https://example.com/images/")
+	 */
+	public void setLocalUrlPrefix(String prefix) {
+		app.setLocalUrlPrefix(prefix);
+	}
+
+	/**
+	 * Gets the URL prefix for local URLs starting with "@"
+	 * @return the URL prefix (always ends with "/" if set), or null if not set
+	 */
+	public String getLocalUrlPrefix() {
+		return app.getLocalUrlPrefix();
+	}
+
 	@Override
 	public void setOnTheFlyPointCreationActive(boolean flag) {
 		app.setOnTheFlyPointCreationActive(flag);
