@@ -94,7 +94,7 @@ public class GeoElementToGpadConverter {
 	 * @param styleMap style map to filter (modified in place)
 	 * @param geo GeoElement to check visibility
 	 */
-	private static void filterStyleMap(Map<String, LinkedHashMap<String, String>> styleMap, GeoElement geo) {
+	public static void filterStyleMap(Map<String, LinkedHashMap<String, String>> styleMap, GeoElement geo) {
 		if (styleMap == null)
 			return;
 		
@@ -327,7 +327,7 @@ public class GeoElementToGpadConverter {
 	 * @param geo GeoElement
 	 * @return command string, or null if not available
 	 */
-	private static String extractCommand(GeoElement geo) {
+	public static String extractCommand(GeoElement geo) {
 		// If it has a parent algorithm, get command from parent (unless it's Expression)
 		if (geo.getParentAlgorithm() != null) {
 			String cmdName = geo.getParentAlgorithm().getDefinitionName(myTPL);
@@ -339,24 +339,31 @@ public class GeoElementToGpadConverter {
 
 		if (geo instanceof GeoPointND) {
 			GeoPointND point = (GeoPointND) geo;
+			// Check if label starts with lowercase (would be parsed as vector)
+			String label = geo.getLabelSimple();
+			boolean labelIsLowercase = label != null && !label.isEmpty() 
+				&& StringUtil.isLowerCase(label.charAt(0));
 			if (point.isDefined() && point.isFinite()) {
-				// Check if label starts with lowercase (would be parsed as vector)
-				String label = geo.getLabelSimple();
-				boolean labelIsLowercase = label != null && !label.isEmpty() 
-					&& StringUtil.isLowerCase(label.charAt(0));
-				
+				double x = point.getInhomX();
+				double y = point.getInhomY();
+				double z = point.getInhomZ();
 				// If label is lowercase, use explicit Point command to avoid ambiguity
 				if (labelIsLowercase) {
-					double x = point.getInhomX();
-					double y = point.getInhomY();
-					double z = point.getInhomZ();
 					// Use Point[{x, y}] or Point[{x, y, z}] format (list syntax)
 					if (point.getDimension() == 3 && z != 1.0)
 						return "Point[{" + x + ", " + y + ", " + z + "}]";
 					else
 						return "Point[{" + x + ", " + y + "}]";
 				}
+				else {
+					if (point.getDimension() == 3 && z != 1.0)
+						return "(" + x + ", " + y + ", " + z + ")";
+					else
+						return "(" + x + ", " + y + ")";
+				}
 			}
+			else
+				return point.getDimension() == 3? "(0, 0, 1)": "(0, 0)";
 		}
 
 		if (geo instanceof GeoVectorND) {
@@ -401,6 +408,7 @@ public class GeoElementToGpadConverter {
 				if (Double.isFinite(value))
 					return String.valueOf(value);
 			}
+			return "0"; // fallback
 		}
 
 		// Special handling for GeoBoolean: extract boolean value
@@ -409,8 +417,8 @@ public class GeoElementToGpadConverter {
 			GeoBoolean bool = (GeoBoolean) geo;
 			if (bool.isDefined()) // Return boolean value as string: "true" or "false"
 				return bool.getBoolean() ? "true" : "false";
-			// If undefined, return "?" (though this shouldn't happen for independent booleans)
-			return "?";
+			// If undefined, return "false" (though this shouldn't happen for independent booleans)
+			return "false";
 		}
 
 		// Special handling for GeoText: use Text("...") format for independent text
@@ -421,13 +429,13 @@ public class GeoElementToGpadConverter {
 			if (text.isDefined()) {
 				String textStr = text.getTextStringSafe();
 				if (textStr != null) {
-					// Build Text command: Text("...")
+					// Build Text command: "..."
 					// Escape the string for gpad format
-					return "Text(\"" + safeString(textStr) + "\")";
+					return "\"" + safeString(textStr) + "\"";
 				}
 			}
 			// If undefined or empty, return Text("")
-			return "Text(\"\")";
+			return "\"\"";
 		}
 
 		// Special handling for GeoFunction: extract expression from function
@@ -479,7 +487,7 @@ public class GeoElementToGpadConverter {
 	 * @param str string to safe
 	 * @return get safe string
 	 */
-	private static String safeString(String str) {
+	public static String safeString(String str) {
 		if (str == null)
 			return "";
 		return str.replace("\"", "");

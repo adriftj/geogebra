@@ -379,6 +379,20 @@ public abstract class GgbAPI implements JavaScriptAPI {
 	}
 
 	/**
+	 * Converts the entire construction to Gpad format by parsing XML directly.
+	 * This is an alternative implementation to toGpad() that works from XML
+	 * instead of iterating through ConstructionElement objects.
+	 * 
+	 * @param mergeStylesheets whether to merge identical stylesheets
+	 * @return Gpad string representation of the entire construction
+	 */
+	public synchronized String xmlToGpad(boolean mergeStylesheets) {
+		org.geogebra.common.gpad.XMLToGpadConverter converter = 
+				new org.geogebra.common.gpad.XMLToGpadConverter(construction, mergeStylesheets);
+		return converter.toGpad();
+	}
+
+	/**
 	 * Returns the GeoGebra XML string for the given GeoElement object, i.e.
 	 * only the &lt;element&gt; tag is returned.
 	 */

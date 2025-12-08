@@ -41,11 +41,13 @@ import org.geogebra.common.plugin.GgbAPI;
  *   -o <file|dir>  Output file or directory
  *   -m             Merge identical stylesheets (default: false)
  *   -w             Overwrite existing files (default: skip and prompt)
+ *   -x             Use xmlToGpad method for conversion (default: use toGpad)
  */
 public class GgbToGpad {
 
 	private static boolean mergeStylesheets = false;
 	private static boolean overwrite = false;
+	private static boolean useXmlToGpad = false;
 	private static List<String> errors = new ArrayList<>();
 	private static int successCount = 0;
 	private static int failCount = 0;
@@ -87,6 +89,8 @@ public class GgbToGpad {
 				mergeStylesheets = true;
 			} else if ("-w".equals(arg)) {
 				overwrite = true;
+			} else if ("-x".equals(arg)) {
+				useXmlToGpad = true;
 			} else if (arg.startsWith("-")) {
 				System.err.println("Error: Unknown option: " + arg);
 				printUsage();
@@ -304,7 +308,9 @@ public class GgbToGpad {
 
 			// Convert to GPAD format
 			GgbAPI ggbApi = app.getGgbApi();
-			String gpadText = ggbApi.toGpad(mergeStyles);
+			String gpadText = useXmlToGpad 
+				? ggbApi.xmlToGpad(mergeStyles)
+				: ggbApi.toGpad(mergeStyles);
 
 			if (gpadText == null || gpadText.isEmpty()) {
 				String error = "Conversion produced empty result: " + inputPath;
@@ -354,7 +360,9 @@ public class GgbToGpad {
 					
 					// Convert to GPAD format (this should work even with LaTeX errors)
 					GgbAPI ggbApi = app.getGgbApi();
-					String gpadText = ggbApi.toGpad(mergeStyles);
+					String gpadText = useXmlToGpad 
+						? ggbApi.xmlToGpad(mergeStyles)
+						: ggbApi.toGpad(mergeStyles);
 					
 					if (gpadText != null && !gpadText.isEmpty()) {
 						try (OutputStreamWriter writer = new OutputStreamWriter(
@@ -399,7 +407,9 @@ public class GgbToGpad {
 						boolean loaded = GFileHandler.loadXML(app, fis, false);
 						if (loaded) {
 							GgbAPI ggbApi = app.getGgbApi();
-							String gpadText = ggbApi.toGpad(mergeStyles);
+							String gpadText = useXmlToGpad 
+								? ggbApi.xmlToGpad(mergeStyles)
+								: ggbApi.toGpad(mergeStyles);
 							if (gpadText != null && !gpadText.isEmpty()) {
 								try (OutputStreamWriter writer = new OutputStreamWriter(
 										new FileOutputStream(outputFile), StandardCharsets.UTF_8)) {
@@ -646,6 +656,7 @@ public class GgbToGpad {
 		System.err.println("  -o <file|dir>  Output file or directory");
 		System.err.println("  -m             Merge identical stylesheets (default: false)");
 		System.err.println("  -w             Overwrite existing files (default: skip)");
+		System.err.println("  -x             Use xmlToGpad method for conversion (default: use toGpad)");
 		System.err.println();
 		System.err.println("Examples:");
 		System.err.println("  GgbToGpad input.ggb");

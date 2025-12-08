@@ -149,7 +149,7 @@ public class StyleMapToGpadConverter {
 
 		// Check condition for expression show
 		if ("condition".equals(tagName)) {
-			String show = attrs.get("show");
+			String show = attrs.get("showObject");
 			if (show != null && !show.isEmpty())
 				return true;
 		}
@@ -324,7 +324,7 @@ public class StyleMapToGpadConverter {
 			break;
 		case "coords":
 			// coords: x y [z] [w] [v=vx vy vz [vw]] [w=wx wy wz]
-			convertedValue = convertCoords(attrs);
+			// convertedValue = convertCoords(attrs); // 会出现NaN，暂时没想好怎么处理
 			break;
 		case "font":
 			// font: serif size=0.5 plain; or font: ~serif size=2 italic bold;

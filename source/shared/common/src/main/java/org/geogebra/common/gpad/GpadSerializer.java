@@ -1,11 +1,15 @@
 package org.geogebra.common.gpad;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
 /**
  * Helper class for serializing and deserializing Gpad style properties.
  * Handles serialization and deserialization of startPoint corners and barTag bars.
  */
 public class GpadSerializer {
-    
     /**
      * Functional interface for processing a deserialized startPoint corner.
      */
@@ -304,6 +308,215 @@ public class GpadSerializer {
                 return true;
         }
         return false;
+    }
+    
+    /**
+     * Helper class for serializing startPoint corners.
+     */
+    public static class GpadSerializeStartPoint {
+        private final List<LinkedHashMap<String, String>> startPoints = new ArrayList<>();
+        
+        private GpadSerializeStartPoint() {
+        }
+        
+        /**
+         * Adds a startPoint corner from its attributes.
+         * @param attrs corner attributes (should contain number, absolute, exp, x, y, z)
+         */
+        public void add(LinkedHashMap<String, String> attrs) {
+            if (attrs == null)
+                return;
+            
+            // Use number attribute as list index
+            int number = 0;
+            String numberStr = attrs.get("number");
+            if (numberStr != null) {
+                try {
+                    number = Integer.parseInt(numberStr);
+                } catch (NumberFormatException e) {
+                    // Invalid number, use 0 as default
+                    number = 0;
+                }
+            }
+            
+            if (number < 0) {
+                org.geogebra.common.util.debug.Log.error(
+                    "startPoint number attribute is negative: " + number + ". Ignoring.");
+            } else {
+                // Grow list if necessary
+                while (startPoints.size() <= number)
+                    startPoints.add(null);
+                startPoints.set(number, attrs);
+            }
+        }
+        
+        /**
+         * Ends serialization and returns the serialized string.
+         * @return serialized string, or null if no corners were added
+         */
+        public String end() {
+            if (startPoints.isEmpty())
+                return null;
+            
+            StringBuilder serialized = new StringBuilder();
+            boolean first = true;
+            
+            for (int i = 0; i < startPoints.size(); i++) {
+                LinkedHashMap<String, String> corner = startPoints.get(i);
+                if (corner == null) {
+                    // Check if there are any non-null entries after this
+                    for (int j = i + 1; j < startPoints.size(); j++) {
+                        if (startPoints.get(j) != null) {
+                            org.geogebra.common.util.debug.Log.error(
+                                "startPoint: found null at index " + i + ", but non-null entry exists at index " + j + ". Ignoring entries after index " + i);
+                            break;
+                        }
+                    }
+                    break;
+                }
+                
+                // Extract corner data
+                boolean isAbsolute = "true".equals(corner.get("absolute"));
+                String[] cornerData = new String[4]; // [0]=exp, [1]=x, [2]=y, [3]=z
+                cornerData[0] = corner.get("exp");
+                cornerData[1] = corner.get("x");
+                cornerData[2] = corner.get("y");
+                cornerData[3] = corner.get("z");
+                
+                // Serialize using helper class
+                serializeStartPointCorner(serialized, first, isAbsolute, cornerData);
+                first = false;
+            }
+            
+            // Return serialized string only if we have at least one corner
+            return first ? null : serialized.toString();
+        }
+    }
+    
+    /**
+     * Helper class for serializing barTag bars.
+     */
+    public static class GpadSerializeBarTag {
+        private final Map<Integer, Map<String, String>> tagElements = new LinkedHashMap<>();
+        
+        private GpadSerializeBarTag() {
+        }
+        
+        /**
+         * Adds a tag element from its attributes.
+         * @param barNumberStr bar number as string
+         * @param attrs tag attributes (should contain key, value, and bar-related attributes)
+         */
+        public void add(String barNumberStr, LinkedHashMap<String, String> attrs) {
+            if (barNumberStr == null || attrs == null)
+                return;
+            
+            String key = attrs.get("key");
+            String value = attrs.get("value");
+            
+            if (key != null && value != null) {
+                try {
+                    int barNumber = Integer.parseInt(barNumberStr);
+                    // Get or create map for this barNumber
+                    Map<String, String> barTags = tagElements.get(barNumber);
+                    if (barTags == null) {
+                        barTags = new LinkedHashMap<>();
+                        tagElements.put(barNumber, barTags);
+                    }
+                    // Store key-value pair for this barNumber
+                    barTags.put(key, value);
+                } catch (NumberFormatException e) {
+                    // Invalid barNumber, ignore
+                }
+            }
+        }
+        
+        /**
+         * Ends serialization and returns the serialized string.
+         * @return serialized string, or null if no bars were added
+         */
+        public String end() {
+            if (tagElements.isEmpty())
+                return null;
+            
+            StringBuilder serialized = new StringBuilder();
+            
+            // Sort by barNumber for consistent output
+            List<Integer> barNumbers = new ArrayList<>(tagElements.keySet());
+            java.util.Collections.sort(barNumbers);
+            
+            for (Integer barNumber : barNumbers) {
+                Map<String, String> barTags = tagElements.get(barNumber);
+                if (barTags == null || barTags.isEmpty())
+                    continue;
+                
+                // Extract bar attributes
+                String fillType = barTags.get("barFillType");
+                String hatchAngle = barTags.get("barHatchAngle");
+                String hatchDistance = barTags.get("barHatchDistance");
+                String image = barTags.get("barImage");
+                String fillSymbol = barTags.get("barSymbol");
+                
+                // Parse barColor (format: rgb(r,g,b) or rgba(r,g,b,a))
+                int[] rgba = {-1, -1, -1, -1};
+                String barColor = barTags.get("barColor");
+                if (barColor != null && (barColor.startsWith("rgb(") || barColor.startsWith("rgba(")) && barColor.endsWith(")")) {
+                    // Remove "rgb(" or "rgba(" prefix and ")" suffix
+                    int prefixLen = barColor.startsWith("rgba(") ? 5 : 4;
+                    String colorContent = barColor.substring(prefixLen, barColor.length() - 1);
+                    String[] rgb = colorContent.split(",");
+                    if (rgb.length >= 3) {
+                        try {
+                            rgba[0] = Integer.parseInt(rgb[0].trim());
+                            rgba[1] = Integer.parseInt(rgb[1].trim());
+                            rgba[2] = Integer.parseInt(rgb[2].trim());
+                        } catch (NumberFormatException e) {
+                            // Invalid color format, ignore
+                        }
+                    }
+                }
+                
+                // Parse barAlpha (format: float string 0.0-1.0, convert to int 0-255)
+                String barAlpha = barTags.get("barAlpha");
+                if (barAlpha != null) {
+                    try {
+                        float alphaFloat = Float.parseFloat(barAlpha);
+                        int alphaInt = (int)(alphaFloat * 255);
+                        if (alphaInt < 0) alphaInt = 0;
+                        if (alphaInt > 255) alphaInt = 255;
+                        rgba[3] = alphaInt;
+                    } catch (NumberFormatException e) {
+                        // Invalid alpha, ignore
+                    }
+                }
+                
+                // Serialize using helper class
+                if (!serializeBarTagBar(serialized, String.valueOf(barNumber), rgba,
+                        fillType, hatchAngle, hatchDistance, image, fillSymbol)) {
+                    // Serialization failed, skip this bar
+                    continue;
+                }
+            }
+            
+            // Return serialized string only if we have at least one bar
+            return serialized.length() > 0 ? serialized.toString() : null;
+        }
+    }
+    
+    /**
+     * Begins serialization of startPoint corners.
+     * @return a new GpadSerializeStartPoint instance
+     */
+    public static GpadSerializeStartPoint beginSerializeStartPoint() {
+        return new GpadSerializeStartPoint();
+    }
+    
+    /**
+     * Begins serialization of barTag bars.
+     * @return a new GpadSerializeBarTag instance
+     */
+    public static GpadSerializeBarTag beginSerializeBarTag() {
+        return new GpadSerializeBarTag();
     }
     
     /**
