@@ -44,7 +44,6 @@ import org.geogebra.common.plugin.GgbAPI;
  *   -x             Use xmlToGpad method for conversion (default: use toGpad)
  */
 public class GgbToGpad {
-
 	private static boolean mergeStylesheets = false;
 	private static boolean overwrite = false;
 	private static boolean useXmlToGpad = false;
@@ -194,6 +193,12 @@ public class GgbToGpad {
 			outputDir.mkdirs();
 		}
 
+		// If using xmlToGpad, extract XML directly without loading to app
+		// extractEmbeddedFiles will be called inside convertFileUsingXml
+		if (useXmlToGpad) {
+			return convertFileUsingXml(inputFile, outputFile, mergeStyles, overwrite);
+		}
+
 		// Extract embedded files from ggb zip archive before loading
 		extractEmbeddedFiles(inputFile, outputFile);
 
@@ -308,9 +313,7 @@ public class GgbToGpad {
 
 			// Convert to GPAD format
 			GgbAPI ggbApi = app.getGgbApi();
-			String gpadText = useXmlToGpad 
-				? ggbApi.xmlToGpad(mergeStyles)
-				: ggbApi.toGpad(mergeStyles);
+			String gpadText = ggbApi.toGpad(mergeStyles);
 
 			if (gpadText == null || gpadText.isEmpty()) {
 				String error = "Conversion produced empty result: " + inputPath;
@@ -360,9 +363,7 @@ public class GgbToGpad {
 					
 					// Convert to GPAD format (this should work even with LaTeX errors)
 					GgbAPI ggbApi = app.getGgbApi();
-					String gpadText = useXmlToGpad 
-						? ggbApi.xmlToGpad(mergeStyles)
-						: ggbApi.toGpad(mergeStyles);
+					String gpadText = ggbApi.toGpad(mergeStyles);
 					
 					if (gpadText != null && !gpadText.isEmpty()) {
 						try (OutputStreamWriter writer = new OutputStreamWriter(
@@ -407,9 +408,7 @@ public class GgbToGpad {
 						boolean loaded = GFileHandler.loadXML(app, fis, false);
 						if (loaded) {
 							GgbAPI ggbApi = app.getGgbApi();
-							String gpadText = useXmlToGpad 
-								? ggbApi.xmlToGpad(mergeStyles)
-								: ggbApi.toGpad(mergeStyles);
+							String gpadText = ggbApi.toGpad(mergeStyles);
 							if (gpadText != null && !gpadText.isEmpty()) {
 								try (OutputStreamWriter writer = new OutputStreamWriter(
 										new FileOutputStream(outputFile), StandardCharsets.UTF_8)) {
@@ -520,6 +519,123 @@ public class GgbToGpad {
 			// Convert file
 			convertFile(ggbFile, outputFile, mergeStyles, overwrite);
 		}
+	}
+
+	/**
+	 * Converts a GGB file to GPAD format using XML extraction (without loading to app).
+	 * This method extracts XML directly from the zip archive and converts it.
+	 * 
+	 * @param inputFile the input ggb file (zip archive)
+	 * @param outputFile the output gpad file
+	 * @param mergeStyles whether to merge identical stylesheets
+	 * @param overwrite whether to overwrite existing output file
+	 * @return true if conversion successful
+	 */
+	private static boolean convertFileUsingXml(File inputFile, File outputFile, 
+			boolean mergeStyles, boolean overwrite) {
+		String inputPath = inputFile.getAbsolutePath();
+		
+		// Check if output file exists
+		if (outputFile.exists() && !overwrite) {
+			System.err.println("Skipping (file exists): " + inputPath + " -> " + outputFile.getAbsolutePath());
+			skipCount++;
+			return false;
+		}
+
+		// Ensure output directory exists
+		File outputDir = outputFile.getParentFile();
+		if (outputDir != null && !outputDir.exists()) {
+			outputDir.mkdirs();
+		}
+
+		// Extract embedded files from ggb zip archive
+		extractEmbeddedFiles(inputFile, outputFile);
+
+		try {
+			// Extract XML files directly from ggb zip archive
+			String xmlFile = extractXmlFromGgb(inputFile, MyXMLio.XML_FILE);
+			if (xmlFile == null) {
+				String error = "Failed to extract " + MyXMLio.XML_FILE + " from ggb file: " + inputPath;
+				errors.add(error);
+				System.err.println("Error [" + inputPath + "]: " + error);
+				failCount++;
+				return false;
+			}
+			
+			String xmlMacro = extractXmlFromGgb(inputFile, MyXMLio.XML_FILE_MACRO);
+			// If macro file doesn't exist, use empty string
+			if (xmlMacro == null) {
+				xmlMacro = "";
+			}
+			
+			// Create a minimal app instance just to get GgbAPI
+			// We don't load the file, just use the API for conversion
+			AppDNoGui app = new AppDNoGui(new LocalizationD(3), true);
+			GgbAPI ggbApi = app.getGgbApi();
+			
+			// Convert to GPAD format using XML directly
+			String gpadText = ggbApi.xmlToGpad(xmlFile, xmlMacro, mergeStyles);
+
+			if (gpadText == null || gpadText.isEmpty()) {
+				String error = "Conversion produced empty result: " + inputPath;
+				errors.add(error);
+				System.err.println("Error [" + inputPath + "]: " + error);
+				failCount++;
+				return false;
+			}
+
+			// Write to output file with UTF-8 encoding
+			try (OutputStreamWriter writer = new OutputStreamWriter(
+					new FileOutputStream(outputFile), StandardCharsets.UTF_8)) {
+				writer.write(gpadText);
+			}
+
+			System.out.println("Converted: " + inputFile.getName() + " -> " + outputFile.getName());
+			successCount++;
+			return true;
+
+		} catch (IOException e) {
+			String error = "IO error: " + e.getMessage();
+			errors.add(inputPath + ": " + error);
+			System.err.println("Error [" + inputPath + "]: " + error);
+			failCount++;
+			return false;
+		} catch (Exception e) {
+			String error = "Unexpected error: " + e.getMessage();
+			errors.add(inputPath + ": " + error);
+			System.err.println("Error [" + inputPath + "]: " + error);
+			System.err.println("Stack trace for " + inputPath + ":");
+			e.printStackTrace();
+			failCount++;
+			return false;
+		}
+	}
+
+	/**
+	 * Extracts XML content from ggb zip archive.
+	 * 
+	 * @param inputFile the input ggb file (zip archive)
+	 * @param xmlFileName the name of the XML file to extract (e.g., "geogebra.xml" or "geogebra_macro.xml")
+	 * @return XML content as string, or null if file not found
+	 */
+	private static String extractXmlFromGgb(File inputFile, String xmlFileName) {
+		try (ZipInputStream zip = new ZipInputStream(new FileInputStream(inputFile))) {
+			ZipEntry entry;
+			while ((entry = zip.getNextEntry()) != null) {
+				String entryName = entry.getName();
+				if (xmlFileName.equals(entryName)) {
+					// Found the XML file, read its content
+					byte[] content = StreamUtil.loadIntoMemory(zip);
+					return new String(content, StandardCharsets.UTF_8);
+				}
+				zip.closeEntry();
+			}
+		} catch (IOException e) {
+			String error = "Failed to extract " + xmlFileName + ": " + e.getMessage();
+			errors.add(inputFile.getAbsolutePath() + ": " + error);
+			System.err.println("Error [" + inputFile.getAbsolutePath() + "]: " + error);
+		}
+		return null; // File not found
 	}
 
 	/**
@@ -688,4 +804,3 @@ public class GgbToGpad {
 		}
 	}
 }
-

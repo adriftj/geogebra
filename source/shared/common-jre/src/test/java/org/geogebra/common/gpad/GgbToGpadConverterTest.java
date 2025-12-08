@@ -926,7 +926,7 @@ public class GgbToGpadConverterTest extends BaseUnitTest {
 		// Note: coordinates are doubles, so they have decimal points
 		String pointLine = findLineContaining(outputGpad, "LayoutAppSize");
 		assertTrue("Point with uppercase label should use (x, y) format: " + pointLine,
-			pointLine.contains("(800") && pointLine.contains("500)"));
+			pointLine.contains("(800") && (pointLine.contains("500)") || pointLine.contains("500.0)")));
 		
 		// Should NOT use Point[{x, y}] format for uppercase label
 		assertTrue("Point with uppercase label should NOT use Point[{x, y}] format",
@@ -1015,7 +1015,7 @@ public class GgbToGpadConverterTest extends BaseUnitTest {
 		
 		String pointUpperLine = findLineContaining(outputGpad, "PointUpper");
 		assertTrue("PointUpper should use (x, y) format: " + pointUpperLine,
-			pointUpperLine.contains("(300") && pointUpperLine.contains("400)"));
+			pointUpperLine.contains("(300") && (pointUpperLine.contains("400)") || pointUpperLine.contains("400.0)")));
 		
 		String vectorLowerLine = findLineContaining(outputGpad, "vectorLower");
 		assertTrue("vectorLower should use (x, y) format: " + vectorLowerLine,
