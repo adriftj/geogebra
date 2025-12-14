@@ -131,9 +131,11 @@ public class GeoElementToGpadConverter {
 		if (geo == null)
 			return null;
 		
-		// Use getXML() instead of getStyleXML() to include coords and other tags
-		// getStyleXML() only includes style properties, not data like coords
-		String fullXML = geo.getXML();
+		// Use getXML(true) to include listeners and other tags
+		// getStyleXML() only includes style properties, not data like coords or listeners
+		StringBuilder sb = new StringBuilder();
+		geo.getXML(true, sb);
+		String fullXML = sb.toString();
 		// Extract only the <element>...</element> part for parsing
 		// QDParser may have issues with <expression> tags
 		String elementXML = extractElementXML(fullXML);

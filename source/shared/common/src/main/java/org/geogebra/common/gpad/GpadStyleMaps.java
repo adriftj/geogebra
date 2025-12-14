@@ -137,7 +137,8 @@ public class GpadStyleMaps {
 			Map.entry("filename", new PropertyInfo(GK_STR, "")), // XML 元素名是 "file"
 			Map.entry("headStyle", new PropertyInfo(GK_STR, "0")), // XML 中 "0" 对应 Gpad 的 "default"
 			Map.entry("incrementY", new PropertyInfo(GK_STR, "")),
-			Map.entry("javascript", new PropertyInfo(GK_STR, "")),
+			Map.entry("jsClickFunction", new PropertyInfo(GK_STR, "")),
+			Map.entry("jsUpdateFunction", new PropertyInfo(GK_STR, "")),
 			Map.entry("labelMode", new PropertyInfo(GK_STR, "0")), // XML 中 "0" 对应 Gpad 的 "name"
 			Map.entry("linkedGeo", new PropertyInfo(GK_STR, "")),
 			Map.entry("parentLabel", new PropertyInfo(GK_STR, "")),

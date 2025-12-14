@@ -82,6 +82,18 @@ public class XMLToStyleMapParser implements DocHandler {
 				String barNumberStr = elementAttrs.get("barNumber");
 				if (barTagSerializer != null && barNumberStr != null)
 					barTagSerializer.add(barNumberStr, elementAttrs);
+			} else if ("listener".equals(tag)) {
+				// Special handling for listener: convert to jsUpdateFunction or jsClickFunction
+				String type = elementAttrs.get("type");
+				String val = elementAttrs.get("val");
+				if (val != null && !val.isEmpty()) {
+					LinkedHashMap<String, String> listenerAttrs = new LinkedHashMap<>();
+					listenerAttrs.put("val", val);
+					if ("objectUpdate".equals(type))
+						styleMap.put("jsUpdateFunction", listenerAttrs);
+					else if ("objectClick".equals(type))
+						styleMap.put("jsClickFunction", listenerAttrs);
+				}
 			} else
 				styleMap.put(tag, elementAttrs); // Store child element of <element> in the style map
 			elementDepth++;

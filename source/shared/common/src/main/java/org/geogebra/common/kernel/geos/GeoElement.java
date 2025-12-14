@@ -4465,7 +4465,7 @@ public abstract class GeoElement extends ConstructionElement implements GeoEleme
 			getListenerTagXML(sb, scriptManager.getUpdateListenerMap(),
 					"objectUpdate");
 			// clickListenerMap
-			getListenerTagXML(sb, scriptManager.getUpdateListenerMap(),
+			getListenerTagXML(sb, scriptManager.getClickListenerMap(),
 					"objectClick");
 		}
 	}

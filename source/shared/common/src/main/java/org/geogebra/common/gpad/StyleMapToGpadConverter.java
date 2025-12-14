@@ -104,6 +104,10 @@ public class StyleMapToGpadConverter {
 				// value: convert based on object type (e.g., "random" for Numeric)
 				// It is a special boolean property but won't be processed by convertSimplePropertyToGpad
 				gpadProperty = convertValueElement(attrs, objectType);
+			} else if ("ggbscript".equals(tagName) || "javascript".equals(tagName)) {
+				// Special handling for script elements: convert each attribute to separate gpad property
+				// This may output multiple properties (e.g., "ggbClick: ...; ggbUpdate: ...")
+				gpadProperty = convertScriptElementToGpad(tagName, attrs);
 			} else {
 				gpadProperty = convertPropertyToGpad(tagName, attrs, objectType);
 				// Check if this property contains expressions
@@ -1920,5 +1924,58 @@ public class StyleMapToGpadConverter {
 		
 		String result = sb.toString();
 		return result.isEmpty() ? null : result;
+	}
+
+	/**
+	 * Converts ggbscript or javascript XML element to Gpad script properties.
+	 * Converts each attribute (val, onUpdate, onDragEnd, onChange) to corresponding gpad property.
+	 * 
+	 * @param tagName XML tag name ("ggbscript" or "javascript")
+	 * @param attrs attribute map containing val, onUpdate, onDragEnd, onChange
+	 * @return semicolon-separated string of gpad properties (e.g., "ggbClick: \"...\"; ggbUpdate: \"...\"")
+	 *         or null if no valid attributes found
+	 */
+	private static String convertScriptElementToGpad(String tagName, LinkedHashMap<String, String> attrs) {
+		if (attrs == null || attrs.isEmpty())
+			return null;
+
+		StringBuilder sb = new StringBuilder();
+		boolean first = true;
+
+		// Determine prefix based on tag name
+		String prefix = "ggbscript".equals(tagName) ? "ggb" : "js";
+
+		// Convert each attribute to corresponding gpad property
+		// val -> Click, onUpdate -> Update, onDragEnd -> DragEnd, onChange -> Change
+		String[] attrNames = {"val", "onUpdate", "onDragEnd", "onChange"};
+		String[] propSuffixes = {"Click", "Update", "DragEnd", "Change"};
+
+		for (int i = 0; i < attrNames.length; i++) {
+			String attrName = attrNames[i];
+			String scriptContent = attrs.get(attrName);
+			
+			// Ignore empty strings
+			if (scriptContent == null || scriptContent.isEmpty())
+				continue;
+
+			if (!first)
+				sb.append("; ");
+			
+			String propName = prefix + propSuffixes[i];
+			sb.append(propName).append(": ");
+
+			// Check if content contains newlines - use triple quotes if so
+			if (scriptContent.indexOf('\n') >= 0 || scriptContent.indexOf('\r') >= 0) {
+				// Use triple-quoted string format (no escaping, content as-is)
+				sb.append("\"\"\"").append(scriptContent).append("\"\"\"");
+			} else {
+				// Use regular quoted string format (with escaping)
+				sb.append("\"").append(escapeString(scriptContent)).append("\"");
+			}
+			
+			first = false;
+		}
+
+		return sb.toString();
 	}
 }

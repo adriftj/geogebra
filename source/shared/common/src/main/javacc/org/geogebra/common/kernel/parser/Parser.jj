@@ -951,6 +951,8 @@ TOKEN : {
     "headStyle" |
     "incrementY" |
     "javascript" |
+    "jsClickFunction" |
+    "jsUpdateFunction" |
     "labelMode" |
     "linkedGeo" |
     "parentLabel" |
@@ -961,6 +963,14 @@ TOKEN : {
     "tooltipMode" |
     "verticalAlign" |
     "video" > |
+ < GK_SCRIPT: "ggbClick" |
+    "ggbUpdate" |
+    "ggbDragEnd" |
+    "ggbChange" |
+    "jsClick" |
+    "jsUpdate" |
+    "jsDragEnd" |
+    "jsChange" > |
  < GK_XYCOORDS: "@screen" | "labelOffset" > |
  < GK_RGBA: "bgColor" | "borderColor" > |
  < GK_DELETE: "~"((["A"-"Z"]|["a"-"z"]|"@")+) > |
@@ -1029,6 +1039,7 @@ TOKEN : {
 }
 
 <GK_STR_BLOCK> TOKEN : {
+ < GK_STR_TRIPLE_TEXT: "\"\"\"" (<CHAR>)* "\"\"\"" > |
  < GK_STR_UNQUOTED: (~["\"", ";", "}", " ", "\t", "\r", "\n"]) >
 }
 
@@ -2590,6 +2601,7 @@ void gpadStyleSheetKeyValue(GpadStyleSheet styleSheet) :
         gpadStyleSheetPropertyInt(styleSheet) | // Integer key
         gpadStyleSheetPropertyFloat(styleSheet) | // Float key
         gpadStyleSheetPropertyStr(styleSheet) | // String key
+        gpadStyleSheetPropertyScript(styleSheet) | // Script key (ggbClick, jsClick, etc.)
         gpadStyleSheetPropertyXYCoords(styleSheet) | // XYCoords key
         gpadStyleSheetPropertyCoords(styleSheet) | // coords key
         gpadStyleSheetPropertyRGBA(styleSheet) | // rgba key #rrggbbaa
@@ -2719,6 +2731,31 @@ void gpadStyleSheetPropertyFloat(GpadStyleSheet styleSheet) :
     }
 }
 
+String gpadStyleSheetStringValue() :
+{
+    Token valueToken;
+    StringBuilder sb = new StringBuilder();
+    String val;
+}
+{
+    (
+        valueToken = <GK_STR_TRIPLE_TEXT> {
+            val = valueToken.image;
+            val = val.substring(3, val.length() - 3);
+            sb.append(val);
+        }
+    |
+         valueToken = <TEXT> {
+            val = valueToken.image;
+            val = unescapeString(val.substring(1, val.length() - 1));
+            sb.append(val);
+        }
+    |
+        valueToken = <GK_STR_UNQUOTED> { sb.append(valueToken.image); }
+    )+
+    { return sb.toString(); }
+}
+
 /**
  * Parses string property
  * Syntax: key: <string>;
@@ -2726,21 +2763,72 @@ void gpadStyleSheetPropertyFloat(GpadStyleSheet styleSheet) :
 void gpadStyleSheetPropertyStr(GpadStyleSheet styleSheet) :
 {
     Token keyToken;
-    Token valueToken;
     String val;
-    StringBuilder sb = new StringBuilder();
 }
 {
     keyToken = <GK_STR> <GK_COLON> { token_source.SwitchTo(GK_STR_BLOCK); }
-    (
-        valueToken = <TEXT> {
-            val = valueToken.image;
-            val = unescapeString(val.substring(1, val.length() - 1));
-            sb.append(val);
-        }
-        | valueToken = <GK_STR_UNQUOTED> { sb.append(valueToken.image); }
-    )+
-    { setPropertyWithValueConversion(styleSheet, keyToken.image, sb.toString()); }
+    val = gpadStyleSheetStringValue()
+    { setPropertyWithValueConversion(styleSheet, keyToken.image, val); }
+}
+
+/**
+ * Parses script property (GK_SCRIPT)
+ * Syntax: key: <string>;
+ * Value: same as GK_STR (supports mixed unquoted, quoted, and triple-quoted strings)
+ * Converts gpad script properties to ggbscript/javascript XML elements
+ */
+void gpadStyleSheetPropertyScript(GpadStyleSheet styleSheet) :
+{
+    Token keyToken;
+    String scriptValue;
+    String xmlElementName;
+    String xmlAttrName;
+    java.util.LinkedHashMap<String, String> attrs;
+}
+{
+    keyToken = <GK_SCRIPT> <GK_COLON> { token_source.SwitchTo(GK_STR_BLOCK); }
+    scriptValue = gpadStyleSheetStringValue()
+    {
+        if (scriptValue == null || scriptValue.isEmpty())
+            return;
+        
+        String propName = keyToken.image;
+        if (propName.startsWith("ggb")) {
+            xmlElementName = "ggbscript";
+            if ("ggbClick".equals(propName))
+                xmlAttrName = "val";
+            else if ("ggbUpdate".equals(propName))
+                xmlAttrName = "onUpdate";
+            else if ("ggbDragEnd".equals(propName))
+                xmlAttrName = "onDragEnd";
+            else if ("ggbChange".equals(propName))
+                xmlAttrName = "onChange";
+            else
+                return; // Unknown property
+        } else if (propName.startsWith("js")) {
+            xmlElementName = "javascript";
+            if ("jsClick".equals(propName))
+                xmlAttrName = "val";
+            else if ("jsUpdate".equals(propName))
+                xmlAttrName = "onUpdate";
+            else if ("jsDragEnd".equals(propName))
+                xmlAttrName = "onDragEnd";
+            else if ("jsChange".equals(propName))
+                xmlAttrName = "onChange";
+            else
+                return; // Unknown property
+        } else
+            return; // Unknown property
+        
+        // Merge with existing attributes (important: same XML element may have multiple attributes)
+        attrs = styleSheet.getProperty(xmlElementName);
+        if (attrs == null) {
+            attrs = new java.util.LinkedHashMap<>();
+            attrs.put(xmlAttrName, scriptValue);
+            styleSheet.setProperty(xmlElementName, attrs);
+        } else
+            attrs.put(xmlAttrName, scriptValue);
+    }
 }
 
 /**

@@ -297,12 +297,16 @@ public class GpadStyleXMLApplier {
 		// ==================== 调用handleDirectReset直接清除的 ====================
 		// "condition":
 		// "dynamicCaption":
-		// "javascript":
-		// "onClick":
-		// "onUpdate":
-		// "onDragEnd":
-		// "onChange":
-		// "listener":
+		// "ggbChange":
+		// "ggbClick":
+		// "ggbDragEnd":
+		// "ggbUpdate":
+		// "jsChange":
+		// "jsClick":
+		// "jsDragEnd":
+		// "jsUpdate":
+		// "jsClickFunction":
+		// "jsUpdateFunction":
 		// "tempUserInput":
 		
 		// ==================== 布尔类型（缺省值 false）====================
@@ -376,7 +380,6 @@ public class GpadStyleXMLApplier {
 		Map.entry("contentSize", ResetInfo.defaults(CONTENT_SIZE_DEFAULTS)),
 		Map.entry("cropBox", ResetInfo.defaults(CROP_BOX_DEFAULTS)),
 		Map.entry("dimensions", ResetInfo.defaults(DIMENSIONS_DEFAULTS)),
-		Map.entry("embed", ResetInfo.defaults(EMBED_DEFAULTS)),
 		Map.entry("eqnStyle", ResetInfo.defaults(EQN_STYLE_DEFAULTS)),
 		Map.entry("font", ResetInfo.defaults(FONT_DEFAULTS)),
 		Map.entry("labelOffset", ResetInfo.defaults(LABEL_OFFSET_DEFAULTS)),
@@ -391,16 +394,18 @@ public class GpadStyleXMLApplier {
 		// 其他复杂样式，不登记，所以查map时会得到null，表示不需要重置或使用默认值
 		// "allowReflexAngle" // 已废弃
 		// "casMap" // 是个缓存，不需要作为样式
-		// "coefficients"
+		// "coefficients" // 由命令自动生成，不需要作为样式
 		// "coords"
-		// "eigenvectors"
+		// "eigenvectors" // 由命令自动生成，不需要作为样式
+		// Map.entry("embed", ResetInfo.defaults(EMBED_DEFAULTS)),
 		// "embedSettings" // 不需要重置
 		// "forceReflexAngle" // 已废弃
 		// "listType" // 由命令自动生成，不需要作为样式
-		// "matrix"
+		// "matrix" // 由命令自动生成，不需要作为样式
 		// "parent"
 		// "strokeCoords" // 由命令自动生成，不需要作为样式
-		// "tag"
+		// "tag" // 不需要重置
+		// "tags" // 不需要重置
 		// "variables" // 由命令自动生成，不需要作为样式
 	);
 	
@@ -650,8 +655,18 @@ public class GpadStyleXMLApplier {
 					deserializeAndApplyBarTags(serialized, xmlHandler, myXMLHandler.errors);
 				}
 			}
-			// Special handling for coords: map x,y,z,w to ox,oy,oz,ow for 3D objects
+			// Special handling for jsUpdateFunction and jsClickFunction: convert to listener element
+			else if ("jsUpdateFunction".equals(tagName) || "jsClickFunction".equals(tagName)) {
+				String val = attrs.get("val");
+				if (val != null && !val.isEmpty()) {
+					LinkedHashMap<String, String> listenerAttrs = new LinkedHashMap<>();
+					listenerAttrs.put("type", "jsUpdateFunction".equals(tagName)? "objectUpdate": "objectClick");
+					listenerAttrs.put("val", val);
+					xmlHandler.startGeoElement("listener", listenerAttrs, myXMLHandler.errors);
+				}
+			}
 			else {
+				// Special handling for coords: map x,y,z,w to ox,oy,oz,ow for 3D objects
 				if ("coords".equals(tagName))
 					attrs = mapCoordsFor3DObjects(geo, attrs);
 				xmlHandler.startGeoElement(tagName, attrs, myXMLHandler.errors);
@@ -704,37 +719,40 @@ public class GpadStyleXMLApplier {
 				geo.removeDynamicCaption();
 				return true;
 
-			case "javascript":
-			case "onClick":
+			case "ggbClick":
+			case "jsClick":
 				// Clear click script
 				geo.setScript(null, EventType.CLICK);
 				return true;
 				
-			case "onUpdate":
+			case "ggbUpdate":
+			case "jsUpdate":
 				// Clear update script
 				geo.setScript(null, EventType.UPDATE);
 				return true;
 				
-			case "onDragEnd":
+			case "ggbDragEnd":
+			case "jsDragEnd":
 				// Clear drag end script
 				geo.setScript(null, EventType.DRAG_END);
 				return true;
 				
-			case "onChange":
+			case "ggbChange":
+			case "jsChange":
 				// Clear change script
 				geo.setScript(null, EventType.EDITOR_KEY_TYPED);
 				return true;
 				
-			case "listener":
-				// Clear listener - needs type attribute
-				String type = attrs != null ? attrs.get("type") : null;
-				if (type != null) {
-					ScriptManager scriptManager = geo.getKernel().getApplication().getScriptManager();
-					if ("objectUpdate".equals(type))
-						scriptManager.getUpdateListenerMap().remove(geo);
-					else if ("objectClick".equals(type))
-						scriptManager.getClickListenerMap().remove(geo);
-				}
+			case "jsUpdateFunction":
+				// Clear update listener
+				ScriptManager scriptManagerUpdate = geo.getKernel().getApplication().getScriptManager();
+				scriptManagerUpdate.getUpdateListenerMap().remove(geo);
+				return true;
+				
+			case "jsClickFunction":
+				// Clear click listener
+				ScriptManager scriptManagerClick = geo.getKernel().getApplication().getScriptManager();
+				scriptManagerClick.getClickListenerMap().remove(geo);
 				return true;
 				
 			case "tempUserInput":
