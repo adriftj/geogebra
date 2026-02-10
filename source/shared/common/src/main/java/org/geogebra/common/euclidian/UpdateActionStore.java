@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.euclidian;
 
 import java.util.ArrayList;
@@ -7,17 +23,24 @@ import org.geogebra.common.kernel.geos.GeoElement;
 import org.geogebra.common.kernel.geos.GeoImage;
 import org.geogebra.common.kernel.geos.GeoNumeric;
 import org.geogebra.common.main.SelectionManager;
+import org.geogebra.common.main.undo.UndoCommandBuilder;
 import org.geogebra.common.main.undo.UndoManager;
 import org.geogebra.common.plugin.ActionType;
 
 import com.google.j2objc.annotations.Weak;
 
+/**
+ * Converts changes (updates) to currently selected elements into
+ * {@link org.geogebra.common.main.undo.UndoCommand UndoCommand}s (by snapshotting their definition)
+ * and stores the resulting undo commands in the {@link UndoManager}.
+ */
 public class UpdateActionStore {
 	private final List<UndoItem> undoItems = new ArrayList<>();
 
 	@Weak
 	protected final SelectionManager selection;
 	private final UndoManager undoManager;
+	private boolean stitching;
 
 	/**
 	 * Constructor
@@ -103,10 +126,14 @@ public class UpdateActionStore {
 			undoActions.add(item.previousContent());
 			labels.add(item.getLabel());
 		}
-		undoManager.buildAction(ActionType.UPDATE, actions.toArray(new String[0]))
+		UndoCommandBuilder builder = undoManager
+				.buildAction(ActionType.UPDATE, actions.toArray(new String[0]))
 				.withUndo(ActionType.UPDATE, undoActions.toArray(new String[0]))
-				.withLabels(labels.toArray(new String[0]))
-				.storeAndNotifyUnsaved();
+				.withLabels(labels.toArray(new String[0]));
+		if (stitching) {
+			builder.withStitchToNext();
+		}
+		builder.storeAndNotifyUnsaved();
 	}
 
 	/**
@@ -126,5 +153,9 @@ public class UpdateActionStore {
 	 */
 	public boolean isEmpty() {
 		return undoItems.isEmpty();
+	}
+
+	public void setStitching(boolean stitching) {
+		this.stitching = stitching;
 	}
 }

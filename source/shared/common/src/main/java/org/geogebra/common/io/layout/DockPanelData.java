@@ -1,9 +1,26 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.io.layout;
 
+import org.geogebra.common.awt.AwtFactory;
 import org.geogebra.common.awt.GDimension;
 import org.geogebra.common.awt.GPoint;
 import org.geogebra.common.awt.GRectangle;
-import org.geogebra.common.factories.AwtFactory;
+import org.geogebra.common.io.XMLStringBuilder;
 import org.geogebra.common.main.App;
 import org.geogebra.common.util.debug.Log;
 
@@ -272,36 +289,27 @@ final public class DockPanelData {
 	 * Appends XML representation of the data stored in this class.
 	 * @param sb builder
 	 */
-	public void getXml(StringBuilder sb) {
-		sb.append("<view id=\"");
-		sb.append(getViewIdForXML());
+	public void getXml(XMLStringBuilder sb) {
+		sb.startTag("view").attr("id", getViewIdForXML());
 		if (getToolbarString() != null) {
-			sb.append("\" toolbar=\"");
-			sb.append(getToolbarString());
+			sb.attrRaw("toolbar", getToolbarString());
 		}
-		sb.append("\" visible=\"");
-		sb.append(isVisible());
-		sb.append("\" inframe=\"");
-		sb.append(isOpenInFrame());
-		sb.append("\" stylebar=\"");
-		sb.append(showStyleBar());
-		sb.append("\" location=\"");
-		sb.append(getEmbeddedDef());
-		sb.append("\" size=\"");
-		sb.append(getEmbeddedSize());
+		sb.attr("visible", isVisible());
+		sb.attr("inframe", isOpenInFrame());
+		sb.attr("stylebar", showStyleBar());
+		sb.attrRaw("location", getEmbeddedDef());
+		sb.attr("size", getEmbeddedSize());
 		if (viewId == App.VIEW_ALGEBRA) {
-			sb.append("\" tab=\"");
-			sb.append(tabId.name());
+			sb.attr("tab", tabId);
 		}
-		sb.append("\" window=\"");
-		appendBounds(sb);
+		StringBuilder boundsSb = new StringBuilder();
+		appendBounds(boundsSb);
+		sb.attrRaw("window", boundsSb);
 
 		if (plane != null) {
-			sb.append("\" plane=\"");
-			sb.append(getPlane());
+			sb.attr("plane", getPlane());
 		}
-		sb.append("\" />\n");
-
+		sb.endTag();
 	}
 
 	private void appendBounds(StringBuilder sb) {

@@ -1,11 +1,27 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.kernel.geos;
 
 import org.geogebra.common.awt.MyImage;
+import org.geogebra.common.io.XMLStringBuilder;
 import org.geogebra.common.kernel.Construction;
 import org.geogebra.common.kernel.kernelND.GeoElementND;
 import org.geogebra.common.media.MediaFormat;
 import org.geogebra.common.plugin.GeoClass;
-import org.geogebra.common.util.StringUtil;
 
 /**
  *
@@ -21,7 +37,7 @@ public class GeoVideo extends GeoMedia {
 
 	public final static int VIDEO_SIZE_THRESHOLD = 100;
 
-	private static final String WMODE_TRANSPARENT = "&wmode=transparent";
+	private static final String WMODE_TRANSPARENT = "wmode=transparent";
 
 	/**
 	 * Test video URL.
@@ -33,7 +49,6 @@ public class GeoVideo extends GeoMedia {
 	private static final String TIME_PARAM_A = "&t=";
 	private static final String TIME_PARAM_Q = "?t=";
 	private static final String TIME_PARAM_S = "start=";
-	private static final String JAVASCRIPT_API = "enablejsapi=1";
 
 	private String youtubeId = null;
 	private String previewUrl = null;
@@ -208,7 +223,6 @@ public class GeoVideo extends GeoMedia {
 			sb.append(startTime);
 			sb.append("&");
 		}
-		sb.append(JAVASCRIPT_API);
 		sb.append(WMODE_TRANSPARENT);
 		return sb.toString();
 	}
@@ -230,19 +244,18 @@ public class GeoVideo extends GeoMedia {
 	}
 
 	@Override
-	protected void getStyleXML(StringBuilder sb) {
+	protected void getStyleXML(XMLStringBuilder sb) {
 		super.getStyleXML(sb);
-		sb.append("\t<video src=\"");
+		sb.startTag("video");
 		if (getFormat() == MediaFormat.VIDEO_YOUTUBE) {
-			StringUtil.encodeXML(sb, getEmbeddedUrl());
+			sb.attr("src", getEmbeddedUrl());
 		} else if (getSrc() != null) {
-			StringUtil.encodeXML(sb, getSrc());
+			sb.attr("src", getSrc());
 		}
 		if (getFormat() != null) {
-			sb.append("\" type=\"");
-			sb.append(getFormat());
+			sb.attrRaw("type", getFormat().toString());
 		}
-		sb.append("\"/>\n");
+		sb.endTag();
 	}
 
 	/**

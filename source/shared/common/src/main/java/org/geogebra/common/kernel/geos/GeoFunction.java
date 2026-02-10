@@ -1,13 +1,17 @@
-/* 
-GeoGebra - Dynamic Mathematics for Everyone
-http://www.geogebra.org
-
-This file is part of GeoGebra.
-
-This program is free software; you can redistribute it and/or modify it 
-under the terms of the GNU General Public License as published by 
-the Free Software Foundation.
-
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
  */
 
 package org.geogebra.common.kernel.geos;
@@ -24,6 +28,7 @@ import javax.annotation.CheckForNull;
 
 import org.apache.commons.math3.analysis.UnivariateFunction;
 import org.geogebra.common.euclidian.EuclidianView;
+import org.geogebra.common.io.XMLStringBuilder;
 import org.geogebra.common.kernel.Construction;
 import org.geogebra.common.kernel.Kernel;
 import org.geogebra.common.kernel.MyPoint;
@@ -76,8 +81,7 @@ import org.geogebra.common.util.DoubleUtil;
 import org.geogebra.common.util.ExtendedBoolean;
 import org.geogebra.common.util.StringUtil;
 import org.geogebra.common.util.debug.Log;
-
-import com.himamis.retex.editor.share.util.Unicode;
+import org.geogebra.editor.share.util.Unicode;
 
 /**
  * Explicit function in one variable ("x"). This is actually a wrapper class for
@@ -907,24 +911,22 @@ public class GeoFunction extends GeoElement implements Translateable,
 	}
 
 	@Override
-	public void getExpressionXML(StringBuilder sbxml) {
+	public void getExpressionXML(XMLStringBuilder sbxml) {
 		// an independent function needs to add
 		// its expression itself
 		// e.g. f(x) = x^2 - 3x
 		if (isIndependent() && getDefaultGeoType() < 0) {
-			sbxml.append("<expression label=\"");
-			sbxml.append(label);
-			sbxml.append("\" exp=\"");
-			StringUtil.encodeXML(sbxml, toString(StringTemplate.xmlTemplate));
-			sbxml.append("\" type=\"");
-			sbxml.append(getFunctionType());
-			sbxml.append("\"/>\n");
+			sbxml.startTag("expression", 0);
+			sbxml.attr("label", label);
+			sbxml.attr("exp", toString(StringTemplate.xmlTemplate));
+			sbxml.attr("type", getFunctionType());
+			sbxml.endTag();
 		}
 	}
 
 	@Override
-	public void getXMLtags(StringBuilder sbxml) {
-		super.getXMLtags(sbxml);
+	public void getXMLTags(XMLStringBuilder sbxml) {
+		super.getXMLTags(sbxml);
 		printCASEvalMapXML(sbxml);
 	}
 
@@ -941,13 +943,13 @@ public class GeoFunction extends GeoElement implements Translateable,
 	 * returns all class-specific xml tags for getXML
 	 */
 	@Override
-	protected void getStyleXML(StringBuilder sbxml) {
+	protected void getStyleXML(XMLStringBuilder sbxml) {
 		super.getStyleXML(sbxml);
 
 		// line thickness and type
 		getLineStyleXML(sbxml);
 		if (showOnAxis()) {
-			sbxml.append("<showOnAxis val=\"true\" />");
+			sbxml.startTag("showOnAxis").attr("val", true).endTag();
 		}
 	}
 
@@ -2697,7 +2699,7 @@ public class GeoFunction extends GeoElement implements Translateable,
 	}
 
 	@Override
-	public void printCASEvalMapXML(StringBuilder sbXML) {
+	public void printCASEvalMapXML(XMLStringBuilder sbXML) {
 		if (fun != null) {
 			fun.printCASevalMapXML(sbXML);
 		}

@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.web.full.gui.view.algebra;
 
 import java.util.ArrayList;
@@ -11,6 +27,7 @@ import javax.annotation.Nonnull;
 import org.geogebra.common.gui.view.algebra.AlgebraItem;
 import org.geogebra.common.gui.view.algebra.AlgebraView;
 import org.geogebra.common.gui.view.algebra.GeoSelectionCallback;
+import org.geogebra.common.io.XMLStringBuilder;
 import org.geogebra.common.io.layout.DockPanelData;
 import org.geogebra.common.io.layout.PerspectiveDecoder;
 import org.geogebra.common.javax.swing.SwingConstants;
@@ -36,6 +53,8 @@ import org.geogebra.common.ownership.GlobalScope;
 import org.geogebra.common.plugin.EventType;
 import org.geogebra.common.util.debug.GeoGebraProfiler;
 import org.geogebra.common.util.debug.Log;
+import org.geogebra.editor.share.event.KeyEvent;
+import org.geogebra.editor.share.util.GWTKeycodes;
 import org.geogebra.web.full.gui.GuiManagerW;
 import org.geogebra.web.full.gui.inputbar.WarningErrorHandler;
 import org.geogebra.web.full.gui.layout.DockSplitPaneW;
@@ -71,9 +90,6 @@ import org.gwtproject.user.client.ui.InlineLabel;
 import org.gwtproject.user.client.ui.ProvidesResize;
 import org.gwtproject.user.client.ui.Tree;
 import org.gwtproject.user.client.ui.TreeItem;
-
-import com.himamis.retex.editor.share.event.KeyEvent;
-import com.himamis.retex.editor.share.util.GWTKeycodes;
 
 import elemental2.dom.CanvasRenderingContext2D;
 import elemental2.dom.DomGlobal;
@@ -572,12 +588,15 @@ public class AlgebraViewW extends Tree implements LayerView, AlgebraView,
 			getSettings().setCollapsedNodesNoFire(null);
 			return;
 		}
-
+		if (getSettings().getCollapsedNodes() != null
+			&& !getSettings().getCollapsedNodes().isEmpty()) {
+				resolvePendingAdditions();
+		}
 		List<Integer> collapsedNodes = new ArrayList<>();
 
 		for (int i = 0; i < getItemCount(); i++) {
 			TreeItem node = getItem(i);
-			if (!node.getState()) {
+			if (!node.getState() && node.getWidget() instanceof GroupHeader) {
 				collapsedNodes.add(i);
 			}
 		}
@@ -621,7 +640,7 @@ public class AlgebraViewW extends Tree implements LayerView, AlgebraView,
 	 * @param sb
 	 *            string builder
 	 */
-	public final void getXML(StringBuilder sb) {
+	public final void getXML(XMLStringBuilder sb) {
 		updateCollapsedNodesIndices();
 		getSettings().getXML(sb, showAuxiliaryObjects());
 	}
@@ -691,7 +710,7 @@ public class AlgebraViewW extends Tree implements LayerView, AlgebraView,
 		if (getSettings().getCollapsedNodes() == null) {
 			return;
 		}
-
+		setAnimationEnabled(false);
 		for (int i : getSettings().getCollapsedNodes()) {
 			TreeItem node = getItem(i);
 			if (node != null) {
@@ -701,6 +720,7 @@ public class AlgebraViewW extends Tree implements LayerView, AlgebraView,
 				}
 			}
 		}
+		setAnimationEnabled(true);
 	}
 
 	@Override

@@ -1,13 +1,17 @@
-/* 
-GeoGebra - Dynamic Mathematics for Everyone
-http://www.geogebra.org
-
-This file is part of GeoGebra.
-
-This program is free software; you can redistribute it and/or modify it 
-under the terms of the GNU General Public License as published by 
-the Free Software Foundation.
-
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
  */
 
 package org.geogebra.common.kernel.geos;
@@ -18,11 +22,12 @@ import java.util.List;
 
 import javax.annotation.CheckForNull;
 
+import org.geogebra.common.awt.AwtFactory;
 import org.geogebra.common.awt.GFont;
 import org.geogebra.common.awt.GRectangle2D;
 import org.geogebra.common.euclidian.EuclidianConstants;
 import org.geogebra.common.euclidian.EuclidianViewInterfaceCommon;
-import org.geogebra.common.factories.AwtFactory;
+import org.geogebra.common.io.XMLStringBuilder;
 import org.geogebra.common.kernel.CircularDefinitionException;
 import org.geogebra.common.kernel.Construction;
 import org.geogebra.common.kernel.StringTemplate;
@@ -50,8 +55,8 @@ import org.geogebra.common.util.ExtendedBoolean;
 import org.geogebra.common.util.IndexHTMLBuilder;
 import org.geogebra.common.util.StringUtil;
 import org.geogebra.common.util.debug.Log;
+import org.geogebra.editor.share.util.Unicode;
 
-import com.himamis.retex.editor.share.util.Unicode;
 import com.himamis.retex.renderer.share.TeXFormula;
 import com.himamis.retex.renderer.share.serialize.SerializationAdapter;
 import com.himamis.retex.renderer.share.serialize.TeXAtomSerializer;
@@ -618,19 +623,16 @@ public class GeoText extends GeoElement
 	 * save object in XML format
 	 */
 	@Override
-	public final void getExpressionXML(StringBuilder sb) {
+	public final void getExpressionXML(XMLStringBuilder sb) {
 
 		// an independent text needs to add
 		// its expression itself
 		// e.g. text0 = "Circle"
 		if (isIndependent() && getDefaultGeoType() < 0) {
-			sb.append("<expression label=\"");
-			StringUtil.encodeXML(sb, label);
-			sb.append("\" exp=\"");
-			StringUtil.encodeXML(sb,
-					toOutputValueString(StringTemplate.xmlTemplate));
-			// expression
-			sb.append("\"/>\n");
+			sb.startTag("expression", 0)
+					.attr("label", label)
+					.attr("exp", toOutputValueString(StringTemplate.xmlTemplate))
+					.endTag();
 		}
 	}
 
@@ -638,16 +640,16 @@ public class GeoText extends GeoElement
 	 * returns all class-specific xml tags for getXML
 	 */
 	@Override
-	protected void getStyleXML(StringBuilder sb) {
+	protected void getStyleXML(XMLStringBuilder sb) {
 		if (isSymbolicMode()) {
-			sb.append("\t<symbolic val=\"true\" />\n");
+			sb.startTag("symbolic").attr("val", true).endTag();
 		}
 		XMLBuilder.getXMLvisualTags(this, sb, false);
 
 		getXMLfixedTag(sb);
 
 		if (isLaTeX) {
-			sb.append("\t<isLaTeX val=\"true\"/>\n");
+			sb.startTag("isLaTeX").attr("val", true).endTag();
 		}
 
 		appendFontTag(sb, serifFont, fontSizeD, fontStyle, isLaTeX,
@@ -655,16 +657,12 @@ public class GeoText extends GeoElement
 
 		// print decimals
 		if (printDecimals >= 0 && !useSignificantFigures) {
-			sb.append("\t<decimals val=\"");
-			sb.append(printDecimals);
-			sb.append("\"/>\n");
+			sb.startTag("decimals").attr("val", printDecimals).endTag();
 		}
 
 		// print significant figures
 		if (printFigures >= 0 && useSignificantFigures) {
-			sb.append("\t<significantfigures val=\"");
-			sb.append(printFigures);
-			sb.append("\"/>\n");
+			sb.startTag("significantfigures").attr("val", printFigures).endTag();
 		}
 
 		getBreakpointXML(sb);
@@ -674,34 +672,30 @@ public class GeoText extends GeoElement
 		getXMLDynCaptionTag(sb);
 
 		// store location of text (and possible labelOffset)
-		sb.append(getXMLlocation());
+		getXMLlocation(sb);
 		getScriptTags(sb);
 	}
 
 	/**
 	 * Returns startPoint of this text in XML notation.
 	 */
-	private String getXMLlocation() {
-		StringBuilder sb = new StringBuilder();
+	private String getXMLlocation(XMLStringBuilder sb) {
 
 		if (hasAbsoluteScreenLocation && startPoint == null) {
-			sb.append("\t<absoluteScreenLocation x=\"");
-			sb.append(labelOffsetX);
-			sb.append("\" y=\"");
-			sb.append(labelOffsetY);
-			sb.append("\"/>\n");
+			sb.startTag("absoluteScreenLocation");
+			sb.attr("x", labelOffsetX);
+			sb.attr("y", labelOffsetY);
+			sb.endTag();
 		} else {
 			// location of text
 			if (startPoint != null) {
 				startPoint.appendStartPointXML(sb, isAbsoluteScreenLocActive());
 
 				if (labelOffsetX != 0 || labelOffsetY != 0) {
-					sb.append("\t<labelOffset");
-					sb.append(" x=\"");
-					sb.append(labelOffsetX);
-					sb.append("\" y=\"");
-					sb.append(labelOffsetY);
-					sb.append("\"/>\n");
+					sb.startTag("labelOffset");
+					sb.attr("x", labelOffsetX);
+					sb.attr("y", labelOffsetY);
+					sb.endTag();
 				}
 			}
 		}
@@ -1293,16 +1287,15 @@ public class GeoText extends GeoElement
 	 * @param app
 	 *            application
 	 */
-	public static void appendFontTag(StringBuilder sb, boolean serifFont,
+	public static void appendFontTag(XMLStringBuilder sb, boolean serifFont,
 			double fontSizeD, int fontStyle, boolean isLaTeX, App app) {
 		// font settings
 		if (serifFont || fontSizeD != 1 || fontStyle != 0 || isLaTeX) {
-			sb.append("\t<font serif=\"");
-			sb.append(serifFont);
+			sb.startTag("font");
+			sb.attr("serif", serifFont);
 
 			// multiplier
-			sb.append("\" sizeM=\"");
-			sb.append(fontSizeD);
+			sb.attr("sizeM", fontSizeD);
 
 			// work out an estimate (can't guarantee exact)
 			double oldFontSize = app.getFontSize() * fontSizeD
@@ -1314,12 +1307,10 @@ public class GeoText extends GeoElement
 				oldFontSize = Math.floor(oldFontSize);
 			}
 			// still write this (for ggb40 compatibility)
-			sb.append("\" size=\"");
-			sb.append((int) oldFontSize);
+			sb.attr("size", (int) oldFontSize);
 
-			sb.append("\" style=\"");
-			sb.append(fontStyle);
-			sb.append("\"/>\n");
+			sb.attr("style", fontStyle);
+			sb.endTag();
 		}
 	}
 

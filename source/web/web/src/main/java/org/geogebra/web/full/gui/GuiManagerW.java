@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.web.full.gui;
 
 import java.util.ArrayList;
@@ -6,6 +22,7 @@ import java.util.Vector;
 
 import javax.annotation.CheckForNull;
 
+import org.geogebra.common.awt.AwtFactory;
 import org.geogebra.common.awt.GDimension;
 import org.geogebra.common.awt.GPoint;
 import org.geogebra.common.cas.view.CASView;
@@ -18,7 +35,6 @@ import org.geogebra.common.euclidian.TextRendererSettings;
 import org.geogebra.common.euclidian.event.AbstractEvent;
 import org.geogebra.common.exam.ExamController;
 import org.geogebra.common.exam.ExamState;
-import org.geogebra.common.factories.AwtFactory;
 import org.geogebra.common.gui.Editing;
 import org.geogebra.common.gui.GuiManager;
 import org.geogebra.common.gui.Layout;
@@ -31,6 +47,7 @@ import org.geogebra.common.gui.view.consprotocol.ConstructionProtocolNavigation;
 import org.geogebra.common.gui.view.consprotocol.ConstructionProtocolView;
 import org.geogebra.common.gui.view.properties.PropertiesView;
 import org.geogebra.common.gui.view.table.InvalidValuesException;
+import org.geogebra.common.io.XMLStringBuilder;
 import org.geogebra.common.io.layout.DockPanelData;
 import org.geogebra.common.javax.swing.SwingConstants;
 import org.geogebra.common.kernel.ModeSetter;
@@ -186,6 +203,7 @@ public class GuiManagerW extends GuiManager
 	private Runnable runAfterLogin;
 	private InputKeyboardButtonW inputKeyboardButton = null;
 	private static final ExamController examController = GlobalScope.examController;
+	private ExamLogAndExitDialog examInfoDialog;
 
 	/**
 	 *
@@ -1408,7 +1426,7 @@ public class GuiManagerW extends GuiManager
 	}
 
 	@Override
-	public void getSpreadsheetViewXML(final StringBuilder sb,
+	public void getSpreadsheetViewXML(final XMLStringBuilder sb,
 			final boolean asPreference) {
 		if (spreadsheetView != null) {
 			spreadsheetView.getXML(sb, asPreference);
@@ -1432,7 +1450,7 @@ public class GuiManagerW extends GuiManager
 	}
 
 	@Override
-	public void getAlgebraViewXML(final StringBuilder sb,
+	public void getAlgebraViewXML(final XMLStringBuilder sb,
 			final boolean asPreference) {
 		if (algebraView != null) {
 			algebraView.getXML(sb);
@@ -2121,7 +2139,11 @@ public class GuiManagerW extends GuiManager
 
 	@Override
 	public void showExamInfoDialog(StandardButton examInfoBtn) {
-		new ExamLogAndExitDialog(getApp(), true, examInfoBtn).show();
+		if (examInfoDialog != null) {
+			examInfoDialog.hide();
+		}
+		examInfoDialog = new ExamLogAndExitDialog(getApp(), true, examInfoBtn);
+		examInfoDialog.show();
 	}
 
 	/**

@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.web.full.gui.toolbar.mow.toolbox.pen;
 
 import static org.geogebra.common.euclidian.EuclidianConstants.MODE_PEN;
@@ -7,7 +23,6 @@ import java.util.List;
 import org.geogebra.web.full.gui.toolbar.mow.toolbox.ToolboxPopupPositioner;
 import org.geogebra.web.full.gui.toolbar.mow.toolbox.components.ToolIconButton;
 import org.geogebra.web.html5.gui.util.AriaHelper;
-import org.geogebra.web.html5.gui.view.IconSpec;
 import org.geogebra.web.html5.main.AppW;
 
 public class PenIconButton extends ToolIconButton {
@@ -51,9 +66,10 @@ public class PenIconButton extends ToolIconButton {
 	}
 
 	private void updateButton(int mode) {
-		IconSpec icon = getIconFromMode(mode, appW.getToolboxIconResource());
-		updateImgAndTxt(icon, mode, appW);
-		setActive(true);
+		getIconFromMode(mode, appW.getToolboxIconResource(), iconSpec -> {
+			updateImgAndTxt(iconSpec, mode, appW);
+			setActive(true);
+		});
 		if (penPopup != null) {
 			penPopup.update();
 		}

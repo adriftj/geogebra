@@ -1,22 +1,22 @@
-/* 
-GeoGebra - Dynamic Mathematics for Everyone
-http://www.geogebra.org
-
-This file is part of GeoGebra.
-
-This program is free software; you can redistribute it and/or modify it 
-under the terms of the GNU General Public License as published by 
-the Free Software Foundation.
-
- */
-
 /*
- * AlgoElement.java
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
  *
- * Created on 30. August 2001, 21:36
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
  */
 
 package org.geogebra.common.kernel.algos;
+
+import static org.geogebra.common.kernel.arithmetic.Command.getIntegralLaTeX;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -28,6 +28,7 @@ import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 
 import org.geogebra.common.euclidian.EuclidianViewInterfaceSlim;
+import org.geogebra.common.io.XMLStringBuilder;
 import org.geogebra.common.kernel.Construction;
 import org.geogebra.common.kernel.EuclidianViewCE;
 import org.geogebra.common.kernel.GTemplate;
@@ -35,11 +36,8 @@ import org.geogebra.common.kernel.SetRandomValue;
 import org.geogebra.common.kernel.StringTemplate;
 import org.geogebra.common.kernel.VarString;
 import org.geogebra.common.kernel.View;
-import org.geogebra.common.kernel.arithmetic.Command;
 import org.geogebra.common.kernel.arithmetic.ExpressionNode;
-import org.geogebra.common.kernel.arithmetic.ExpressionValue;
 import org.geogebra.common.kernel.arithmetic.FunctionalNVar;
-import org.geogebra.common.kernel.arithmetic.HasArguments;
 import org.geogebra.common.kernel.arithmetic.Inspecting;
 import org.geogebra.common.kernel.arithmetic.SymbolicMode;
 import org.geogebra.common.kernel.commands.Commands;
@@ -51,7 +49,6 @@ import org.geogebra.common.kernel.geos.GeoText;
 import org.geogebra.common.kernel.geos.LabelManager;
 import org.geogebra.common.kernel.kernelND.GeoElementND;
 import org.geogebra.common.plugin.GeoClass;
-import org.geogebra.common.util.StringUtil;
 import org.geogebra.common.util.debug.Log;
 
 import com.google.j2objc.annotations.AutoreleasePool;
@@ -61,7 +58,7 @@ import com.google.j2objc.annotations.AutoreleasePool;
  * @author Markus
  */
 public abstract class AlgoElement extends ConstructionElement
-		implements EuclidianViewCE, HasArguments {
+		implements EuclidianViewCE {
 	/** input elements */
 	public GeoElement[] input;
 	private ArrayList<GeoElementND> freeInputPoints;
@@ -1178,15 +1175,10 @@ public abstract class AlgoElement extends ConstructionElement
 		if (input == null) {
 			return null;
 		}
-		sbAE.setLength(0);
 		if (tpl.isLatex() && getClassName() == Commands.Integral) {
-			String var = "x";
-			if (getInput(0) instanceof VarString) {
-				var = ((VarString) getInput(0)).getVarString(tpl);
-			}
-			Command.appendIntegral(this, sbAE, var, tpl);
-			return sbAE.toString();
+			return getIntegralLaTeXDefinition(tpl);
 		}
+		sbAE.setLength(0);
 		if (tpl.isPrintLocalizedCommandNames()) {
 			sbAE.append(getLoc().getCommand(def));
 		} else {
@@ -1213,14 +1205,31 @@ public abstract class AlgoElement extends ConstructionElement
 
 	}
 
+	private String getIntegralLaTeXDefinition(StringTemplate tpl) {
+		String var = "x";
+		if (getInput(0) instanceof VarString) {
+			var = ((VarString) getInput(0)).getVarString(tpl);
+		}
+		switch (getInputLength()) {
+		case 1:
+			return getIntegralLaTeX(tpl, var, getInput(0), null, null, null);
+		case 2:
+			return getIntegralLaTeX(tpl, var, getInput(0), getInput(1), null, null);
+		case 3:
+		case 4:
+			return getIntegralLaTeX(tpl, var, getInput(0), null, getInput(1), getInput(2));
+		default:
+			return getIntegralLaTeX(tpl, var, null, null, null, null);
+		}
+	}
+
 	/*
 	 * see #1377 g:X = (-5, 5) + t (4, -3)
 	 */
-	private void appendCheckVector(StringBuilder sb, GeoElementND geo,
-			StringTemplate tpl) {
+	private void appendCheckVector(StringBuilder sb, GeoElementND geo, StringTemplate tpl) {
 		String cmd = geo.getLabel(tpl);
 		if (geo.isGeoVector()) {
-			boolean needsWrapping = !geo.isLabelSet();
+			boolean needsWrapping = !geo.isLabelSet() && !geo.toGeoElement().isLocalVariable();
 			if (Algos.isUsedFor(Commands.Vector, geo)) {
 				needsWrapping = false;
 			}
@@ -1278,12 +1287,12 @@ public abstract class AlgoElement extends ConstructionElement
 	 * format. GeoGebra File Format.
 	 */
 	@Override
-	public void getXML(boolean getListenersToo, StringBuilder sb) {
+	public void getXML(boolean getListenersToo, XMLStringBuilder sb) {
 		getXML(sb, true);
 	}
 
 	@Override
-	public void getXML_OGP(StringBuilder sb) {
+	public void getXML_OGP(XMLStringBuilder sb) {
 		getXML_OGP(sb, true);
 	}
 
@@ -1291,7 +1300,7 @@ public abstract class AlgoElement extends ConstructionElement
 	 * @return XML representation of this algo, including output objects
 	 */
 	public String getXML() {
-		StringBuilder sb = new StringBuilder();
+		XMLStringBuilder sb = new XMLStringBuilder();
 		getXML(sb, true);
 		return sb.toString();
 	}
@@ -1301,7 +1310,7 @@ public abstract class AlgoElement extends ConstructionElement
 	 * @param sb string builder
 	 * @param includeOutputGeos true to include output geos
 	 */
-	public final void getXML(StringBuilder sb, boolean includeOutputGeos) {
+	public final void getXML(XMLStringBuilder sb, boolean includeOutputGeos) {
 		// this is needed for helper commands like
 		// intersect for single intersection points
 		if (!isPrintedInXML) {
@@ -1318,7 +1327,7 @@ public abstract class AlgoElement extends ConstructionElement
 			if (hasExpXML(cmdname)) {
 				getExpXML(tpl, sb);
 			} else {
-				sb.append(getCmdXML(cmdname, tpl));
+				getCmdXML(cmdname, tpl, sb);
 			}
 
 			if (includeOutputGeos) { // && output != null) {
@@ -1342,7 +1351,7 @@ public abstract class AlgoElement extends ConstructionElement
 	 * @param sb string builder
 	 * @param includeOutputGeos true to include output geos
 	 */
-	public final void getXML_OGP(StringBuilder sb, boolean includeOutputGeos) {
+	public final void getXML_OGP(XMLStringBuilder sb, boolean includeOutputGeos) {
 		// this is needed for helper commands like
 		// intersect for single intersection points
 		if (!isPrintedInXML) {
@@ -1359,7 +1368,7 @@ public abstract class AlgoElement extends ConstructionElement
 			if ("Expression".equals(cmdname)) {
 				getExpXML(tpl, sb);
 			} else {
-				sb.append(getCmdXML(cmdname, tpl));
+				getCmdXML(cmdname, tpl, sb);
 			}
 
 			if (includeOutputGeos) { // && output != null) {
@@ -1375,7 +1384,7 @@ public abstract class AlgoElement extends ConstructionElement
 	 * concatenate output XML to sb
 	 * @param sb string builder
 	 */
-	protected void getOutputXML(StringBuilder sb) {
+	protected void getOutputXML(XMLStringBuilder sb) {
 		// output
 		GeoElement geo;
 		for (int i = 0; i < getOutputLength(); i++) {
@@ -1393,72 +1402,64 @@ public abstract class AlgoElement extends ConstructionElement
 	 * @param tpl string template
 	 * @param sb builder for the expression XML tag
 	 */
-	protected void getExpXML(StringTemplate tpl, StringBuilder sb) {
+	protected void getExpXML(StringTemplate tpl, XMLStringBuilder sb) {
 		String expString = toExpString(tpl);
-		sb.append("<expression");
+		sb.startTag("expression", 0);
 		// add label
 		if (/* output != null && */getOutputLength() == 1) {
 			if (getOutput(0).isLabelSet()) {
-				sb.append(" label=\"");
-				StringUtil.encodeXML(sb, getOutput(0).getLabel(tpl));
-				sb.append("\"");
+				sb.attr("label", getOutput(0).getLabel(tpl));
 			}
 		}
 		// add expression
-		sb.append(" exp=\"");
-		StringUtil.encodeXML(sb, expString);
-		sb.append("\"");
+		sb.attr("exp", expString);
 
 		// make sure that a vector remains a vector and a point remains a point
 		if (getOutputLength() > 0) {
 			GeoElement output1 = getOutput(0);
 			if (output1.isGeoPoint()) {
-				sb.append(" type=\"point\"");
+				sb.attrRaw("type", "point");
 			} else if (output1.isGeoVector()) {
-				sb.append(" type=\"vector\"");
+				sb.attrRaw("type", "vector");
 			} else if (output1.isGeoLine()) {
-				sb.append(" type=\"line\"");
+				sb.attrRaw("type", "line");
 			} else if (output1.isGeoPlane()) {
-				sb.append(" type=\"plane\"");
+				sb.attrRaw("type", "plane");
 			} else if (output1.isGeoConic()) {
-				sb.append(" type=\"conic\"");
+				sb.attrRaw("type", "conic");
 			} else if (output1.isGeoQuadric()) {
-				sb.append(" type=\"quadric\"");
+				sb.attrRaw("type", "quadric");
 			} else if (output1.isGeoImplicitCurve()) {
-				sb.append(" type=\"implicitpoly\"");
+				sb.attrRaw("type", "implicitpoly");
 			} else if (output1.isGeoSurfaceCartesian()) {
-				sb.append(" type=\"surfacecartesian\"");
+				sb.attrRaw("type", "surfacecartesian");
 			} else if (output1.isGeoList()) {
-				sb.append(" type=\"list\"");
+				sb.attrRaw("type", "list");
 			}
 		}
 
 		// expression
-		sb.append(" />\n");
+		sb.endTag();
 	}
 
 	// standard command has cmdname, output, input
-	private String getCmdXML(String cmdname, StringTemplate tpl) {
-		StringBuilder sb = new StringBuilder();
+	private void getCmdXML(String cmdname, StringTemplate tpl, XMLStringBuilder sb) {
 		if (getOutputLength() > 0 && getOutput(0) instanceof GeoScriptAction) {
-			return "";
+			return;
 		}
-		sb.append("<command name=\"");
+		sb.startOpeningTag("command", 0);
 		if ("".equals(cmdname)) {
-			sb.append("AlgoNonCommand"); // In such cases we may want to add a
+			sb.attrRaw("name", "AlgoNonCommand"); // In such cases we may want to add a
 			// Command for the Algo
 		} else {
-			sb.append(cmdname);
+			sb.attrRaw("name", cmdname);
 		}
-		sb.append("\"");
 		if (!"".equals(cmdname) && (this instanceof AlgoListElement
 				|| this.getClassName().equals(Commands.Cell)
 				|| this.getClassName().equals(Commands.Object))) {
 			// need to write the geo type in the XML if it's undefined
 			// so that it's the same type when the file is loaded again
-			sb.append(" type=\"");
-			sb.append(getOutput()[0].getXMLtypeString());
-			sb.append("\"");
+			sb.attrRaw("type", getOutput()[0].getXMLtypeString());
 		}
 		if (getOutputLength() > 0 && getOutput(0) instanceof FunctionalNVar) {
 			// need to write the geo type in the XML if it's undefined
@@ -1466,12 +1467,10 @@ public abstract class AlgoElement extends ConstructionElement
 			String varStr = ((FunctionalNVar) getOutput(0))
 					.getVarString(StringTemplate.defaultTemplate);
 			if (!"x".equals(varStr) && !"x, y".equals(varStr)) {
-				sb.append(" var=\"");
-				sb.append(varStr);
-				sb.append("\"");
+				sb.attr("var", varStr);
 			}
 		}
-		sb.append(">\n");
+		sb.endTag();
 		if (getInputLength() > 0 && getInput(0) instanceof CasEvaluableFunction
 				&& !getInput(0).isLabelSet()) {
 
@@ -1479,12 +1478,9 @@ public abstract class AlgoElement extends ConstructionElement
 		}
 		// add input information
 		if (input != null) {
-			sb.append("\t<input");
+			sb.startTag("input");
 			for (int i = 0; i < getInputLengthForXML(); i++) {
-				sb.append(" a");
-				sb.append(i);
 				// attribute name is input No.
-				sb.append("=\"");
 
 				GeoElementND inputGeo = getInput(i);
 				String cmd = inputGeo.getLabel(tpl);
@@ -1492,22 +1488,16 @@ public abstract class AlgoElement extends ConstructionElement
 				// ensure a vector stays a vector!
 				// eg g:X = (-5, 5) + t (4, -3)
 				if (inputGeo.isGeoVector() && !inputGeo.isLabelSet()
+						&& !inputGeo.toGeoElement().isLocalVariable()
 						&& !cmd.startsWith("Vector[")) {
 					// add Vector[ ] command around argument
 					// to make sure that this really becomes a vector again
 					// eg g:X = (-5, 5) + t (4, -3)
-					sb.append("Vector["); // in XML, so don't want this
-					// translated
-					StringUtil.encodeXML(sb, cmd);
-					sb.append("]");
-				} else {
-					// standard case
-					StringUtil.encodeXML(sb, cmd);
+					cmd = "Vector[" + cmd + "]";
 				}
-
-				sb.append("\"");
+				sb.attr("a" + i, cmd);
 			}
-			sb.append("/>\n");
+			sb.endTag();
 		}
 
 		// add output information
@@ -1515,8 +1505,7 @@ public abstract class AlgoElement extends ConstructionElement
 			getCmdOutputXML(sb, tpl);
 		}
 
-		sb.append("</command>\n");
-		return sb.toString();
+		sb.closeTag("command");
 	}
 
 	/**
@@ -1587,30 +1576,22 @@ public abstract class AlgoElement extends ConstructionElement
 	 * @param sb current string builder
 	 * @param tpl template for string
 	 */
-	protected void getCmdOutputXML(StringBuilder sb, StringTemplate tpl) {
-		sb.append("\t<output");
+	protected void getCmdOutputXML(XMLStringBuilder sb, StringTemplate tpl) {
+		sb.startTag("output");
 		for (int i = 0; i < getOutputLength(); i++) {
-			sb.append(" a");
-			sb.append(i);
 			// attribute name is output No.
-			sb.append("=\"");
 			GeoElement geo = getOutputForCmdXML(i);
-			if (geo.isLabelSet()) {
-				StringUtil.encodeXML(sb, geo.getLabel(tpl));
-			}
-			sb.append("\"");
+			sb.attr("a" + i, geo.isLabelSet() ? geo.getLabel(tpl) : "");
 		}
 
 		if (this instanceof SetRandomValue && (isListWithoutImages(getOutput(0))
 				|| getOutput(0) instanceof VarString
 				|| getOutput(0) instanceof GeoText)
 				&& ((SetRandomValue) this).canSetRandomValue()) {
-			sb.append(" randomResult=\"");
-			StringUtil.encodeXML(sb, getOutput(0).toOutputValueString(tpl));
-			sb.append("\"");
+			sb.attr("randomResult", getOutput(0).toOutputValueString(tpl));
 		}
 
-		sb.append("/>\n");
+		sb.endTag();
 	}
 
 	private boolean isListWithoutImages(GeoElement geo) {
@@ -1858,15 +1839,5 @@ public abstract class AlgoElement extends ConstructionElement
 				&& this.getClassName() instanceof Commands
 				&& this.getInputLength() == newParent.getInputLength();
 
-	}
-
-	@Override
-	public ExpressionValue getArgument(int i) {
-		return getInput(i);
-	}
-
-	@Override
-	public int getArgumentNumber() {
-		return getInputLength();
 	}
 }

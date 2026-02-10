@@ -1,13 +1,17 @@
-/* 
-GeoGebra - Dynamic Mathematics for Everyone
-http://www.geogebra.org
-
-This file is part of GeoGebra.
-
-This program is free software; you can redistribute it and/or modify it 
-under the terms of the GNU General Public License as published by 
-the Free Software Foundation.
-
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ * 
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ * 
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
  */
 
 package org.geogebra.desktop.util;
@@ -31,10 +35,12 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Hashtable;
 
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
 
-import org.geogebra.common.jre.gui.MyImageJre;
+import org.geogebra.common.awt.MyImage;
 import org.geogebra.common.kernel.Kernel;
 import org.geogebra.common.kernel.geos.GProperty;
 import org.geogebra.common.kernel.geos.GeoElement;
@@ -174,7 +180,7 @@ public class ImageManagerD extends ImageManager {
 	 * @param fileName0 filename
 	 * @param img image
 	 */
-	public void addExternalImage(String fileName0, MyImageJre img) {
+	public void addExternalImage(String fileName0, MyImage img) {
 		Log.error("adding " + fileName0);
 		if (fileName0 != null && img != null) {
 			String fileName = fileName0;
@@ -196,7 +202,7 @@ public class ImageManagerD extends ImageManager {
 	 * @param fileName0 file path or URL
 	 * @return image
 	 */
-	public static MyImageD getExternalImage(String fileName0) {
+	public static MyImageD getStaticExternalImage(String fileName0) {
 		String fileName = fileName0;
 		// Check if it's a URL
 		if (isURL(fileName)) {
@@ -214,6 +220,11 @@ public class ImageManagerD extends ImageManager {
 					FileExtensions.PNG);
 		}
 		return externalImageTable.get(fileName);
+	}
+
+	@Override
+	public @CheckForNull MyImage getExternalImage(@Nonnull String path) {
+		return getStaticExternalImage(path);
 	}
 
 	/**
@@ -518,7 +529,7 @@ public class ImageManagerD extends ImageManager {
 			// "a04c62e6a065b47476607ac815d022cc/filename.ext"
 			fileName = zip_directory + "/" + fn;
 			// make sure this filename is not taken yet
-			MyImageD oldImg = ImageManagerD.getExternalImage(fileName);
+			MyImageD oldImg = ImageManagerD.getStaticExternalImage(fileName);
 			if (oldImg != null) {
 				// image with this name exists already
 				if ((oldImg.getWidth() == image.getWidth())
@@ -539,7 +550,7 @@ public class ImageManagerD extends ImageManager {
 							: "";
 					String extension = fileName.substring(pos);
 					fileName = firstPart + n + extension;
-				} while (ImageManagerD.getExternalImage(fileName) != null);
+				} while (ImageManagerD.getStaticExternalImage(fileName) != null);
 			}
 
 			addExternalImage(fileName, image);

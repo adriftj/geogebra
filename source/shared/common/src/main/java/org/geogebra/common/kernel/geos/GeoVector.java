@@ -1,24 +1,22 @@
-/* 
-GeoGebra - Dynamic Mathematics for Everyone
-http://www.geogebra.org
-
-This file is part of GeoGebra.
-
-This program is free software; you can redistribute it and/or modify it 
-under the terms of the GNU General Public License as published by 
-the Free Software Foundation.
-
- */
-
 /*
- * GeoVector.java
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
  *
- * The vector (x,y) has homogeneous coordinates (x,y,0)
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
  *
- * Created on 30. August 2001, 17:39
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
  */
 
 package org.geogebra.common.kernel.geos;
+
+import static org.geogebra.common.kernel.geos.XMLBuilder.coordStyle;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -27,6 +25,7 @@ import java.util.HashSet;
 
 import javax.annotation.CheckForNull;
 
+import org.geogebra.common.io.XMLStringBuilder;
 import org.geogebra.common.kernel.CircularDefinitionException;
 import org.geogebra.common.kernel.Construction;
 import org.geogebra.common.kernel.Kernel;
@@ -62,11 +61,10 @@ import org.geogebra.common.util.DoubleUtil;
 import org.geogebra.common.util.ExtendedBoolean;
 import org.geogebra.common.util.MyMath;
 import org.geogebra.common.util.debug.Log;
-
-import com.himamis.retex.editor.share.util.Unicode;
+import org.geogebra.editor.share.util.Unicode;
 
 /**
- *
+ * Vector (x, y) is represented by homogeneous coordinates (x, y, 0).
  * @author Markus
  */
 final public class GeoVector extends GeoPointVector implements Path, VectorValue,
@@ -538,7 +536,7 @@ final public class GeoVector extends GeoPointVector implements Path, VectorValue
 			return buildValueString(tpl).toString();
 		}
 
-		return getConverter().build(tpl, getDefinition(), getX(), getY());
+		return getConverter().build(tpl, definition, getX(), getY());
 	}
 
 	private VectorToMatrix getConverter() {
@@ -567,7 +565,7 @@ final public class GeoVector extends GeoPointVector implements Path, VectorValue
 	 * returns class-specific style xml tags for saveXML
 	 */
 	@Override
-	protected void getStyleXML(StringBuilder xmlsb) {
+	protected void getStyleXML(XMLStringBuilder xmlsb) {
 		super.getStyleXML(xmlsb);
 		// line thickness and type
 		getLineStyleXML(xmlsb);
@@ -575,25 +573,24 @@ final public class GeoVector extends GeoPointVector implements Path, VectorValue
 		// polar or cartesian coords
 		switch (getToStringMode()) {
 		case Kernel.COORD_POLAR:
-			xmlsb.append("\t<coordStyle style=\"polar\"/>\n");
+			coordStyle(xmlsb, "polar");
 			break;
 
 		case Kernel.COORD_COMPLEX:
-			xmlsb.append("\t<coordStyle style=\"complex\"/>\n");
+			coordStyle(xmlsb, "complex");
 			break;
 
 		case Kernel.COORD_CARTESIAN_3D:
-			xmlsb.append("\t<coordStyle style=\"cartesian3d\"/>\n");
+			coordStyle(xmlsb, "cartesian3d");
 			break;
 
 		case Kernel.COORD_SPHERICAL:
-			xmlsb.append("\t<coordStyle style=\"spherical\"/>\n");
+			coordStyle(xmlsb, "spherical");
 			break;
 
 		default:
-			xmlsb.append("\t<coordStyle style=\"cartesian\"/>\n");
+			coordStyle(xmlsb, "cartesian");
 		}
-
 		if (getHeadStyle() != VectorHeadStyle.DEFAULT) {
 			getHeadStyleXML(xmlsb);
 		}
@@ -604,10 +601,8 @@ final public class GeoVector extends GeoPointVector implements Path, VectorValue
 		}
 	}
 
-	private void getHeadStyleXML(StringBuilder xmlsb) {
-		xmlsb.append("\t<headStyle val=\"");
-		xmlsb.append(getHeadStyle().ordinal());
-		xmlsb.append("\"/>");
+	private void getHeadStyleXML(XMLStringBuilder xmlsb) {
+		xmlsb.startTag("headStyle").attr("val", getHeadStyle().ordinal()).endTag();
 	}
 
 	@Override

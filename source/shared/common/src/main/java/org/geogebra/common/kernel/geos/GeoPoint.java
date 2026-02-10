@@ -1,24 +1,22 @@
-/* 
-GeoGebra - Dynamic Mathematics for Everyone
-http://www.geogebra.org
-
-This file is part of GeoGebra.
-
-This program is free software; you can redistribute it and/or modify it 
-under the terms of the GNU General Public License as published by 
-the Free Software Foundation.
-
- */
-
 /*
- * GeoPoint.java
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
  *
- * The point (x,y) has homogeneous coordinates (x,y,1)
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
  *
- * Created on 30. August 2001, 17:39
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
  */
 
 package org.geogebra.common.kernel.geos;
+
+import static org.geogebra.common.kernel.geos.XMLBuilder.coordStyle;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -27,9 +25,9 @@ import java.util.HashMap;
 import java.util.HashSet;
 
 import org.geogebra.common.euclidian.EuclidianConstants;
+import org.geogebra.common.io.XMLStringBuilder;
 import org.geogebra.common.kernel.AnimationManager;
 import org.geogebra.common.kernel.Construction;
-import org.geogebra.common.kernel.FixedPathRegionAlgo;
 import org.geogebra.common.kernel.Kernel;
 import org.geogebra.common.kernel.Locateable;
 import org.geogebra.common.kernel.LocateableList;
@@ -79,13 +77,11 @@ import org.geogebra.common.plugin.Operation;
 import org.geogebra.common.util.DoubleUtil;
 import org.geogebra.common.util.ExtendedBoolean;
 import org.geogebra.common.util.MyMath;
-import org.geogebra.common.util.StringUtil;
 import org.geogebra.common.util.debug.Log;
-
-import com.himamis.retex.editor.share.util.Unicode;
+import org.geogebra.editor.share.util.Unicode;
 
 /**
- * 2D Point
+ * 2D Point. Point (x,y) is represented by homogeneous coordinates (x,y,1).
  *
  * @author Markus
  */
@@ -425,8 +421,12 @@ public class GeoPoint extends GeoPointVector implements VectorValue, PathOrPoint
 
 	@Override
 	public boolean isPointerChangeable() {
-
 		return isPointChangeable(this);
+	}
+
+	@Override
+	public boolean showFixUnfix() {
+		return isInherentlyMoveable();
 	}
 
 	/**
@@ -436,19 +436,8 @@ public class GeoPoint extends GeoPointVector implements VectorValue, PathOrPoint
 	 *            point
 	 * @return true if point is Changeable
 	 */
-	public static final boolean isPointChangeable(GeoElement point) {
-
-		// if we drag a AlgoDynamicCoordinates, we want its point to be dragged
-		AlgoElement algo = point.getParentAlgorithm();
-
-		// make sure Point[circle, param] is not draggable
-		if (algo instanceof FixedPathRegionAlgo) {
-			return ((FixedPathRegionAlgo) algo).isChangeable(point)
-					&& !point.isLocked();
-		}
-
-		return !point.isLocked() && (point.isIndependent()
-				|| point.isPointOnPath() || point.isPointInRegion());
+	public static boolean isPointChangeable(GeoElement point) {
+		return point.isInherentlyMoveable() && !point.isLocked();
 	}
 
 	@Override
@@ -466,21 +455,19 @@ public class GeoPoint extends GeoPointVector implements VectorValue, PathOrPoint
 
 		// move Point like curve(slider)
 		if (isPointOnCurveWithSlider()) {
-
 			GeoPoint p = new GeoPoint(cons, endPosition.getX(),
 					endPosition.getY(), 1);
+			if (definition != null) {
+				GeoCurveCartesian curve = (GeoCurveCartesian) definition.getLeft();
+				GeoNumeric param = (GeoNumeric) definition.getRight();
 
-			ExpressionNode exp = getDefinition();
+				double t = curve.getClosestParameter(p, param.getValue());
 
-			GeoCurveCartesian curve = (GeoCurveCartesian) exp.getLeft();
-			GeoNumeric param = (GeoNumeric) exp.getRight();
+				param.setValue(t);
+				param.updateRepaint();
 
-			double t = curve.getClosestParameter(p, param.getValue());
-
-			param.setValue(t);
-			param.updateRepaint();
-
-			return true;
+				return true;
+			}
 
 		}
 
@@ -644,15 +631,13 @@ public class GeoPoint extends GeoPointVector implements VectorValue, PathOrPoint
 	 *         Slider a
 	 */
 	private boolean isPointOnCurveWithSlider() {
-		ExpressionNode exp = getDefinition();
-
-		if (exp == null) {
+		if (definition == null) {
 			return false;
 		}
 
-		ExpressionValue left = exp.getLeft();
-		ExpressionValue right = exp.getRight();
-		Operation op = exp.getOperation();
+		ExpressionValue left = definition.getLeft();
+		ExpressionValue right = definition.getRight();
+		Operation op = definition.getOperation();
 
 		return op == Operation.VEC_FUNCTION && left instanceof GeoCurveCartesian
 				&& right instanceof GeoNumeric
@@ -1714,13 +1699,11 @@ public class GeoPoint extends GeoPointVector implements VectorValue, PathOrPoint
 				sbBuildValueString.append(tpl.leftBracket());
 			}
 			sbBuildValueString.append(kernel.format(x, tpl));
-			switch (tpl.getCoordStyle(kernel.getCoordStyle())) {
-			case Kernel.COORD_STYLE_AUSTRIAN:
+			if (tpl.getCoordStyle(kernel.getCoordStyle()) == Kernel.COORD_STYLE_AUSTRIAN) {
 				tpl.appendOptionalSpace(sbBuildValueString);
 				sbBuildValueString.append(tpl.getPointCoordBar());
 				tpl.appendOptionalSpace(sbBuildValueString);
-				break;
-			default:
+			} else {
 				tpl.getCommaOptionalSpace(sbBuildValueString, kernel.getLocalization());
 			}
 			sbBuildValueString.append(kernel.format(y, tpl));
@@ -1743,7 +1726,7 @@ public class GeoPoint extends GeoPointVector implements VectorValue, PathOrPoint
 	 * returns all class-specific xml tags for saveXML GeoGebra File Format
 	 */
 	@Override
-	protected void getXMLtags(StringBuilder sb) {
+	protected void getXMLTags(XMLStringBuilder sb) {
 		AlgoElement algo = getParentAlgorithm();
 		if (algo instanceof AlgoPointOnPath) {
 			// write parameter just for GeoCurveCartesian/GeoCurveCartesian3D
@@ -1751,35 +1734,33 @@ public class GeoPoint extends GeoPointVector implements VectorValue, PathOrPoint
 			// pos
 			if (((AlgoPointOnPath) algo)
 					.getPath() instanceof GeoCurveCartesianND) {
-				sb.append("\t<curveParam t=\"");
-				sb.append(getPathParameter().t);
-				sb.append("\"/>\n");
+				sb.startTag("curveParam").attr("t", getPathParameter().t).endTag();
 			}
 		}
 
 		// write x,y,z after <curveParam>
-		super.getXMLtags(sb);
+		super.getXMLTags(sb);
 	}
 
 	@Override
-	protected void getStyleXML(StringBuilder sb) {
+	protected void getStyleXML(XMLStringBuilder sb) {
 		super.getStyleXML(sb);
 		// polar or cartesian coords
 		switch (getToStringMode()) {
 		case Kernel.COORD_POLAR:
-			sb.append("\t<coordStyle style=\"polar\"/>\n");
+			coordStyle(sb, "polar");
 			break;
 
 		case Kernel.COORD_COMPLEX:
-			sb.append("\t<coordStyle style=\"complex\"/>\n");
+			coordStyle(sb, "complex");
 			break;
 
 		case Kernel.COORD_CARTESIAN_3D:
-			sb.append("\t<coordStyle style=\"cartesian3d\"/>\n");
+			coordStyle(sb, "cartesian3d");
 			break;
 
 		case Kernel.COORD_SPHERICAL:
-			sb.append("\t<coordStyle style=\"spherical\"/>\n");
+			coordStyle(sb, "spherical");
 			break;
 
 		default:
@@ -1793,26 +1774,20 @@ public class GeoPoint extends GeoPointVector implements VectorValue, PathOrPoint
 	}
 
 	@Override
-	public void appendStartPointXML(StringBuilder sb, boolean absPosition) {
-		sb.append("\t<startPoint ");
+	public void appendStartPointXML(XMLStringBuilder sb, boolean absPosition) {
+		sb.startTag("startPoint");
 
 		if (isAbsoluteStartPoint()) {
-			sb.append("x=\"");
-			sb.append(x);
-			sb.append("\" y=\"");
-			sb.append(y);
-			sb.append("\" z=\"");
-			sb.append(z);
-			sb.append("\"");
+			sb.attr("x", x);
+			sb.attr("y", y);
+			sb.attr("z", z);
 		} else {
-			sb.append("exp=\"");
-			StringUtil.encodeXML(sb, getLabel(StringTemplate.xmlTemplate));
-			sb.append("\"");
+			sb.attr("exp", getLabel(StringTemplate.xmlTemplate));
 		}
 		if (absPosition) {
-			sb.append(" absolute=\"true\"");
+			sb.attr("absolute", true);
 		}
-		sb.append("/>\n");
+		sb.endTag();
 	}
 
 	@Override
@@ -2462,16 +2437,7 @@ public class GeoPoint extends GeoPointVector implements VectorValue, PathOrPoint
 
 	@Override
 	public boolean isRandomizable() {
-		// if we drag a AlgoDynamicCoordinates, we want its point to be dragged
-		AlgoElement algo = getParentAlgorithm();
-
-		// make sure Point[circle, param] is not draggable
-		// TODO Check if we really want this
-		if (algo instanceof FixedPathRegionAlgo) {
-			return ((FixedPathRegionAlgo) algo).isChangeable(this);
-		}
-
-		return isIndependent() || isPointOnPath() || isPointInRegion();
+		return isInherentlyMoveable();
 	}
 
 	@Override

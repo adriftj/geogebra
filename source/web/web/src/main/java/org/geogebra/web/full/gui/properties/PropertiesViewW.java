@@ -1,9 +1,26 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.web.full.gui.properties;
 
 import static org.geogebra.common.GeoGebraConstants.SCIENTIFIC_APPCODE;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import javax.annotation.CheckForNull;
 
@@ -301,21 +318,17 @@ public class PropertiesViewW extends PropertiesView
 
 	@Override
 	public void updateSelection() {
-		if (app.getSelectionManager().selectedGeosSize() != 0 && optionType != OptionType.OBJECTS) {
+		List<GeoElement> showableElements = getShowableElements();
+		if (!showableElements.isEmpty() && optionType != OptionType.OBJECTS) {
 			setOptionPanel(OptionType.OBJECTS);
-		} else if (app.getSelectionManager().selectedGeosSize() == 0) {
-			if (optionType != OptionType.EUCLIDIAN
-					|| optionType != OptionType.EUCLIDIAN2
-					|| optionType != OptionType.EUCLIDIAN3D
-					|| optionType != OptionType.EUCLIDIAN_FOR_PLANE) {
-				if (app.getActiveEuclidianView().isEuclidianView3D()) {
-					setOptionPanel(OptionType.EUCLIDIAN3D);
-				} else if (app.getActiveEuclidianView().isDefault2D()) {
-					setOptionPanel(app.getActiveEuclidianView().getEuclidianViewNo() == 1
-						? OptionType.EUCLIDIAN : OptionType.EUCLIDIAN2);
-				} else {
-					setOptionPanel(OptionType.EUCLIDIAN_FOR_PLANE);
-				}
+		} else if (showableElements.isEmpty()) {
+			if (app.getActiveEuclidianView().isEuclidianView3D()) {
+				setOptionPanel(OptionType.EUCLIDIAN3D);
+			} else if (app.getActiveEuclidianView().isDefault2D()) {
+				setOptionPanel(app.getActiveEuclidianView().getEuclidianViewNo() == 1
+					? OptionType.EUCLIDIAN : OptionType.EUCLIDIAN2);
+			} else {
+				setOptionPanel(OptionType.EUCLIDIAN_FOR_PLANE);
 			}
 		}
 		updatePropertiesGUI();
@@ -526,8 +539,8 @@ public class PropertiesViewW extends PropertiesView
 		if (settingsTab != null) {
 			settingsTab.setLabels();
 		}
-		if (adapter != null) {
-			adapter.setLabels();
+		if (needsSideSheet()) {
+			rebuildSettingsSideSheet();
 		}
     }
 
@@ -627,24 +640,25 @@ public class PropertiesViewW extends PropertiesView
 	}
 
 	private void rebuildSettingsSideSheet() {
+		List<GeoElement> showableGeos = optionType == OptionType.OBJECTS
+				? getShowableElements() : List.of();
 		if (sideSheet == null) {
 			return;
 		}
 		wrappedPanel.clear();
 		sideSheet.clearContent();
 		List<PropertiesArray> propLists;
-		boolean showObjectProperties = optionType == OptionType.OBJECTS;
+		boolean showObjectProperties = !showableGeos.isEmpty();
 		if (showObjectProperties) {
 			GeoElementPropertiesFactory propertiesFactory =
 					((AppWFull) app).getGeoElementPropertiesFactory();
-			ArrayList<GeoElement> selectedGeos = app.getSelectionManager().getSelectedGeos();
 			propLists = propertiesFactory.createStructuredProperties(
 					app.getKernel().getAlgebraProcessor(),
 					app.getLocalization(),
-					selectedGeos
-			);
+					app.getImageManager(),
+					showableGeos);
 			sideSheet.setTitleTransKey(
-					selectedGeos.size() == 1 ? selectedGeos.get(0).getTypeString() : "Selection");
+					showableGeos.size() == 1 ? showableGeos.get(0).getTypeString() : "Selection");
 		} else {
 			sideSheet.setTitleTransKey("Settings");
 			propLists = app.getConfig().createPropertiesFactory().createProperties(
@@ -654,7 +668,7 @@ public class PropertiesViewW extends PropertiesView
 				(AppW) app);
 		ArrayList<TabData> tabs = new ArrayList<>();
 		for (PropertiesArray props : propLists) {
-			FlowPanel propertiesPanel = adapter.buildPanel(props, showObjectProperties);
+			FlowPanel propertiesPanel = adapter.buildPanel(props);
 			tabs.add(new TabData(props.getRawName(), propertiesPanel));
 		}
 		int oldTab = -1;
@@ -662,10 +676,8 @@ public class PropertiesViewW extends PropertiesView
 			oldTab = settingsTab.getSelectedTabIdx();
 		}
 		settingsTab = new ComponentTab((AppW) app, "Settings",
-				tabs.toArray(new TabData[0]));
-		if (oldTab != -1 && oldTab < tabs.size()) {
-			settingsTab.switchToTab(oldTab);
-		}
+				oldTab != -1 && oldTab < tabs.size() ? oldTab : 0,
+				selectedOptionType.getName(), tabs.toArray(new TabData[0]));
 		sideSheet.addToContent(settingsTab);
 		this.objectPropertiesVisible = showObjectProperties;
 		wrappedPanel.add(sideSheet);
@@ -676,5 +688,11 @@ public class PropertiesViewW extends PropertiesView
 				sideSheet.onClose();
 			}
 		});
+	}
+
+	private List<GeoElement> getShowableElements() {
+		return app.getSelectionManager().getSelectedGeos().stream()
+				.filter(geo -> !geo.isMeasurementTool() && !geo.isSpotlight())
+				.collect(Collectors.toList());
 	}
 }

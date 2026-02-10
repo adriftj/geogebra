@@ -1,19 +1,24 @@
-/* 
-GeoGebra - Dynamic Mathematics for Everyone
-http://www.geogebra.org
-
-This file is part of GeoGebra.
-
-This program is free software; you can redistribute it and/or modify it 
-under the terms of the GNU General Public License as published by 
-the Free Software Foundation.
-
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
  */
 
 package org.geogebra.common.euclidian.draw;
 
 import java.util.ArrayList;
 
+import org.geogebra.common.awt.AwtFactory;
 import org.geogebra.common.awt.GColor;
 import org.geogebra.common.awt.GEllipse2DDouble;
 import org.geogebra.common.awt.GGraphics2D;
@@ -30,7 +35,6 @@ import org.geogebra.common.euclidian.GeneralPathClipped;
 import org.geogebra.common.euclidian.PolyLineBoundingBox;
 import org.geogebra.common.euclidian.Previewable;
 import org.geogebra.common.euclidian.modes.ModeShape;
-import org.geogebra.common.factories.AwtFactory;
 import org.geogebra.common.kernel.ConstructionDefaults;
 import org.geogebra.common.kernel.MyPoint;
 import org.geogebra.common.kernel.algos.AlgoElement;
@@ -108,7 +112,7 @@ public class DrawPolyLine extends Drawable implements Previewable, EndDecoratedD
 			addPointsToPath(poly.getPointsND());
 
 			// polygon on screen?
-			if (!view.intersects(gp)) {
+			if (!view.intersects(gp.getGeneralPath())) {
 				isVisible = false;
 				// don't return here to make sure that getBounds() works for
 				// offscreen points too
@@ -177,7 +181,7 @@ public class DrawPolyLine extends Drawable implements Previewable, EndDecoratedD
 		if (isVisible) {
 			g2.setPaint(getObjectColor());
 			g2.setStroke(objStroke);
-			g2.draw(gp);
+			gp.draw(g2);
 		}
 	}
 
@@ -277,12 +281,12 @@ public class DrawPolyLine extends Drawable implements Previewable, EndDecoratedD
 			}
 			g2.setPaint(getObjectColor());
 			g2.setStroke(objStroke);
-			g2.draw(gp);
+			gp.draw(g2);
 
 			if (isHighlighted()) {
 				g2.setPaint(poly.getSelColor());
 				g2.setStroke(selStroke);
-				g2.draw(gp);
+				gp.draw(g2);
 			}
 
 			drawLabelIfVisible(g2);
@@ -385,7 +389,7 @@ public class DrawPolyLine extends Drawable implements Previewable, EndDecoratedD
 			g2.setPaint(getObjectColor());
 			updateStrokes(geo);
 			g2.setStroke(objStroke);
-			g2.draw(gp);
+			gp.draw(g2);
 		}
 	}
 
@@ -423,7 +427,7 @@ public class DrawPolyLine extends Drawable implements Previewable, EndDecoratedD
 			if (strokedShape == null) {
 				// AND-547, initial buffer size
 				try {
-					strokedShape = objStroke.createStrokedShape(gp, 100);
+					strokedShape = objStroke.createStrokedShape(gp.getGeneralPath(), 100);
 				} catch (Exception e) {
 					Log.error("problem creating Polyline shape: "
 							+ e.getMessage());
@@ -483,7 +487,7 @@ public class DrawPolyLine extends Drawable implements Previewable, EndDecoratedD
 			if (strokedShape == null) {
 				// AND-547, initial buffer size
 				try {
-					strokedShape = objStroke.createStrokedShape(gp, 100);
+					strokedShape = objStroke.createStrokedShape(gp.getGeneralPath(), 100);
 				} catch (Exception e) {
 					Log.error("problem creating Polyline shape: "
 							+ e.getMessage());
@@ -624,6 +628,6 @@ public class DrawPolyLine extends Drawable implements Previewable, EndDecoratedD
 
 	@Override
 	public GShape getLine() {
-		return gp;
+		return gp.getGeneralPath();
 	}
 }

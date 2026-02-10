@@ -1,7 +1,24 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.web.html5.euclidian;
 
 import java.util.function.Consumer;
 
+import org.geogebra.common.awt.AwtFactory;
 import org.geogebra.common.awt.GBasicStroke;
 import org.geogebra.common.awt.GBufferedImage;
 import org.geogebra.common.awt.GColor;
@@ -25,7 +42,6 @@ import org.geogebra.common.euclidian.TextRendererSettings;
 import org.geogebra.common.euclidian.background.BackgroundType;
 import org.geogebra.common.euclidian.draw.DrawWidget;
 import org.geogebra.common.euclidian.event.PointerEventType;
-import org.geogebra.common.factories.AwtFactory;
 import org.geogebra.common.gui.EdgeInsets;
 import org.geogebra.common.io.MyXMLio;
 import org.geogebra.common.kernel.geos.GeoAxis;
@@ -39,16 +55,18 @@ import org.geogebra.common.util.debug.GeoGebraProfiler;
 import org.geogebra.common.util.debug.Log;
 import org.geogebra.ggbjdk.java.awt.DefaultBasicStroke;
 import org.geogebra.ggbjdk.java.awt.geom.Dimension;
+import org.geogebra.web.awt.GBufferedImageW;
+import org.geogebra.web.awt.GFontW;
+import org.geogebra.web.awt.GGraphics2DW;
+import org.geogebra.web.awt.GGraphics2DWI;
+import org.geogebra.web.awt.MyImageW;
 import org.geogebra.web.html5.Browser;
-import org.geogebra.web.html5.awt.GFontW;
-import org.geogebra.web.html5.awt.GGraphics2DW;
 import org.geogebra.web.html5.awt.LayeredGGraphicsW;
 import org.geogebra.web.html5.awt.PrintableW;
 import org.geogebra.web.html5.css.GuiResourcesSimple;
 import org.geogebra.web.html5.export.Canvas2Pdf;
 import org.geogebra.web.html5.export.Canvas2Svg;
 import org.geogebra.web.html5.export.ExportLoader;
-import org.geogebra.web.html5.gawt.GBufferedImageW;
 import org.geogebra.web.html5.gui.GuiManagerInterfaceW;
 import org.geogebra.web.html5.gui.util.CancelEventTimer;
 import org.geogebra.web.html5.gui.util.Dom;
@@ -56,7 +74,6 @@ import org.geogebra.web.html5.gui.util.FocusUtil;
 import org.geogebra.web.html5.gui.util.MathKeyboardListener;
 import org.geogebra.web.html5.gui.util.NoDragImage;
 import org.geogebra.web.html5.main.AppW;
-import org.geogebra.web.html5.main.MyImageW;
 import org.geogebra.web.html5.main.TimerSystemW;
 import org.geogebra.web.html5.multiuser.MultiuserManager;
 import org.geogebra.web.html5.util.PDFEncoderW;

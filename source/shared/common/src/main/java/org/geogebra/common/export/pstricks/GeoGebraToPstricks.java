@@ -1,9 +1,17 @@
 /*
-This file is part of GeoGebra.
-This program is free software; you can redistribute it and/or modify it 
-under the terms of the GNU General Public License as published by 
-the Free Software Foundation.
-
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
  */
 
 package org.geogebra.common.export.pstricks;
@@ -12,6 +20,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 
+import org.geogebra.common.awt.AwtFactory;
 import org.geogebra.common.awt.GAffineTransform;
 import org.geogebra.common.awt.GColor;
 import org.geogebra.common.awt.GFont;
@@ -20,7 +29,6 @@ import org.geogebra.common.awt.GShape;
 import org.geogebra.common.euclidian.DrawableND;
 import org.geogebra.common.euclidian.draw.DrawPoint;
 import org.geogebra.common.export.UnicodeTeX;
-import org.geogebra.common.factories.AwtFactory;
 import org.geogebra.common.factories.FormatFactory;
 import org.geogebra.common.kernel.Kernel;
 import org.geogebra.common.kernel.MyPoint;
@@ -68,8 +76,7 @@ import org.geogebra.common.main.App;
 import org.geogebra.common.plugin.EuclidianStyleConstants;
 import org.geogebra.common.util.NumberFormatAdapter;
 import org.geogebra.common.util.StringUtil;
-
-import com.himamis.retex.editor.share.util.Unicode;
+import org.geogebra.editor.share.util.Unicode;
 
 /**
  * @author Le Coq loic
@@ -165,10 +172,10 @@ public class GeoGebraToPstricks extends GeoGebraExport {
 		 * (null!=formatFont){ codeBeginPic.insert(0,formatFont+"\n");
 		 * code.append("}\n"); }
 		 */
-		code.insert(0, codeFilledObject + "");
-		code.insert(0, codeBeginPic + "");
-		code.insert(0, codeBeginDoc + "");
-		code.insert(0, codePreamble + "");
+		code.insert(0, codeFilledObject);
+		code.insert(0, codeBeginPic);
+		code.insert(0, codeBeginDoc);
+		code.insert(0, codePreamble);
 		if (format == GeoGebraToPstricks.FORMAT_BEAMER) {
 			code.append("\\end{frame}\n");
 		}
@@ -387,10 +394,10 @@ public class GeoGebraToPstricks extends GeoGebraExport {
 		String b = format(algo.getB().getDouble());
 		String value = f.toValueString(getStringTemplate());
 		value = killSpace(StringUtil.toLaTeXString(value, true));
-		if (a.substring(a.length() - 1).equals("" + Unicode.INFINITY)) {
+		if (a.endsWith(String.valueOf(Unicode.INFINITY))) {
 			a = format(xmin);
 		}
-		if (b.substring(b.length() - 1).equals("" + Unicode.INFINITY)) {
+		if (b.endsWith(String.valueOf(Unicode.INFINITY))) {
 			b = format(xmax);
 		}
 		startBeamer(codeFilledObject);

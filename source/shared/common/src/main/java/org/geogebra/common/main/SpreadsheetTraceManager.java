@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.main;
 
 import java.util.ArrayList;
@@ -8,6 +24,7 @@ import java.util.TreeSet;
 
 import org.geogebra.common.gui.view.spreadsheet.CopyPasteCut;
 import org.geogebra.common.gui.view.spreadsheet.RelativeCopy;
+import org.geogebra.common.io.XMLStringBuilder;
 import org.geogebra.common.kernel.Construction;
 import org.geogebra.common.kernel.Kernel;
 import org.geogebra.common.kernel.geos.GeoAngle;
@@ -536,77 +553,35 @@ public class SpreadsheetTraceManager {
 	/**
 	 * @param geo
 	 *            construction element
-	 * @return trace XML
+	 * @param sb builder to which trace-related XML elements are added
 	 */
-	public String getTraceXML(GeoElement geo) {
+	public void getTraceXML(GeoElement geo, XMLStringBuilder sb) {
 		SpreadsheetTraceSettings t = geo.getTraceSettings();
-		StringBuilder sb = new StringBuilder();
 
-		sb.append("\t<spreadsheetTrace val=\"true\"");
+		sb.startTag("spreadsheetTrace");
+		sb.attr("val", true);
 
-		sb.append(" traceColumn1=\"");
-		sb.append(t.traceColumn1);
-		sb.append("\"");
+		sb.attr("traceColumn1", t.traceColumn1);
+		sb.attr("traceColumn2", t.traceColumn2);
+		sb.attr("traceRow1", t.traceRow1);
+		sb.attr("traceRow2", t.traceRow2);
 
-		sb.append(" traceColumn2=\"");
-		sb.append(t.traceColumn2);
-		sb.append("\"");
+		sb.attr("tracingRow", t.tracingRow);
+		sb.attr("numRows", t.numRows);
+		sb.attr("headerOffset", t.headerOffset);
+		sb.attr("doColumnReset", t.doColumnReset);
 
-		sb.append(" traceRow1=\"");
-		sb.append(t.traceRow1);
-		sb.append("\"");
+		sb.attr("doRowLimit", t.doRowLimit);
 
-		sb.append(" traceRow2=\"");
-		sb.append(t.traceRow2);
-		sb.append("\"");
-
-		sb.append(" tracingRow=\"");
-		sb.append(t.tracingRow);
-		sb.append("\"");
-
-		sb.append(" numRows=\"");
-		sb.append(t.numRows);
-		sb.append("\"");
-
-		sb.append(" headerOffset=\"");
-		sb.append(t.headerOffset);
-		sb.append("\"");
-
-		sb.append(" doColumnReset=\"");
-		sb.append(t.doColumnReset ? "true" : "false");
-		sb.append("\"");
-
-		sb.append(" doRowLimit=\"");
-		sb.append(t.doRowLimit ? "true" : "false");
-		sb.append("\"");
-
-		sb.append(" showLabel=\"");
-		sb.append(t.showLabel ? "true" : "false");
-		sb.append("\"");
-
-		sb.append(" showTraceList=\"");
-		sb.append(t.showTraceList ? "true" : "false");
-		sb.append("\"");
-
-		sb.append(" doTraceGeoCopy=\"");
-		sb.append(t.doTraceGeoCopy ? "true" : "false");
-		sb.append("\"");
+		sb.attr("showLabel", t.showLabel);
+		sb.attr("showTraceList", t.showTraceList);
+		sb.attr("doTraceGeoCopy", t.doTraceGeoCopy);
 
 		if (t.pause) {
-			sb.append(" pause=\"true\"");
+			sb.attr("pause", true);
 		}
 
-		sb.append("/>\n");
-
-		/*
-		 * this param is not included:
-		 * 
-		 * public ArrayList<Double> lastTrace = new ArrayList<Double>();
-		 * 
-		 * do we need it?
-		 */
-
-		return sb.toString();
+		sb.endTag();
 	}
 
 	// =============================================

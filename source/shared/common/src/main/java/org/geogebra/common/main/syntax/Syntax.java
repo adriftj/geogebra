@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.main.syntax;
 
 import java.util.Collection;
@@ -30,7 +46,7 @@ public final class Syntax {
 		 * @param argument the command argument to check
 		 * @return {@code true} if the argument matches with the syntax, {@code false} otherwise
 		 */
-		boolean matches(GeoElement argument);
+		boolean matches(@Nonnull GeoElement argument);
 
 		/**
 		 * Constructs a syntax argument matcher for checking
@@ -132,7 +148,7 @@ public final class Syntax {
 		for (Syntax syntax : syntaxes) {
 			int numberOfMatchingArguments = 0;
 			for (int argIndex = 0; argIndex < syntax.argumentMatchers.size(); argIndex++) {
-				if (syntax.argumentMatcherAt(argIndex).matches(arguments[argIndex])) {
+				if (matches(syntax.argumentMatcherAt(argIndex), arguments[argIndex])) {
 					numberOfMatchingArguments++;
 				} else {
 					break;
@@ -149,7 +165,7 @@ public final class Syntax {
 
 	private static int findFirstMismatchingArgumentIndex(GeoElement[] arguments, Syntax syntax) {
 		for (int argIndex = 0; argIndex < arguments.length; argIndex++) {
-			if (!syntax.argumentMatcherAt(argIndex).matches(arguments[argIndex])) {
+			if (!matches(syntax.argumentMatcherAt(argIndex), arguments[argIndex])) {
 				return argIndex;
 			}
 		}
@@ -164,10 +180,14 @@ public final class Syntax {
 			return false;
 		}
 		for (int argIndex = 0; argIndex < arguments.length; argIndex++) {
-			if (!syntax.argumentMatcherAt(argIndex).matches(arguments[argIndex])) {
+			if (!matches(syntax.argumentMatcherAt(argIndex), arguments[argIndex])) {
 				return false;
 			}
 		}
 		return true;
+	}
+
+	private static boolean matches(ArgumentMatcher argumentMatcher, GeoElement argument) {
+		return argument != null && argumentMatcher.matches(argument);
 	}
 }

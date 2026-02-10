@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ * 
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ * 
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.io;
 
 import static org.junit.Assert.assertEquals;
@@ -7,17 +23,17 @@ import static org.junit.Assert.fail;
 import java.text.Normalizer;
 
 import org.geogebra.common.util.debug.Log;
+import org.geogebra.editor.share.catalog.TemplateCatalog;
+import org.geogebra.editor.share.io.latex.ParseException;
+import org.geogebra.editor.share.io.latex.Parser;
+import org.geogebra.editor.share.serializer.GeoGebraSerializer;
+import org.geogebra.editor.share.serializer.TeXSerializer;
+import org.geogebra.editor.share.tree.Formula;
+import org.geogebra.editor.share.tree.Korean;
+import org.geogebra.editor.share.util.Unicode;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.himamis.retex.editor.share.io.latex.ParseException;
-import com.himamis.retex.editor.share.io.latex.Parser;
-import com.himamis.retex.editor.share.meta.MetaModel;
-import com.himamis.retex.editor.share.model.Korean;
-import com.himamis.retex.editor.share.model.MathFormula;
-import com.himamis.retex.editor.share.serializer.GeoGebraSerializer;
-import com.himamis.retex.editor.share.serializer.TeXSerializer;
-import com.himamis.retex.editor.share.util.Unicode;
 import com.himamis.retex.renderer.share.TeXFormula;
 import com.himamis.retex.renderer.share.TeXParser;
 import com.himamis.retex.renderer.share.platform.FactoryProvider;
@@ -35,7 +51,7 @@ public class LaTeXSerializationTest {
 		if (FactoryProvider.getInstance() == null) {
 			FactoryProvider.setInstance(new FactoryProviderCommon());
 		}
-		MetaModel m = new MetaModel();
+		TemplateCatalog m = new TemplateCatalog();
 		parser = new Parser(m);
 	}
 
@@ -313,9 +329,9 @@ public class LaTeXSerializationTest {
 
 	private static void checkCanonical(String input, String output,
 			GeoGebraSerializer geoGebraSerializer) {
-		MathFormula mf = checkLaTeXRender(parser, input);
+		Formula mf = checkLaTeXRender(parser, input);
 		assertNotNull(mf);
-		assertEquals(mf.getRootComponent() + "", output,
+		assertEquals(mf.getRootNode() + "", output,
 				geoGebraSerializer.serialize(mf));
 		checkLaTeXRender(parser, input);
 	}
@@ -338,12 +354,12 @@ public class LaTeXSerializationTest {
 	 * @throws com.himamis.retex.renderer.share.exception.ParseException
 	 *             when formula can't be parsed
 	 */
-	static MathFormula checkLaTeXRender(Parser parser2, String input)
+	static Formula checkLaTeXRender(Parser parser2, String input)
 			throws com.himamis.retex.renderer.share.exception.ParseException {
 		try {
-			MathFormula mf = parser2.parse(input);
+			Formula mf = parser2.parse(input);
 			assertNotNull(mf);
-			String tex = TeXSerializer.serialize(mf.getRootComponent());
+			String tex = TeXSerializer.serialize(mf.getRootNode());
 			// TeXFormula tf = new TeXFormula();
 			TeXParser tp = new TeXParser(tex);
 			tp.parse();

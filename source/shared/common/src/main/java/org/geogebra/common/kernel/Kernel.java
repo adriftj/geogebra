@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.kernel;
 
 import java.util.ArrayList;
@@ -25,6 +41,7 @@ import org.geogebra.common.gui.inputfield.InputHelper;
 import org.geogebra.common.gui.view.table.TableValuesView;
 import org.geogebra.common.gui.view.table.dialog.StatisticGroupsBuilder;
 import org.geogebra.common.io.MyXMLHandler;
+import org.geogebra.common.io.XMLStringBuilder;
 import org.geogebra.common.kernel.algos.AlgoCasBase;
 import org.geogebra.common.kernel.algos.AlgoDependentFunction;
 import org.geogebra.common.kernel.algos.AlgoDependentFunctionNVar;
@@ -105,9 +122,9 @@ import org.geogebra.common.util.NumberFormatAdapter;
 import org.geogebra.common.util.ScientificFormatAdapter;
 import org.geogebra.common.util.StringUtil;
 import org.geogebra.common.util.debug.Log;
+import org.geogebra.editor.share.util.Unicode;
 
 import com.google.j2objc.annotations.Weak;
-import com.himamis.retex.editor.share.util.Unicode;
 
 /**
  * Provides methods for computation
@@ -2051,11 +2068,9 @@ public class Kernel implements SpecialPointsListener, ConstructionStepper {
 			return "-";
 		}
 		String numberStr = format(x, tpl);
-		switch (tpl.getStringType()) {
-		case GIAC:
+		if (tpl.getStringType() == StringType.GIAC) {
 			return numberStr + "*";
-
-		default:
+		} else {
 			// standard case
 			return numberStr;
 		}
@@ -2219,88 +2234,82 @@ public class Kernel implements SpecialPointsListener, ConstructionStepper {
 			StringTemplate tpl, boolean unbounded, boolean forceDegrees) {
 		double phi = alpha;
 		sbFormatAngle.setLength(0);
-		switch (tpl.getStringType()) {
 
-		default:
-			// STRING_TYPE_GEOGEBRA_XML
-			// STRING_TYPE_GEOGEBRA
+		if (Double.isNaN(phi)) {
+			sbFormatAngle.append("?");
+			return sbFormatAngle;
+		}
 
-			if (Double.isNaN(phi)) {
-				sbFormatAngle.append("?");
-				return sbFormatAngle;
+		if (forceDegrees || degreesMode()) {
+			boolean isMinusOnRight = getLocalization().isMinusOnRight(tpl);
+			if (isMinusOnRight) {
+				sbFormatAngle.append(Unicode.DEGREE_CHAR);
 			}
 
-			if (forceDegrees || degreesMode()) {
-				boolean isMinusOnRight = getLocalization().isMinusOnRight(tpl);
-				if (isMinusOnRight) {
+			phi = Math.toDegrees(phi);
+
+			// make sure 360.0000000002 -> 360
+			phi = DoubleUtil.checkInteger(phi);
+
+			if (!unbounded) {
+				if (phi < 0) {
+					phi += 360;
+				} else if (phi > 360) {
+					phi = phi % 360;
+				}
+			}
+			// STANDARD_PRECISION * 10 as we need a little leeway as we've
+			// converted from radians
+			sbFormatAngle.append(
+					format(DoubleUtil.checkDecimalFraction(phi, precision), tpl));
+			if (tpl.hasType(StringType.GEOGEBRA_XML)) {
+				sbFormatAngle.append("*");
+			}
+			if (!isMinusOnRight) {
+				if (tpl.hasCASType()) {
+					sbFormatAngle.append("*pi/180");
+				} else if (tpl.isScreenReader()) {
+					boolean singular = "1".equals(sbFormatAngle.toString());
+					sbFormatAngle.append(' ').append(singular
+							? tpl.getDegree() : tpl.getDegrees());
+				} else {
 					sbFormatAngle.append(Unicode.DEGREE_CHAR);
 				}
-
-				phi = Math.toDegrees(phi);
-
-				// make sure 360.0000000002 -> 360
-				phi = DoubleUtil.checkInteger(phi);
-
-				if (!unbounded) {
-					if (phi < 0) {
-						phi += 360;
-					} else if (phi > 360) {
-						phi = phi % 360;
-					}
-				}
-				// STANDARD_PRECISION * 10 as we need a little leeway as we've
-				// converted from radians
-				sbFormatAngle.append(
-						format(DoubleUtil.checkDecimalFraction(phi, precision), tpl));
-				if (tpl.hasType(StringType.GEOGEBRA_XML)) {
-					sbFormatAngle.append("*");
-				}
-				if (!isMinusOnRight) {
-					if (tpl.hasCASType()) {
-						sbFormatAngle.append("*pi/180");
-					} else if (tpl.isScreenReader()) {
-						boolean singular = "1".equals(sbFormatAngle.toString());
-						sbFormatAngle.append(' ').append(singular
-								? tpl.getDegree() : tpl.getDegrees());
-					} else {
-						sbFormatAngle.append(Unicode.DEGREE_CHAR);
-					}
-				}
-
-				return sbFormatAngle;
-			}
-
-			if (getAngleUnit() == Kernel.ANGLE_DEGREES_MINUTES_SECONDS) {
-				if (valueDegreesMinutesSeconds == null) {
-					valueDegreesMinutesSeconds = new MyDoubleDegreesMinutesSeconds.Value();
-				}
-				valueDegreesMinutesSeconds.set(phi, Kernel.MAX_PRECISION,
-						unbounded);
-				valueDegreesMinutesSeconds.format(sbFormatAngle, tpl, this);
-				return sbFormatAngle;
-			}
-
-			// RADIANS
-			sbFormatAngle.append(format(phi, tpl));
-
-			switch (tpl.getStringType()) {
-
-			default:
-				sbFormatAngle.append(" rad");
-				break;
-
-			case LATEX:
-				sbFormatAngle.append(" \\; rad");
-				break;
-
-			case GEOGEBRA_XML:
-			case GIAC:
-				// do nothing
-				break;
 			}
 
 			return sbFormatAngle;
 		}
+
+		if (getAngleUnit() == Kernel.ANGLE_DEGREES_MINUTES_SECONDS) {
+			if (valueDegreesMinutesSeconds == null) {
+				valueDegreesMinutesSeconds = new MyDoubleDegreesMinutesSeconds.Value();
+			}
+			valueDegreesMinutesSeconds.set(phi, Kernel.MAX_PRECISION,
+					unbounded);
+			valueDegreesMinutesSeconds.format(sbFormatAngle, tpl, this);
+			return sbFormatAngle;
+		}
+
+		// RADIANS
+		sbFormatAngle.append(format(phi, tpl));
+
+		switch (tpl.getStringType()) {
+
+		default:
+			sbFormatAngle.append(" rad");
+			break;
+
+		case LATEX:
+			sbFormatAngle.append(" \\; rad");
+			break;
+
+		case GEOGEBRA_XML:
+		case GIAC:
+			// do nothing
+			break;
+		}
+
+		return sbFormatAngle;
 	}
 
 	/** Resets global JavaSrcript to default value */
@@ -4334,96 +4343,85 @@ public class Kernel implements SpecialPointsListener, ConstructionStepper {
 	 * @param sb output string builder
 	 * @param asPreference whether this is for preference XML
 	 */
-	public void getKernelXML(StringBuilder sb, boolean asPreference) {
+	public void getKernelXML(XMLStringBuilder sb, boolean asPreference) {
 
 		// kernel settings
-		sb.append("<kernel>\n");
+		sb.startOpeningTag("kernel", 0).endTag();
 
 		// is 3D?
 		if (cons.requires3D()) {
 			// DO NOT REMOVE
 			// it's important we pick up errors involving this quickly
 			Log.error("file has 3D objects");
-			sb.append("\t<uses3D val=\"true\"/>\n");
+			sb.startTag("uses3D").attr("val", true).endTag();
 		}
 
 		// continuity: true or false, since V3.0
-		sb.append("\t<continuous val=\"");
-		sb.append(isContinuous());
-		sb.append("\"/>\n");
+		sb.startTag("continuous");
+		sb.attr("val", isContinuous());
+		sb.endTag();
 
 		if (symbolicMode == SymbolicMode.SYMBOLIC_AV) {
-			sb.append("\t<symbolic val=\"true\"/>\n");
+			sb.startTag("symbolic").attr("val", true).endTag();
 		}
 
-		sb.append("\t<usePathAndRegionParameters val=\"");
-		sb.append(usePathAndRegionParameters.getXML());
-		sb.append("\"/>\n");
+		sb.startTag("usePathAndRegionParameters")
+				.attr("val", usePathAndRegionParameters.getXML())
+				.endTag();
 
 		if (useSignificantFigures) {
 			// significant figures
-			sb.append("\t<significantfigures val=\"");
-			sb.append(getPrintFigures());
-			sb.append("\"/>\n");
+			sb.startTag("significantfigures").attr("val", getPrintFigures()).endTag();
 		} else {
 			// decimal places
-			sb.append("\t<decimals val=\"");
-			sb.append(getPrintDecimals());
-			sb.append("\"/>\n");
+			sb.startTag("decimals").attr("val", getPrintDecimals()).endTag();
 		}
 
 		// angle unit
-		sb.append("\t<angleUnit val=\"");
+		String unit;
 		switch (getAngleUnit()) {
 			case Kernel.ANGLE_RADIANT:
-				sb.append("radiant");
+				unit = "radiant";
 				break;
 			case Kernel.ANGLE_DEGREES_MINUTES_SECONDS:
-				sb.append("degreesMinutesSeconds");
+				unit = "degreesMinutesSeconds";
 				break;
 			case Kernel.ANGLE_DEGREE:
 			default:
-				sb.append("degree");
+				unit = "degree";
 				break;
 		}
-		sb.append("\"/>\n");
+		sb.startTag("angleUnit").attrRaw("val", unit).endTag();
 
 		// algebra style
-		sb.append("\t<algebraStyle val=\"");
-		sb.append(getApplication().getAlgebraStyle().getNumericValue());
-		sb.append("\" spreadsheet=\"");
-		sb.append(getAlgebraStyleSpreadsheet().getNumericValue());
-		sb.append("\"/>\n");
+		sb.startTag("algebraStyle")
+				.attr("val", getApplication().getAlgebraStyle().getNumericValue())
+				.attr("spreadsheet", getAlgebraStyleSpreadsheet().getNumericValue())
+				.endTag();
 
 		// coord style
-		sb.append("\t<coordStyle val=\"");
-		sb.append(getCoordStyle());
-		sb.append("\"/>\n");
+		sb.startTag("coordStyle").attr("val", getCoordStyle()).endTag();
 
 		// animation
 		if (isAnimationRunning()) {
-			sb.append("\t<startAnimation val=\"");
-			sb.append(isAnimationRunning());
-			sb.append("\"/>\n");
+			sb.startTag("startAnimation").attr("val", true).endTag();
 		}
 
 		if (asPreference) {
-			sb.append("\t<localization digits=\"");
-			sb.append(getLocalization().isUsingLocalizedDigits());
-			sb.append("\" labels=\"");
-			sb.append(getLocalization().isUsingLocalizedLabels());
-			sb.append("\"/>\n");
-
-			sb.append("\t<casSettings timeout=\"");
-			sb.append(OptionsCAS.getTimeoutOption(
+			sb.startTag("localization")
+					.attr("digits", getLocalization().isUsingLocalizedDigits())
+					.attr("labels", getLocalization().isUsingLocalizedLabels())
+					.endTag();
+			int timeout = OptionsCAS.getTimeoutOption(
 					app.getSettings().getCasSettings().getTimeoutMilliseconds()
-							/ 1000));
-			sb.append("\" expRoots=\"");
-			sb.append(app.getSettings().getCasSettings().getShowExpAsRoots());
-			sb.append("\"/>\n");
+							/ 1000);
+			sb.startTag("casSettings")
+					.attr("timeout", timeout)
+					.attr("expRoots", app.getSettings().getCasSettings().getShowExpAsRoots())
+					.endTag();
 		}
 
-		sb.append("</kernel>\n");
+		sb.closeTag("kernel");
 	}
 
 	/*
@@ -4520,18 +4518,17 @@ public class Kernel implements SpecialPointsListener, ConstructionStepper {
 	}
 
 	/**
-	 * Returns an XML representation of the given macros in this kernel.
+	 * Appends an XML representation of the given macros in this kernel to a builder.
 	 * 
 	 * @param macros
 	 *            macros
 	 * 
-	 * @return macro construction XML
+	 * @param builder XML string builder
 	 */
-	public String getMacroXML(List<Macro> macros) {
+	public void getMacroXML(List<Macro> macros, XMLStringBuilder builder) {
 		if (hasMacros()) {
-			return MacroManager.getMacroXML(macros);
+			MacroManager.getMacroXML(macros, builder);
 		}
-		return "";
 	}
 
 	/**
@@ -5388,7 +5385,7 @@ public class Kernel implements SpecialPointsListener, ConstructionStepper {
 
 	/**
 	 * Returns the IDs of the views that may be toggled (shown or hidden)
-	 * by the user after the application has started, when initial‐view
+	 * by the user after the application has started, when initial-view
 	 * restrictions are in effect.
 	 *
 	 * @return an unmodifiable {@link List} of view IDs which the user may toggle

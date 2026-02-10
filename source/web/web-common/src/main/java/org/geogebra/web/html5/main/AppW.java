@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.web.html5.main;
 
 import static org.geogebra.common.GeoGebraConstants.CAS_APPCODE;
@@ -15,6 +31,7 @@ import javax.annotation.CheckForNull;
 
 import org.geogebra.common.GeoGebraConstants.Platform;
 import org.geogebra.common.SuiteSubApp;
+import org.geogebra.common.awt.AwtFactory;
 import org.geogebra.common.awt.GColor;
 import org.geogebra.common.awt.GDimension;
 import org.geogebra.common.awt.GFont;
@@ -29,7 +46,6 @@ import org.geogebra.common.export.pstricks.GeoGebraExport;
 import org.geogebra.common.export.pstricks.GeoGebraToAsymptote;
 import org.geogebra.common.export.pstricks.GeoGebraToPgf;
 import org.geogebra.common.export.pstricks.GeoGebraToPstricks;
-import org.geogebra.common.factories.AwtFactory;
 import org.geogebra.common.factories.CASFactory;
 import org.geogebra.common.factories.Factory;
 import org.geogebra.common.factories.FormatFactory;
@@ -40,6 +56,7 @@ import org.geogebra.common.gui.inputfield.HasLastItem;
 import org.geogebra.common.gui.view.algebra.AlgebraView.SortMode;
 import org.geogebra.common.io.MyXMLio;
 import org.geogebra.common.io.XMLParseException;
+import org.geogebra.common.io.XMLStringBuilder;
 import org.geogebra.common.io.layout.Perspective;
 import org.geogebra.common.javax.swing.GImageIcon;
 import org.geogebra.common.kernel.Construction;
@@ -96,9 +113,11 @@ import org.geogebra.gwtutil.SafeExamBrowser;
 import org.geogebra.gwtutil.SecureBrowser;
 import org.geogebra.regexp.client.NativeRegExpFactory;
 import org.geogebra.regexp.shared.RegExpFactory;
+import org.geogebra.web.awt.AwtFactoryW;
+import org.geogebra.web.awt.GFontW;
+import org.geogebra.web.awt.MyImageW;
 import org.geogebra.web.html5.Browser;
 import org.geogebra.web.html5.GeoGebraGlobal;
-import org.geogebra.web.html5.awt.GFontW;
 import org.geogebra.web.html5.css.GuiResourcesSimple;
 import org.geogebra.web.html5.euclidian.EuclidianControllerW;
 import org.geogebra.web.html5.euclidian.EuclidianPanelWAbstract;
@@ -106,7 +125,6 @@ import org.geogebra.web.html5.euclidian.EuclidianViewW;
 import org.geogebra.web.html5.euclidian.EuclidianViewWInterface;
 import org.geogebra.web.html5.euclidian.profiler.FpsProfilerW;
 import org.geogebra.web.html5.export.ExportGraphicsFactoryW;
-import org.geogebra.web.html5.factories.AwtFactoryW;
 import org.geogebra.web.html5.factories.FactoryW;
 import org.geogebra.web.html5.factories.FormatFactoryW;
 import org.geogebra.web.html5.factories.UtilFactoryW;
@@ -138,9 +156,13 @@ import org.geogebra.web.html5.io.MyXMLioW;
 import org.geogebra.web.html5.kernel.GeoElementGraphicsAdapterW;
 import org.geogebra.web.html5.kernel.UndoManagerW;
 import org.geogebra.web.html5.kernel.commands.CommandDispatcherW;
+import org.geogebra.web.html5.main.general.DefaultGeneralIconProvider;
+import org.geogebra.web.html5.main.general.GeneralIconResource;
+import org.geogebra.web.html5.main.general.MebisGeneralIconProvider;
 import org.geogebra.web.html5.main.settings.DefaultSettingsW;
 import org.geogebra.web.html5.main.settings.SettingsBuilderW;
 import org.geogebra.web.html5.main.toolbox.DefaultToolboxIconProvider;
+import org.geogebra.web.html5.main.toolbox.FaIconSpec;
 import org.geogebra.web.html5.main.toolbox.MebisToolboxIconProvider;
 import org.geogebra.web.html5.main.toolbox.ToolboxIconResource;
 import org.geogebra.web.html5.main.topbar.DefaultTopBarIconProvider;
@@ -268,6 +290,7 @@ public abstract class AppW extends App implements SetLabels, HasLanguage {
 	private final ExamController examController = GlobalScope.examController;
 	private ToolboxIconResource toolboxIconResource;
 	private TopBarIconResource topBarIconResource;
+	private GeneralIconResource generalIconResource;
 
 	/**
 	 * @param geoGebraElement
@@ -2078,13 +2101,11 @@ public abstract class AppW extends App implements SetLabels, HasLanguage {
 	}
 
 	@Override
-	protected void getLayoutXML(StringBuilder sb, boolean asPreference) {
+	protected void getLayoutXML(XMLStringBuilder sb, boolean asPreference) {
 		if (getGuiManager() == null) {
 			initGuiManager();
 		}
-		if (getGuiManager() != null) {
-			getGuiManager().getLayout().getXml(sb, asPreference);
-		}
+		super.getLayoutXML(sb, asPreference);
 	}
 
 	// ============================================
@@ -2247,7 +2268,7 @@ public abstract class AppW extends App implements SetLabels, HasLanguage {
 
 	/**
 	 * @param el
-	 *            element that can be cliked without closingpopups
+	 *            element that can be clicked without closingpopups
 	 */
 	public void addAsAutoHidePartnerForPopups(Element el) {
 		for (HasHide popup : popups) {
@@ -3632,6 +3653,18 @@ public abstract class AppW extends App implements SetLabels, HasLanguage {
 		return topBarIconResource;
 	}
 
+	/**
+	 * @return general icon resource provider
+	 */
+	public GeneralIconResource getGeneralIconResource() {
+		if (generalIconResource == null) {
+			generalIconResource = new GeneralIconResource(isUsingFontAwesome()
+					? new MebisGeneralIconProvider() : new DefaultGeneralIconProvider());
+		}
+
+		return generalIconResource;
+	}
+
 	private void loadCommandsForScripting() {
 		for (GeoElement geo : kernel.getConstruction().getGeoSetConstructionOrder()) {
 			if (geo.hasScripts()) {
@@ -3649,8 +3682,17 @@ public abstract class AppW extends App implements SetLabels, HasLanguage {
 		}
 	}
 
+	/**
+	 * Check whether to use FA and update the theme.
+	 * @return whether to use FA
+	 */
 	public boolean isUsingFontAwesome() {
-		return getAppletParameters().getParamFontAwesome(isByCS());
+		String theme = getAppletParameters().getParamFontAwesome(isByCS() ? "light" : null);
+		if (StringUtil.empty(theme) || "false".equals(theme)) {
+			return false;
+		}
+		FaIconSpec.setTheme(theme);
+		return true;
 	}
 
 	/**

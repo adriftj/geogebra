@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.export.pstricks;
 
 import java.util.ArrayList;
@@ -5,6 +21,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Locale;
 
+import org.geogebra.common.awt.AwtFactory;
 import org.geogebra.common.awt.GAffineTransform;
 import org.geogebra.common.awt.GColor;
 import org.geogebra.common.awt.GFont;
@@ -13,7 +30,6 @@ import org.geogebra.common.awt.GShape;
 import org.geogebra.common.euclidian.DrawableND;
 import org.geogebra.common.euclidian.draw.DrawPoint;
 import org.geogebra.common.export.UnicodeTeX;
-import org.geogebra.common.factories.AwtFactory;
 import org.geogebra.common.kernel.Kernel;
 import org.geogebra.common.kernel.MyPoint;
 import org.geogebra.common.kernel.StringTemplate;
@@ -64,8 +80,7 @@ import org.geogebra.common.plugin.Operation;
 import org.geogebra.common.util.DoubleUtil;
 import org.geogebra.common.util.MyMath;
 import org.geogebra.common.util.StringUtil;
-
-import com.himamis.retex.editor.share.util.Unicode;
+import org.geogebra.editor.share.util.Unicode;
 
 /**
  * Generates PGF/Tikz string representation of current view.
@@ -225,9 +240,9 @@ public class GeoGebraToPgf extends GeoGebraExport {
 		 * (null!=formatFont){ codeBeginPic.insert(0,formatFont+"\n");
 		 * code.append("}\n"); }
 		 */
-		code.insert(0, codeFilledObject + "");
-		code.insert(0, codeBeginDoc + "");
-		code.insert(0, codePreamble + "");
+		code.insert(0, codeFilledObject);
+		code.insert(0, codeBeginDoc);
+		code.insert(0, codePreamble);
 		frame.write(code);
 	}
 
@@ -1627,8 +1642,8 @@ public class GeoGebraToPgf extends GeoGebraExport {
 			}
 		}
 
-		renameFunc(sb, Unicode.EULER_STRING, Math.E + "");
-		renameFunc(sb, "\\pi", Math.PI + "");
+		renameFunc(sb, Unicode.EULER_STRING, String.valueOf(Math.E));
+		renameFunc(sb, "\\pi", String.valueOf(Math.PI));
 		return new String(sb);
 	}
 

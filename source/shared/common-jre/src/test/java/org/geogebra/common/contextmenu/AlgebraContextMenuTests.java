@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.contextmenu;
 
 import static org.geogebra.common.GeoGebraConstants.CAS_APPCODE;
@@ -259,6 +275,23 @@ public class AlgebraContextMenuTests extends BaseAppTestSetup {
 			"Evaluate(5) 	-> 5",
 			"Round(5, 13) 	-> 5.0",
 	})
+	public void testForSimpleInputInCasApp() {
+		setupApp(SuiteSubApp.CAS);
+		assertEquals(
+				List.of(AddLabel,
+						CreateSlider,
+						DuplicateInput,
+						Delete,
+						Settings),
+				contextMenuFactory.makeAlgebraContextMenu(evaluateGeoElement("5"),
+						getAlgebraProcessor(), CAS_APPCODE, getAlgebraSettings()));
+	}
+
+	@Test
+	@MockedCasValues({
+			"Evaluate(5) 	-> 5",
+			"Round(5, 13) 	-> 5.0",
+	})
 	public void testForSimpleInputWithSliderInCasApp() {
 		setupApp(SuiteSubApp.CAS);
 		GeoElement number = evaluateGeoElement("slider=5");
@@ -277,28 +310,10 @@ public class AlgebraContextMenuTests extends BaseAppTestSetup {
 			"Evaluate(5) 	-> 5",
 			"Round(5, 13) 	-> 5.0",
 	})
-	public void testForSimpleInputWithoutLabelInCasApp() {
+	public void testForSimpleInputWithLabelInCasApp() {
 		setupApp(SuiteSubApp.CAS);
 		GeoElement geoElement = evaluateGeoElement("5");
-		new LabelController().hideLabel(geoElement);
-		assertEquals(
-				List.of(AddLabel,
-						CreateSlider,
-						DuplicateInput,
-						Delete,
-						Settings),
-				contextMenuFactory.makeAlgebraContextMenu(
-						geoElement, getAlgebraProcessor(), CAS_APPCODE, getAlgebraSettings()));
-	}
-
-	@Test
-	@MockedCasValues({
-			"Evaluate(5) 	-> 5",
-			"Round(5, 13) 	-> 5.0",
-	})
-	public void testForSimpleInputWithoutSliderInCasApp() {
-		setupApp(SuiteSubApp.CAS);
-		GeoElement geoElement = evaluateGeoElement("5");
+		new LabelController().showLabel(geoElement);
 		assertEquals(
 				List.of(RemoveLabel,
 						CreateSlider,
@@ -315,7 +330,7 @@ public class AlgebraContextMenuTests extends BaseAppTestSetup {
 		setupApp(SuiteSubApp.CAS);
 		assertEquals(
 				List.of(CreateTableValues,
-						RemoveLabel,
+						AddLabel,
 						Statistics,
 						DuplicateInput,
 						Delete,
@@ -330,7 +345,7 @@ public class AlgebraContextMenuTests extends BaseAppTestSetup {
 		setupApp(SuiteSubApp.CAS);
 		assertEquals(
 				List.of(CreateTableValues,
-						RemoveLabel,
+						AddLabel,
 						SpecialPoints,
 						DuplicateInput,
 						Delete,

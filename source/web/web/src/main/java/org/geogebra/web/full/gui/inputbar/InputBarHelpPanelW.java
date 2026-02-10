@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.web.full.gui.inputbar;
 
 import java.util.ArrayList;
@@ -20,15 +36,12 @@ import org.geogebra.web.html5.main.AppW;
 import org.gwtproject.dom.style.shared.Float;
 import org.gwtproject.dom.style.shared.TextAlign;
 import org.gwtproject.user.client.ui.FlowPanel;
-import org.gwtproject.user.client.ui.HasVerticalAlignment;
-import org.gwtproject.user.client.ui.HorizontalPanel;
 import org.gwtproject.user.client.ui.InlineLabel;
 import org.gwtproject.user.client.ui.Label;
 import org.gwtproject.user.client.ui.ScrollPanel;
 import org.gwtproject.user.client.ui.SplitLayoutPanel;
 import org.gwtproject.user.client.ui.Tree;
 import org.gwtproject.user.client.ui.TreeItem;
-import org.gwtproject.user.client.ui.VerticalPanel;
 import org.gwtproject.user.client.ui.Widget;
 
 import elemental2.core.JsString;
@@ -38,18 +51,17 @@ import elemental2.core.JsString;
  * 
  */
 public class InputBarHelpPanelW extends FlowPanel implements SetLabels, BooleanRenderable {
-
-	private AppW app;
+	private final AppW app;
 	private Tree indexTree;
-	private VerticalPanel syntaxPanel;
+	private FlowPanel syntaxPanel;
 	private StandardButton btnOnlineHelp;
 	private StandardButton btnClose;
-	private LocaleSensitiveComparator comparator;
+	private final LocaleSensitiveComparator comparator;
 	private SplitLayoutPanel sp;
 	private InlineLabel lblSyntax;
 	private InputHelpTreeItem itmFunction;
 	private AutoCompleteW inputField;
-	private InputBarHelpPanel hp;
+	private final InputBarHelpPanel hp;
 
 	/**
 	 * @param app
@@ -74,7 +86,7 @@ public class InputBarHelpPanelW extends FlowPanel implements SetLabels, BooleanR
 
 	private void createGUI() {
 		// create syntax panel
-		syntaxPanel = new VerticalPanel();
+		syntaxPanel = new FlowPanel();
 
 		// button panel
 		FlowPanel pnlButton = new FlowPanel();
@@ -98,16 +110,14 @@ public class InputBarHelpPanelW extends FlowPanel implements SetLabels, BooleanR
 		lblSyntax = new InlineLabel();
 		lblSyntax.getElement().getStyle().setTextAlign(TextAlign.LEFT);
 
-		HorizontalPanel detailTitlePanel = new HorizontalPanel();
-		detailTitlePanel
-				.setVerticalAlignment(HasVerticalAlignment.ALIGN_MIDDLE);
+		FlowPanel detailTitlePanel = new FlowPanel();
 		detailTitlePanel.add(lblSyntax);
 		detailTitlePanel.add(pnlButton);
 		detailTitlePanel.addStyleName("inputHelp-detailPanelTitle");
 
 		add(detailTitlePanel);
 		// create the detail panel
-		VerticalPanel detailPanel = new VerticalPanel();
+		FlowPanel detailPanel = new FlowPanel();
 		detailPanel.add(syntaxPanel);
 		detailPanel.setWidth("100%");
 
@@ -277,7 +287,7 @@ public class InputBarHelpPanelW extends FlowPanel implements SetLabels, BooleanR
 
 	private void addCmdNames(TreeItem item, TreeSet<String> names) {
 		for (String cmdName : names) {
-			if (cmdName != null && cmdName.length() > 0) {
+			if (cmdName != null && !cmdName.isEmpty()) {
 				InputHelpTreeItem cmd = new InputHelpTreeItem();
 				cmd.setWidget(new TreeItemButton(cmdName, cmd, true));
 				item.addItem(cmd);
@@ -374,8 +384,8 @@ public class InputBarHelpPanelW extends FlowPanel implements SetLabels, BooleanR
 			syntaxPanel.removeStyleName("inputHelp-functionTable");
 			syntaxPanel.addStyleName("inputHelp-cmdSyntax");
 		}
-		for (int i = 0; i < rows.size(); i++) {
-			syntaxPanel.add(rows.get(i));
+		for (Widget row : rows) {
+			syntaxPanel.add(row);
 		}
 	}
 
@@ -469,15 +479,14 @@ public class InputBarHelpPanelW extends FlowPanel implements SetLabels, BooleanR
 	private ArrayList<Widget> functionTableHTML() {
 		String[][] f = TableSymbols.getTranslatedFunctionsGrouped(app);
 		ArrayList<Widget> ret = new ArrayList<>();
-		// sb.append("<table>");
-		
-		for (int i = 0; i < f.length; i++) {
-			HorizontalPanel widget = new HorizontalPanel();
-			for (int j = 0; j < f[i].length; j++) {
-				Label syntax = syntaxLabel(f[i][j]);
+
+		for (String[] strings : f) {
+			FlowPanel widget = new FlowPanel();
+			for (String string : strings) {
+				Label syntax = syntaxLabel(string);
 				widget.add(syntax);
 			}
-			
+
 			ret.add(widget);
 		}
 

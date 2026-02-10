@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.properties.impl.objects;
 
 import org.geogebra.common.awt.GFont;
@@ -6,14 +22,15 @@ import org.geogebra.common.kernel.geos.GeoElement;
 import org.geogebra.common.kernel.geos.HasTextFormatter;
 import org.geogebra.common.kernel.geos.TextProperties;
 import org.geogebra.common.main.Localization;
-import org.geogebra.common.properties.aliases.BooleanProperty;
+import org.geogebra.common.properties.PropertyResource;
+import org.geogebra.common.properties.ToggleableIconProperty;
 import org.geogebra.common.properties.impl.AbstractValuedProperty;
 import org.geogebra.common.properties.impl.objects.delegate.FontStyleDelegate;
 import org.geogebra.common.properties.impl.objects.delegate.GeoElementDelegate;
 import org.geogebra.common.properties.impl.objects.delegate.NotApplicablePropertyException;
 
 public class BoldProperty extends AbstractValuedProperty<Boolean>
-		implements BooleanProperty {
+		implements ToggleableIconProperty {
 	private final GeoElementDelegate delegate;
 
 	/**
@@ -30,8 +47,7 @@ public class BoldProperty extends AbstractValuedProperty<Boolean>
 	@Override
 	protected void doSetValue(Boolean value) {
 		GeoElement element = delegate.getElement();
-		if (element instanceof TextProperties) {
-			TextProperties textProperties = (TextProperties) element;
+		if (element instanceof TextProperties textProperties) {
 			int oldStyle = textProperties.getFontStyle();
 			int newStyle = value ? (oldStyle | GFont.BOLD) : (oldStyle & ~GFont.BOLD);
 			if (oldStyle != newStyle) {
@@ -51,14 +67,17 @@ public class BoldProperty extends AbstractValuedProperty<Boolean>
 	@Override
 	public Boolean getValue() {
 		GeoElement element = delegate.getElement();
-		if (element instanceof TextProperties) {
-			TextProperties textProperties = (TextProperties) element;
+		if (element instanceof TextProperties textProperties) {
 			return (textProperties.getFontStyle() & GFont.BOLD) != 0;
-		} else if (element instanceof HasTextFormatter) {
-			HasTextFormatter hasTextFormatter = (HasTextFormatter) element;
+		} else if (element instanceof HasTextFormatter hasTextFormatter) {
 			return hasTextFormatter.getFormat("bold", false);
 		}
 
 		return false;
+	}
+
+	@Override
+	public PropertyResource getIcon() {
+		return PropertyResource.ICON_BOLD;
 	}
 }

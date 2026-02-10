@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.web.full.gui.openfileview;
 
 import org.geogebra.common.awt.GColor;
@@ -18,11 +34,11 @@ public enum ExportStatus {
 	private final static String MESSAGE_AVAILABLE = "Download bereit";
 	private final static String MESSAGE_ERROR = "Download fehlgeschlagen";
 	private final static String HELP_PENDING_IN_PROGRESS = "Der Download aller Tafelbilder"
-			+ " wird vorbereitet und startet in Kürze automatisch. Die Dauer variiert abhängig"
-			+ " von Gesamtdateigröße und Verbindungsgeschwindigkeit. Bitte verlassen Sie diese"
-			+ " Seite nicht, bis der Download im Browser abgeschlossen ist.";
+			+ " wird vorbereitet und startet in K\u00FCrze automatisch. Die Dauer variiert"
+			+ " abh\u00E4ngig von Gesamtdateigr\u00F6\u00DFe und Verbindungsgeschwindigkeit. Bitte"
+			+ " verlassen Sie diese Seite nicht, bis der Download im Browser abgeschlossen ist.";
 	private final static String HELP_AVAILABLE = "Die ZIP-Datei mit allen "
-			+ "Tafelbildern ist jetzt verfügbar. Klicken Sie auf die Schaltfläche, um den"
+			+ "Tafelbildern ist jetzt verf\u00FCgbar. Klicken Sie auf die Schaltfl\u00E4che, um den"
 			+ " Download zu starten.";
 	private final static String HELP_ERROR = "Beim Erstellen des Downloads"
 			+ " ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.";

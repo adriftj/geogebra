@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.properties.factory;
 
 import static org.geogebra.common.properties.factory.PropertiesRegistration.registerProperties;
@@ -12,7 +28,7 @@ import org.geogebra.common.main.PreviewFeature;
 import org.geogebra.common.main.settings.EuclidianSettings;
 import org.geogebra.common.properties.PropertiesRegistry;
 import org.geogebra.common.properties.PropertyCollectionWithLead;
-import org.geogebra.common.properties.impl.general.FontSizeProperty;
+import org.geogebra.common.properties.impl.general.AppFontSizeProperty;
 import org.geogebra.common.properties.impl.general.LanguageProperty;
 import org.geogebra.common.properties.impl.graphics.AxesBoldProperty;
 import org.geogebra.common.properties.impl.graphics.AxesColorProperty;
@@ -42,14 +58,14 @@ public class NotesPropertiesFactory extends DefaultPropertiesFactory {
 					PreviewFeature.isAvailable(PreviewFeature.SETTINGS_VIEW)
 					? registerProperties(propertiesRegistry, NonNullList.of(
 							new LanguageProperty(app, localization),
-							new FontSizeProperty(localization, app.getSettings().getFontSettings(),
-									app.getFontSettingsUpdater()),
+							new AppFontSizeProperty(localization, app.getSettings()
+									.getFontSettings(), app.getFontSettingsUpdater()),
 							app.getPlatform().isMobile() ? null
 									: createSaveRestoreSettingsProperties(app, localization)))
 					: registerProperties(propertiesRegistry, List.of(
 							new LanguageProperty(app, localization),
-							new FontSizeProperty(localization, app.getSettings().getFontSettings(),
-									app.getFontSettingsUpdater()))));
+							new AppFontSizeProperty(localization, app.getSettings()
+									.getFontSettings(), app.getFontSettingsUpdater()))));
 	}
 
 	@Override

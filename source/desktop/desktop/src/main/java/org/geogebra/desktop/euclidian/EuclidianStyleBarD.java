@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ * 
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ * 
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.desktop.euclidian;
 
 import java.awt.Color;
@@ -710,13 +726,12 @@ public class EuclidianStyleBarD extends JToolBar
 		// ========================================
 		// angle interval button
 
-		String[] angleIntervalArray = new String[GeoAngle
-				.getIntervalMinListLength() - 1];
+		String[] angleIntervalArray = new String[GeoAngle.AngleStyle.values().length - 1];
 
-		for (int i = 0; i < GeoAngle.getIntervalMinListLength() - 1; i++) {
-			angleIntervalArray[i] = loc.getPlain("AngleBetweenAB.short",
-					GeoAngle.getIntervalMinList(i),
-					GeoAngle.getIntervalMaxList(i));
+		for (int i = 0; i < angleIntervalArray.length; i++) {
+			GeoAngle.AngleStyle style = GeoAngle.AngleStyle.values()[i];
+			angleIntervalArray[i] =
+					loc.getPlain("AngleBetweenAB.short", style.getMin(), style.getMax());
 		}
 
 		btnAngleInterval = new PopupMenuButtonD(app, angleIntervalArray, -1, 1,
@@ -1457,8 +1472,7 @@ public class EuclidianStyleBarD extends JToolBar
 		} else if (source == btnColor) {
 			GColor color = btnColor.getSelectedColor();
 			float alpha = btnColor.getSliderValue() / 100.0f;
-			needUndo = EuclidianStyleBarStatic.applyColor(color,
-					alpha, app, targetGeos);
+			needUndo = EuclidianStyleBarStatic.applyColor(color, alpha, targetGeos);
 		} else if (source == btnBgColor) {
 			if (btnBgColor.getSelectedIndex() >= 0) {
 				GColor color = btnBgColor.getSelectedColor();
@@ -1471,8 +1485,7 @@ public class EuclidianStyleBarD extends JToolBar
 		else if (source == btnTextColor) {
 			if (btnTextColor.getSelectedIndex() >= 0) {
 				GColor color = btnTextColor.getSelectedColor();
-				needUndo = EuclidianStyleBarStatic.applyColor(
-						color, 1, app, targetGeos);
+				needUndo = EuclidianStyleBarStatic.applyColor(color, 1, targetGeos);
 			}
 		} else if (source == btnLineStyle) {
 			if (btnLineStyle.getSelectedValue() != null) {

@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.web.html5.gui.zoompanel;
 
 import org.geogebra.common.euclidian.CoordSystemListener;
@@ -15,6 +31,7 @@ import org.geogebra.web.html5.gui.util.ToggleButton;
 import org.geogebra.web.html5.gui.view.button.StandardButton;
 import org.geogebra.web.html5.main.AppW;
 import org.geogebra.web.html5.main.LocalizationW;
+import org.geogebra.web.html5.main.topbar.DefaultTopBarIconResources;
 import org.geogebra.web.html5.util.AppletParameters;
 import org.geogebra.web.html5.util.GeoGebraElement;
 import org.gwtproject.dom.client.Element;
@@ -32,6 +49,7 @@ import elemental2.dom.DomGlobal;
  */
 public class ZoomPanel extends FlowPanel implements CoordSystemListener {
 	private StandardButton homeBtn;
+	private StandardButton zoomToFitBtn;
 	private StandardButton zoomInBtn;
 	private StandardButton zoomOutBtn;
 	/**
@@ -170,6 +188,11 @@ public class ZoomPanel extends FlowPanel implements CoordSystemListener {
 		homeBtn.addFastClickHandler(handlerHome);
 		add(homeBtn);
 		registerFocusable(homeBtn, AccessibilityGroup.ViewControlId.ZOOM_PANEL_HOME);
+
+		if (!app.isApplet()) {
+			addZoomToFitButton();
+		}
+
 		if (!NavigatorUtil.isMobile()) {
 			addZoomInButton();
 			registerFocusable(zoomInBtn, AccessibilityGroup.ViewControlId.ZOOM_PANEL_PLUS);
@@ -180,6 +203,17 @@ public class ZoomPanel extends FlowPanel implements CoordSystemListener {
 
 	private void registerFocusable(Widget btn, AccessibilityGroup.ViewControlId group) {
 		new FocusableWidget(AccessibilityGroup.getViewGroup(getViewID()), group, btn).attachTo(app);
+	}
+
+	private void addZoomToFitButton() {
+		zoomToFitBtn = new StandardButton(
+				DefaultTopBarIconResources.INSTANCE.show_all_objects(),
+				null, 24);
+		zoomToFitBtn.setStyleName("zoomPanelBtn");
+		FastClickHandler handlerHome = source -> getZoomController().onZoomToFitPressed();
+		zoomToFitBtn.addFastClickHandler(handlerHome);
+		add(zoomToFitBtn);
+		registerFocusable(zoomToFitBtn, AccessibilityGroup.ViewControlId.ZOOM_PANEL_ZOOM_TO_FIT);
 	}
 
 	private void addZoomOutButton() {
@@ -222,6 +256,7 @@ public class ZoomPanel extends FlowPanel implements CoordSystemListener {
 	public void setLabels() {
 		setFullScreenAuralText();
 		setZoomAuralText(homeBtn, "StandardView", "Home button selected");
+		setZoomAuralText(zoomToFitBtn, "ShowAllObjects", "Zoom to fit button selected");
 		setZoomAuralText(zoomOutBtn, "ZoomOut.Tool",
 				"Zoom out button selected");
 		setZoomAuralText(zoomInBtn, "ZoomIn.Tool", "Zoom in button selected");

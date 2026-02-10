@@ -1,25 +1,22 @@
-/* 
-GeoGebra - Dynamic Mathematics for Everyone
-http://www.geogebra.org
-
-This file is part of GeoGebra.
-
-This program is free software; you can redistribute it and/or modify it 
-under the terms of the GNU General Public License as published by 
-the Free Software Foundation.
-
- */
-
 /*
- * GeoAngle.java
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
  *
- * The toString() depends on the kernels angle unit state (DEGREE or RADIANT)
- *
- * Created on 18. September 2001, 12:04
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ * 
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
  */
 
 package org.geogebra.common.kernel.geos;
 
+import org.geogebra.common.io.XMLStringBuilder;
 import org.geogebra.common.kernel.Construction;
 import org.geogebra.common.kernel.Kernel;
 import org.geogebra.common.kernel.StringTemplate;
@@ -28,8 +25,7 @@ import org.geogebra.common.kernel.arithmetic.MyDouble;
 import org.geogebra.common.kernel.kernelND.GeoElementND;
 import org.geogebra.common.plugin.GeoClass;
 import org.geogebra.common.util.DoubleUtil;
-
-import com.himamis.retex.editor.share.util.Unicode;
+import org.geogebra.editor.share.util.Unicode;
 
 /**
  * 
@@ -109,30 +105,15 @@ public class GeoAngle extends GeoNumeric implements AngleProperties {
 		}
 
 		public String getMin() {
-			return min;
+			return min + Unicode.DEGREE_CHAR;
 		}
 
 		public String getMax() {
-			return max;
+			return max + Unicode.DEGREE_CHAR;
 		}
 	}
 
 	private AngleStyle angleStyle = AngleStyle.ANTICLOCKWISE;
-
-	/** interval minima for different angle styles */
-	private static final String[] INTERVAL_MIN = {
-			"0" + Unicode.DEGREE_CHAR,
-			"0" + Unicode.DEGREE_CHAR,
-			"180" + Unicode.DEGREE_CHAR,
-			"-" + Unicode.INFINITY
-	};
-	/** interval maxima for different angle styles */
-	private static final String[] INTERVAL_MAX = {
-			"360" + Unicode.DEGREE_CHAR,
-			"180" + Unicode.DEGREE_CHAR,
-			"360" + Unicode.DEGREE_CHAR,
-			"" + Unicode.INFINITY
-	};
 
 	/**
 	 * @author Loic
@@ -149,31 +130,6 @@ public class GeoAngle extends GeoNumeric implements AngleProperties {
 				DECORATION_ANGLE_ARROW_ANTICLOCKWISE,
 				DECORATION_ANGLE_ARROW_CLOCKWISE
 		};
-	}
-
-	/**
-	 * @param i
-	 *            index
-	 * @return i-th interval maximum
-	 */
-	public static String getIntervalMinList(int i) {
-		return INTERVAL_MIN[i];
-	}
-
-	/**
-	 * @return number of min/max intervals
-	 */
-	public static int getIntervalMinListLength() {
-		return INTERVAL_MIN.length;
-	}
-
-	/**
-	 * @param i
-	 *            index
-	 * @return i-th interval minimum
-	 */
-	public static String getIntervalMaxList(int i) {
-		return INTERVAL_MAX[i];
 	}
 
 	/**
@@ -498,7 +454,7 @@ public class GeoAngle extends GeoNumeric implements AngleProperties {
 	 * returns all class-specific xml tags for saveXML
 	 */
 	@Override
-	protected void getXMLtags(StringBuilder sb) {
+	protected void getXMLTags(XMLStringBuilder sb) {
 		// from ggb44 need to save before value in case it's unbounded
 		XMLBuilder.appendAngleStyle(sb, angleStyle, emphasizeRightAngle);
 		getValueXML(sb, rawValue);
@@ -506,23 +462,21 @@ public class GeoAngle extends GeoNumeric implements AngleProperties {
 	}
 
 	@Override
-	protected void getStyleXML(StringBuilder sb) {
+	protected void getStyleXML(XMLStringBuilder sb) {
 		XMLBuilder.appendAngleStyle(sb, angleStyle, emphasizeRightAngle);
 		getStyleXMLAfter(sb);
 	}
 
-	private void getStyleXMLAfter(StringBuilder sb) {
+	private void getStyleXMLAfter(XMLStringBuilder sb) {
 		// if angle is drawable then we need to save visual options too
-		if (isDrawable() || isSliderable()) {
+		if (isDrawable() || hasIntervalMin() || hasIntervalMax()) {
 			// save slider info before show to have min and max set
 			// before setEuclidianVisible(true) is called
-			getXMLsliderTag(sb);
+			getXMLSliderTag(sb);
 			getLineStyleXML(sb);
 
 			// arc size
-			sb.append("\t<arcSize val=\"");
-			sb.append(arcSize);
-			sb.append("\"/>\n");
+			sb.startTag("arcSize").attr("val", arcSize).endTag();
 		}
 		getBasicStyleXML(sb);
 	}

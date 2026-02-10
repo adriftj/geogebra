@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.web.html5.gui.inputfield;
 
 import java.util.List;
@@ -32,6 +48,9 @@ import org.geogebra.common.plugin.EuclidianStyleConstants;
 import org.geogebra.common.util.ManualPage;
 import org.geogebra.common.util.MatchedString;
 import org.geogebra.common.util.StringUtil;
+import org.geogebra.editor.share.util.AltKeys;
+import org.geogebra.editor.share.util.GWTKeycodes;
+import org.geogebra.editor.web.MathFieldW;
 import org.geogebra.gwtutil.NavigatorUtil;
 import org.geogebra.regexp.shared.MatchResult;
 import org.geogebra.regexp.shared.RegExp;
@@ -71,10 +90,6 @@ import org.gwtproject.user.client.ui.FlowPanel;
 import org.gwtproject.user.client.ui.FocusWidget;
 import org.gwtproject.user.client.ui.IsWidget;
 import org.gwtproject.user.client.ui.SuggestOracle.Suggestion;
-
-import com.himamis.retex.editor.share.util.AltKeys;
-import com.himamis.retex.editor.share.util.GWTKeycodes;
-import com.himamis.retex.editor.web.MathFieldW;
 
 import elemental2.dom.EventListener;
 import elemental2.dom.PointerEvent;

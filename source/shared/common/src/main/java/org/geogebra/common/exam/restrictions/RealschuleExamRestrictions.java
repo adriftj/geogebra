@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.exam.restrictions;
 
 import static org.geogebra.common.SuiteSubApp.CAS;
@@ -218,6 +234,7 @@ import org.geogebra.common.main.syntax.suggestionfilter.LineSelectorSyntaxFilter
 import org.geogebra.common.main.syntax.suggestionfilter.SyntaxFilter;
 import org.geogebra.common.plugin.EuclidianStyleConstants;
 import org.geogebra.common.plugin.Operation;
+import org.geogebra.common.properties.PropertyKey;
 import org.geogebra.common.properties.impl.objects.LinearEquationFormProperty;
 import org.geogebra.common.properties.impl.objects.QuadraticEquationFormProperty;
 
@@ -402,9 +419,12 @@ public final class RealschuleExamRestrictions extends ExamRestrictions {
 		}
 	}
 
-	private static Map<String, PropertyRestriction> createPropertyRestrictions() {
-		return Map.of(LinearEquationFormProperty.NAME_KEY, new PropertyRestriction(true, null),
-				QuadraticEquationFormProperty.NAME_KEY, new PropertyRestriction(true, null));
+	private static Map<PropertyKey, PropertyRestriction> createPropertyRestrictions() {
+		return Map.of(
+				PropertyKey.of(LinearEquationFormProperty.class),
+				new PropertyRestriction(true, null),
+				PropertyKey.of(QuadraticEquationFormProperty.class),
+				new PropertyRestriction(true, null));
 	}
 
 	private static Set<VisibilityRestriction> createVisibilityRestrictions() {

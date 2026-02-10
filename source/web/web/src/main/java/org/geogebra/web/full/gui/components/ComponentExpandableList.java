@@ -1,11 +1,25 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.web.full.gui.components;
 
-import javax.annotation.CheckForNull;
+import static org.geogebra.common.properties.PropertyView.*;
 
 import org.geogebra.common.gui.SetLabels;
 import org.geogebra.common.main.settings.AbstractSettings;
-import org.geogebra.common.properties.aliases.BooleanProperty;
-import org.geogebra.common.properties.impl.graphics.SettingsDependentProperty;
 import org.geogebra.keyboard.web.KeyboardResources;
 import org.geogebra.web.html5.gui.BaseWidgetFactory;
 import org.geogebra.web.html5.gui.util.AriaHelper;
@@ -21,7 +35,7 @@ import elemental2.dom.KeyboardEvent;
 public class ComponentExpandableList extends FlowPanel implements SetLabels {
 	private final AppW appW;
 	private final String titleTransKey;
-	private BooleanProperty booleanProperty;
+	private Checkbox booleanProperty;
 	private boolean expanded = false;
 	private Label title;
 	private ComponentCheckbox checkbox;
@@ -33,8 +47,7 @@ public class ComponentExpandableList extends FlowPanel implements SetLabels {
 	 * @param booleanProperty property for checkbox
 	 * @param titleTransKey translation key of title
 	 */
-	public ComponentExpandableList(AppW appW, @CheckForNull BooleanProperty booleanProperty,
-			String titleTransKey) {
+	public ComponentExpandableList(AppW appW, Checkbox booleanProperty, String titleTransKey) {
 		this.appW = appW;
 		if (booleanProperty != null) {
 			this.booleanProperty = booleanProperty;
@@ -58,10 +71,10 @@ public class ComponentExpandableList extends FlowPanel implements SetLabels {
 			addCheckBoxTo(header);
 		}
 
-		if (booleanProperty instanceof SettingsDependentProperty) {
-			((SettingsDependentProperty) booleanProperty).getSettings()
-					.addListener(this::updateCheckbox);
-		}
+		//if (booleanProperty instanceof SettingsDependentProperty) {
+		//((SettingsDependentProperty) booleanProperty).getSettings()
+		//.addListener(this::updateCheckbox);
+		//}
 
 		contentPanel = new FlowPanel();
 		contentPanel.addStyleName("containerPanel");
@@ -87,13 +100,12 @@ public class ComponentExpandableList extends FlowPanel implements SetLabels {
 	}
 
 	private void addCheckBoxTo(FlowPanel header) {
-		checkbox = new ComponentCheckbox(appW.getLocalization(), booleanProperty.getValue(), "",
+		checkbox = new ComponentCheckbox(appW.getLocalization(), booleanProperty, "",
 				value -> {
-					boolean selected = !booleanProperty.getValue();
-					booleanProperty.setValue(selected);
-					expanded = selected;
-					updateUISelectedState();
-				}, true);
+			booleanProperty.setSelected(value);
+			expanded = value;
+			updateUISelectedState();
+		}, true);
 		AriaHelper.setLabel(this, appW.getLocalization().getMenu(titleTransKey));
 		header.add(checkbox);
 	}
@@ -116,7 +128,7 @@ public class ComponentExpandableList extends FlowPanel implements SetLabels {
 		if (expanded) {
 			if (booleanProperty != null) {
 				checkbox.setSelected(true);
-				booleanProperty.setValue(expanded);
+				booleanProperty.setSelected(expanded);
 			}
 		}
 		updateUISelectedState();
@@ -141,7 +153,7 @@ public class ComponentExpandableList extends FlowPanel implements SetLabels {
 	 */
 	@SuppressWarnings("unused")
 	private void updateCheckbox(AbstractSettings settings) {
-		boolean selected = booleanProperty.getValue();
+		boolean selected = booleanProperty.isSelected();
 		if (checkbox.isSelected() != selected) {
 			if (!selected) {
 				expanded = false;

@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.kernel;
 
 import java.util.List;
@@ -31,8 +47,7 @@ import org.geogebra.common.plugin.EventType;
 import org.geogebra.common.plugin.Operation;
 import org.geogebra.common.util.StringUtil;
 import org.geogebra.common.util.debug.Log;
-
-import com.himamis.retex.editor.share.util.Unicode;
+import org.geogebra.editor.share.util.Unicode;
 
 /**
  * Compares two objects, first numerically, then symbolically (when the
@@ -106,7 +121,7 @@ public class Relation {
 			Log.warn(e);
 		}
 		// Computing numerical results and collecting them alphabetically:
-		SortedSet<Report> relInfosAll = RelationNumerical.sortAlphabetically(
+		SortedSet<Report> relInfosAll = RelationNumerical.sortByResultAndText(
 				new RelationNumerical(kernel).relation(ra, rb, rc, rd));
 		// Collecting information for showing them in the popup window:
 		int rels = relInfosAll.size();
@@ -198,7 +213,7 @@ public class Relation {
 			rel.setInfo(rel.getInfo() + "</b>");
 		} else {
 			if ((ndgs == 2) && !"2".equals(ndgResult[0])
-					&& (Unicode.ELLIPSIS + "").equals(ndgResult[1])) {
+					&& String.valueOf(Unicode.ELLIPSIS).equals(ndgResult[1])) {
 				// ProveDetails=={true,"..."}
 				rel.setInfo(
 						rel.getInfo()

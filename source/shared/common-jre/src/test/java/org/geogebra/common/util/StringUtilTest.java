@@ -1,13 +1,30 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ * 
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ * 
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.util;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assume.assumeTrue;
 
 import org.geogebra.common.media.GeoGebraURLParser;
+import org.geogebra.editor.share.util.Unicode;
+import org.geogebra.test.annotation.Issue;
 import org.junit.Test;
-
-import com.himamis.retex.editor.share.util.Unicode;
 
 @SuppressWarnings("javadoc")
 public class StringUtilTest {
@@ -21,7 +38,7 @@ public class StringUtilTest {
 		for (int cc = 0; cc < 65536; ++cc) {
 			char c = (char) cc;
 			if (Character.isLetter(
-					c) != com.himamis.retex.editor.share.input.Character
+					c) != org.geogebra.editor.share.input.Character
 							.isLetter(c)) {
 				if (Character.isLetter(c)) {
 					falseNeg += c;
@@ -152,6 +169,12 @@ public class StringUtilTest {
 	public void testRemoveAccents() {
 		assertEquals("nuoascr",
 				StringUtil.removeAccents("\u00F1\u00FC\u00F6\u00E4\u0161\u010D\u0159"));
+	}
+
+	@Issue("APPS-5458")
+	@Test
+	public void testLabelVariants() {
+		assertNotNull(StringUtil.labelVariants("slider(f_{")); // assertNotCrashing(), really
 	}
 
 	private static void compatibleNewlines(String in, String out) {

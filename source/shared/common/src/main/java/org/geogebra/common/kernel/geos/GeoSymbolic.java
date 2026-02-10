@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.kernel.geos;
 
 import java.util.ArrayList;
@@ -10,9 +26,11 @@ import java.util.stream.Stream;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import org.geogebra.common.io.XMLStringBuilder;
 import org.geogebra.common.kernel.CircularDefinitionException;
 import org.geogebra.common.kernel.Construction;
 import org.geogebra.common.kernel.EuclidianViewCE;
+import org.geogebra.common.kernel.LabelingContext;
 import org.geogebra.common.kernel.StringTemplate;
 import org.geogebra.common.kernel.VarString;
 import org.geogebra.common.kernel.algos.AlgoElement;
@@ -32,6 +50,7 @@ import org.geogebra.common.kernel.arithmetic.FunctionNVar;
 import org.geogebra.common.kernel.arithmetic.FunctionVarCollector;
 import org.geogebra.common.kernel.arithmetic.FunctionVariable;
 import org.geogebra.common.kernel.arithmetic.Functional;
+import org.geogebra.common.kernel.arithmetic.FunctionalNVar;
 import org.geogebra.common.kernel.arithmetic.Inspecting;
 import org.geogebra.common.kernel.arithmetic.ListValue;
 import org.geogebra.common.kernel.arithmetic.MyDouble;
@@ -54,9 +73,9 @@ import org.geogebra.common.kernel.kernelND.GeoElementND;
 import org.geogebra.common.kernel.kernelND.GeoEvaluatable;
 import org.geogebra.common.kernel.kernelND.GeoPlaneND;
 import org.geogebra.common.kernel.parser.ParseException;
+import org.geogebra.common.main.MyError;
 import org.geogebra.common.plugin.GeoClass;
 import org.geogebra.common.plugin.Operation;
-import org.geogebra.common.util.StringUtil;
 import org.geogebra.common.util.SymbolicUtil;
 import org.geogebra.common.util.debug.Log;
 
@@ -88,6 +107,7 @@ public class GeoSymbolic extends GeoElement
 	private int numericPrintDecimals;
 	private ConditionalSerializer conditionalSerializer;
 	private ExpressionNode excludedEquation;
+	private boolean computedNumerically;
 
 	/**
 	 * @param c construction
@@ -194,7 +214,7 @@ public class GeoSymbolic extends GeoElement
 	 * <p>
 	 * Unlike {@link GeoSymbolic#getValue()}, this method takes into account the format
 	 * of the output (e.g., for an input of {@code Normal(2, 0.5, 1)}, the output in the default format
-	 * would be {@code (erf(-√2) + 1) / 2}, whereas after switching
+	 * would be {@code (erf(-sqrt(2)) + 1) / 2}, whereas after switching
 	 * to the approximated output format, it would be {@code 0.0227501319482}).
 	 * @return the output expression of {@code GeoSymbolic}
 	 */
@@ -305,13 +325,57 @@ public class GeoSymbolic extends GeoElement
 	public void computeOutput() {
 		ExpressionValue casInputArg = getDefinition().deepCopy(kernel)
 				.traverse(FunctionExpander.newFunctionExpander(this));
+		casInputArg = fixMatrixInput(casInputArg);
+		// if surds are not allowed, avoid symbolic computations (APPS-7189)
+		// also helps with other auto-simplification issues (APPS-7212)
+		computedNumerically = kernel.getSurds() == null
+				&& casInputArg.none(this::needsSymbolicComputation);
+		if (computedNumerically) {
+			computeNumerically(casInputArg);
+		} else {
+			computeUsingCAS(casInputArg);
+		}
+	}
 
-		Command casInput = getCasInput(fixMatrixInput(casInputArg));
+	private  boolean needsSymbolicComputation(ExpressionValue part) {
+		return part instanceof Command
+				|| part instanceof GeoDummyVariable var && var.getElementWithSameName() == null
+				|| part instanceof GeoSymbolic symbolic && symbolic.twinGeo == null;
+	}
+
+	private void computeNumerically(ExpressionValue input) {
+		try (LabelingContext ignored = kernel.getConstruction().getSilentContext()) {
+			ExpressionValue casInputArg = input.deepCopy(kernel).traverse(this::unwrapSymbolic);
+			GeoElementND numericTwin = kernel.getAlgebraProcessor().processValidExpression(
+					casInputArg.wrap())[0];
+			if (numericTwin.getDefinition() != null) {
+				value = numericTwin.getDefinition().asFraction();
+			} else {
+				value = numericTwin;
+				if (value instanceof FunctionalNVar functionalNVar) {
+					value = functionalNVar.getFunctionExpression();
+				}
+			}
+			casOutputString = numericTwin.toValueString(StringTemplate.maxDecimals);
+			numericValue = numericTwin;
+			isTwinUpToDate = false;
+			setSymbolicMode();
+			setFunctionVariables();
+		} catch (CircularDefinitionException e) {
+			setUndefined();
+		}
+	}
+
+	private ExpressionValue unwrapSymbolic(ExpressionValue part) {
+		return  part instanceof GeoSymbolic symbolic ? symbolic.twinGeo : part;
+	}
+
+	private void computeUsingCAS(ExpressionValue casInputArg) {
+		Command casInput = getCasInput(casInputArg);
 		if (casInput.getName().equals(Commands.Solve.name()) && casInput.getArgumentNumber() == 1) {
 			SymbolicProcessor.autoCompleteVariables(casInput);
 		}
 		String casResult = calculateCasResult(casInput);
-
 		casOutputString = casResult;
 		ExpressionValue casOutput = parseOutputString(casResult);
 		setValue(casOutput);
@@ -424,10 +488,7 @@ public class GeoSymbolic extends GeoElement
 			return false;
 		}
 		ExpressionNode arg = command.getArgument(0);
-		if (arg.getTopLevelCommand() != null) {
-			return Commands.Solve.name().equals(arg.getTopLevelCommand().getName());
-		}
-		return false;
+		return arg.isTopLevelCommand(Commands.Solve.name());
 	}
 
 	private Command getCasInput(ExpressionValue casInputArg) {
@@ -455,7 +516,7 @@ public class GeoSymbolic extends GeoElement
 	}
 
 	private ExpressionValue maybeComputeNumericValue(ExpressionValue casOutput) {
-		if (!SymbolicUtil.shouldComputeNumericValue(casOutput)) {
+		if (computedNumerically || !SymbolicUtil.shouldComputeNumericValue(casOutput)) {
 			return null;
 		}
 		Log.debug("GeoSymbolic is a number value, calculating numeric result");
@@ -705,9 +766,7 @@ public class GeoSymbolic extends GeoElement
 		if (getDefinition() == null) {
 			return null;
 		}
-		boolean isSuppressLabelsActive = cons.isSuppressLabelsActive();
-		cons.setSuppressLabelCreation(true);
-		try {
+		try (LabelingContext ignored = cons.getSilentContext()) {
 			return process(getTwinInput());
 		} catch (CommandNotLoadedError err) {
 			// by failing the whole twin creation we make sure this uses the same path
@@ -716,14 +775,15 @@ public class GeoSymbolic extends GeoElement
 				remove();
 			}
 			throw err;
-		} catch (Throwable throwable) {
-			try {
+		// Make sure we don't catch generic errors like OOM or StackOverflow here
+		} catch (MyError | ParseException | CircularDefinitionException
+				 | RuntimeException throwable) {
+			try (LabelingContext ignored = cons.getSilentContext()) {
 				return process(getTwinFallbackInput());
-			} catch (Throwable throwable2) {
+			} catch (MyError | ParseException | CircularDefinitionException
+					 | RuntimeException throwable2) {
 				return null;
 			}
-		} finally {
-			cons.setSuppressLabelCreation(isSuppressLabelsActive);
 		}
 	}
 
@@ -810,12 +870,10 @@ public class GeoSymbolic extends GeoElement
 						return symbolicValueCopy.traverse(this);
 					}
 				}
-				if (ev instanceof GeoDummyVariable) {
-					GeoDummyVariable variable = (GeoDummyVariable) ev;
+				if (ev instanceof GeoDummyVariable variable) {
 					return new Variable(variable.getKernel(), variable.getVarName());
 				}
-				if (ev instanceof Command) {
-					Command command = (Command) ev;
+				if (ev instanceof Command command) {
 					command = checkIntegralCommand(command);
 					return command;
 				}
@@ -1201,31 +1259,31 @@ public class GeoSymbolic extends GeoElement
 	}
 
 	@Override
-	public void getXMLtags(StringBuilder builder) {
-		super.getXMLtags(builder);
+	public void getXMLTags(XMLStringBuilder builder) {
+		super.getXMLTags(builder);
 		getFVarsXML(builder);
 	}
 
 	@Override
-	protected void getStyleXML(StringBuilder builder) {
+	protected void getStyleXML(XMLStringBuilder builder) {
 		super.getStyleXML(builder);
 		getLineStyleXML(builder);
 		XMLBuilder.appendPointProperties(builder, this);
 		XMLBuilder.appendSymbolicMode(builder, this, true);
 	}
 
-	private void getFVarsXML(StringBuilder sb) {
+	private void getFVarsXML(XMLStringBuilder sb) {
 		if (fVars.isEmpty()) {
 			return;
 		}
 		String prefix = "";
-		sb.append("\t<variables val=\"");
+		StringBuilder vars = new StringBuilder();
 		for (FunctionVariable variable : fVars) {
-			sb.append(prefix);
-			StringUtil.encodeXML(sb, variable.getSetVarString());
+			vars.append(prefix);
+			vars.append(variable.getSetVarString());
 			prefix = ",";
 		}
-		sb.append("\"/>\n");
+		sb.startTag("variables").attr("val", vars).endTag();
 	}
 
 	@Override
@@ -1353,22 +1411,23 @@ public class GeoSymbolic extends GeoElement
 	}
 
 	@Override
-	protected void getDefinitionXML(StringBuilder sb) {
+	protected String getDefinitionXML() {
+		StringBuilder sb = new StringBuilder();
 		ExpressionValue unwrapped = getDefinition().unwrap();
 		if (label != null && unwrapped instanceof Equation) {
-			StringBuilder builder = new StringBuilder();
-			super.getDefinitionXML(builder);
-			if (builder.toString().contains("=")) {
+			String definitionStr = getDefinition().toString(StringTemplate.xmlTemplate);
+			if (definitionStr.contains("=")) {
 				sb.append(label);
 				sb.append(": ");
 			}
 		} else if (label != null && unwrapped instanceof Function) {
 			sb.append(label);
 			sb.append("(");
-			sb.append(((Function) unwrapped).getFunctionVariable());
+			sb.append(((Function) unwrapped).getFunctionVariable().getSetVarString());
 			sb.append(") = ");
 		}
-		super.getDefinitionXML(sb);
+		sb.append(super.getDefinitionXML());
+		return sb.toString();
 	}
 
 	/**
@@ -1411,7 +1470,7 @@ public class GeoSymbolic extends GeoElement
 	}
 
 	@Override
-	protected void appendObjectColorXML(StringBuilder sb) {
+	protected void appendObjectColorXML(XMLStringBuilder sb) {
 		if (isDefaultGeo() || isColorSet()) {
 			super.appendObjectColorXML(sb);
 		}

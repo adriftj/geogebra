@@ -1,13 +1,17 @@
-/* 
-GeoGebra - Dynamic Mathematics for Everyone
-http://www.geogebra.org
-
-This file is part of GeoGebra.
-
-This program is free software; you can redistribute it and/or modify it 
-under the terms of the GNU General Public License as published by 
-the Free Software Foundation.
-
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
  */
 
 package org.geogebra.common.main;
@@ -28,6 +32,7 @@ import org.geogebra.common.gui.view.consprotocol.ConstructionProtocolNavigation;
 import org.geogebra.common.gui.view.consprotocol.ConstructionProtocolView;
 import org.geogebra.common.gui.view.spreadsheet.SpreadsheetViewInterface;
 import org.geogebra.common.gui.view.table.TableValuesPoints;
+import org.geogebra.common.io.XMLStringBuilder;
 import org.geogebra.common.kernel.ModeSetter;
 import org.geogebra.common.kernel.View;
 import org.geogebra.common.kernel.geos.GeoElement;
@@ -144,7 +149,7 @@ public interface GuiManagerInterface extends SettingListener {
 	 * Append construction protocol XML to a builder.
 	 * @param sb XML string builder
 	 */
-	void getConsProtocolXML(StringBuilder sb);
+	void getConsProtocolXML(XMLStringBuilder sb);
 
 	/**
 	 * Show graphics view options context menu.
@@ -231,7 +236,7 @@ public interface GuiManagerInterface extends SettingListener {
 	 * @param sb XML builder
 	 * @param asPreference if it's for the preference
 	 */
-	void getAlgebraViewXML(StringBuilder sb, boolean asPreference);
+	void getAlgebraViewXML(XMLStringBuilder sb, boolean asPreference);
 
 	/**
 	 * Update undo/redo and menu for selection.
@@ -595,7 +600,7 @@ public interface GuiManagerInterface extends SettingListener {
 	 * Get XML for construction protocol and data analysis.
 	 * @param sb XML builder
 	 */
-	void getExtraViewsXML(StringBuilder sb);
+	void getExtraViewsXML(XMLStringBuilder sb);
 
 	/**
 	 * @param type help page type
@@ -621,7 +626,7 @@ public interface GuiManagerInterface extends SettingListener {
 	 * @param sb XML builder
 	 * @param asPreference whether this is for preference XML (as opposed to .ggb file)
 	 */
-	void getViewsXML(StringBuilder sb, boolean asPreference);
+	void getViewsXML(XMLStringBuilder sb, boolean asPreference);
 
 	/**
 	 * Make the right panel (toolbar) go from full screen to default width.

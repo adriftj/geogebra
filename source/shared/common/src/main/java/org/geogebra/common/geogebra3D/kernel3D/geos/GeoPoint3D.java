@@ -1,24 +1,22 @@
-/* 
-GeoGebra - Dynamic Mathematics for Everyone
-http://www.geogebra.org
-
-This file is part of GeoGebra.
-
-This program is free software; you can redistribute it and/or modify it 
-under the terms of the GNU General Public License as published by 
-the Free Software Foundation.
-
- */
-
 /*
- * GeoPoint.java
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
  *
- * The point (x,y) has homogeneous coordinates (x,y,1)
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
  *
- * Created on 30. August 2001, 17:39
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
  */
 
 package org.geogebra.common.geogebra3D.kernel3D.geos;
+
+import static org.geogebra.common.kernel.geos.XMLBuilder.coordStyle;
 
 import java.util.ArrayList;
 
@@ -27,6 +25,7 @@ import org.geogebra.common.euclidian.EuclidianView;
 import org.geogebra.common.geogebra3D.euclidian3D.draw.Drawable3D;
 import org.geogebra.common.geogebra3D.kernel3D.algos.AlgoDependentPoint3D;
 import org.geogebra.common.geogebra3D.kernel3D.transform.MirrorableAtPlane;
+import org.geogebra.common.io.XMLStringBuilder;
 import org.geogebra.common.kernel.Construction;
 import org.geogebra.common.kernel.Kernel;
 import org.geogebra.common.kernel.LocateableList;
@@ -79,11 +78,9 @@ import org.geogebra.common.plugin.GeoClass;
 import org.geogebra.common.plugin.Operation;
 import org.geogebra.common.util.DoubleUtil;
 import org.geogebra.common.util.ExtendedBoolean;
-import org.geogebra.common.util.StringUtil;
 import org.geogebra.common.util.debug.Log;
 
 /**
- * 
  * @author Markus + ggb3D
  */
 public class GeoPoint3D extends GeoVec4D implements GeoPointND, PathOrPoint,
@@ -1083,25 +1080,25 @@ public class GeoPoint3D extends GeoVec4D implements GeoPointND, PathOrPoint,
 	 * returns all class-specific xml tags for saveXML GeoGebra File Format
 	 */
 	@Override
-	protected void getStyleXML(StringBuilder sb) {
+	protected void getStyleXML(XMLStringBuilder sb) {
 		super.getStyleXML(sb);
 
 		// polar or cartesian coords
 		switch (getToStringMode()) {
 		case Kernel.COORD_POLAR:
-			sb.append("\t<coordStyle style=\"polar\"/>\n");
+			coordStyle(sb, "polar");
 			break;
 
 		case Kernel.COORD_COMPLEX:
-			sb.append("\t<coordStyle style=\"complex\"/>\n");
+			coordStyle(sb, "complex");
 			break;
 
 		case Kernel.COORD_CARTESIAN:
-			sb.append("\t<coordStyle style=\"cartesian\"/>\n");
+			coordStyle(sb, "cartesian");
 			break;
 
 		case Kernel.COORD_SPHERICAL:
-			sb.append("\t<coordStyle style=\"spherical\"/>\n");
+			coordStyle(sb, "spherical");
 			break;
 
 		default:
@@ -1109,33 +1106,24 @@ public class GeoPoint3D extends GeoVec4D implements GeoPointND, PathOrPoint,
 		}
 
 		// point size
-		sb.append("\t<pointSize val=\"");
-		sb.append(pointSize);
-		sb.append("\"/>\n");
+		sb.startTag("pointSize").attr("val", pointSize).endTag();
 		if (verticalIncrement != null) {
 			XMLBuilder.appendVerticalIncrement(sb, verticalIncrement);
 		}
 	}
 
 	@Override
-	public void appendStartPointXML(StringBuilder sb, boolean absolute) {
-		sb.append("\t<startPoint ");
-
+	public void appendStartPointXML(XMLStringBuilder sb, boolean absolute) {
+		sb.startTag("startPoint");
 		if (isAbsoluteStartPoint()) {
-			sb.append("x=\"");
-			sb.append(getCoords().get(1));
-			sb.append("\" y=\"");
-			sb.append(getCoords().get(2));
-			sb.append("\" z=\"");
-			sb.append(getCoords().get(3));
-			sb.append("\" w=\"");
-			sb.append(getCoords().get(4));
-			sb.append("\"/>\n");
+			sb.attr("x", getCoords().get(1));
+			sb.attr("y", getCoords().get(2));
+			sb.attr("z", getCoords().get(3));
+			sb.attr("w", getCoords().get(4));
 		} else {
-			sb.append("exp=\"");
-			StringUtil.encodeXML(sb, getLabel(StringTemplate.xmlTemplate));
-			sb.append("\"/>\n");
+			sb.attr("exp", getLabel(StringTemplate.xmlTemplate));
 		}
+		sb.endTag();
 	}
 
 	@Override

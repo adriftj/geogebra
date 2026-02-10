@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.kernel;
 
 import java.util.ArrayList;
@@ -24,6 +40,7 @@ import org.geogebra.common.euclidian.LayerManager;
 import org.geogebra.common.euclidian.event.PointerEventType;
 import org.geogebra.common.io.MyXMLio;
 import org.geogebra.common.io.XMLParseException;
+import org.geogebra.common.io.XMLStringBuilder;
 import org.geogebra.common.kernel.algos.AlgoDistancePoints;
 import org.geogebra.common.kernel.algos.AlgoElement;
 import org.geogebra.common.kernel.algos.AlgoJoinPointsSegment;
@@ -67,9 +84,9 @@ import org.geogebra.common.plugin.GeoClass;
 import org.geogebra.common.plugin.ScriptManager;
 import org.geogebra.common.util.StringUtil;
 import org.geogebra.common.util.debug.Log;
+import org.geogebra.editor.share.input.Character;
 
 import com.google.j2objc.annotations.Weak;
-import com.himamis.retex.editor.share.input.Character;
 
 /**
  * Manages construction elements
@@ -371,10 +388,19 @@ public class Construction {
 	}
 
 	/**
-	 * @param geo geo
-	 * @return which constant geo (xAxis, yAxis, ...)
+	 * @param geo GeoElement
+	 * @return Whether {@code geo} is a constant element.
 	 */
-	final public Constants isConstantElement(GeoElement geo) {
+	final public boolean isConstantElement(GeoElement geo) {
+		return getConstantElement(geo) != Constants.NOT;
+	}
+
+	/**
+	 * @param geo GeoElement
+	 * @return The constant element associated with {@code geo},
+	 * {@link Constants#NOT} if it is no constant element.
+	 */
+	final public Constants getConstantElement(GeoElement geo) {
 		if (geo == xAxis) {
 			return Constants.X_AXIS;
 		}
@@ -382,24 +408,36 @@ public class Construction {
 			return Constants.Y_AXIS;
 		}
 
-		return companion.isConstantElement(geo);
+		return companion.getConstantElement(geo);
 	}
 
 	/**
-	 * Renames xAxis and yAxis in the geoTable and sets axisLocalName-s
-	 * accordingly
+	 * Renames xAxis and yAxis in the geoTable and sets axisLocalName-s accordingly
 	 */
 	final public void updateLocalAxesNames() {
-		geoTable.remove(xAxisLocalName);
-		geoTable.remove(yAxisLocalName);
-
-		Localization app = kernel.getLocalization();
-		xAxisLocalName = app.getMenu("xAxis");
-		yAxisLocalName = app.getMenu("yAxis");
-		geoTable.put(xAxisLocalName, xAxis);
-		geoTable.put(yAxisLocalName, yAxis);
-
+		xAxisLocalName = updateLocalAxisName(xAxis, xAxisLocalName, "xAxis");
+		yAxisLocalName = updateLocalAxisName(yAxis, yAxisLocalName, "yAxis");
 		companion.updateLocalAxesNames();
+	}
+
+	/**
+	 * In case a constant element has been overwritten by the XML,
+	 * this method makes sure to keep the label unchanged (Issue with language change)
+	 * @param element The element whose local name is to be updated
+	 * @param localName The currently used name for element whose name is to be updated
+	 * @param key The key used to retrieve the standard localized name of the given element
+	 * @return The local name which may have been updated
+	 */
+	final public String updateLocalAxisName(GeoElement element, String localName, String key) {
+		Localization localization = kernel.getLocalization();
+		GeoElement geo = geoTable.remove(localName);
+		String changedLocalName = localName;
+		if (geo == null || geo == element) {
+			changedLocalName = localization.getMenu(key);
+			geo = element;
+		}
+		geoTable.put(changedLocalName, geo);
+		return changedLocalName;
 	}
 
 	/**
@@ -518,6 +556,15 @@ public class Construction {
 	 */
 	public void setSuppressLabelCreation(boolean flag) {
 		suppressLabelCreation = flag;
+	}
+
+	/**
+	 * @return context that prevents labeling objects until it's closed
+	 */
+	public LabelingContext getSilentContext() {
+		final boolean oldSuppression = suppressLabelCreation;
+		suppressLabelCreation = true;
+		return () -> suppressLabelCreation = oldSuppression;
 	}
 
 	/**
@@ -1245,38 +1292,35 @@ public class Construction {
 	 * @param sb StringBuilder to which the XML is appended
 	 * @param getListenersToo whether to include JS listener names
 	 */
-	public void getConstructionXML(StringBuilder sb, boolean getListenersToo) {
+	public void getConstructionXML(XMLStringBuilder sb, boolean getListenersToo) {
 
 		try {
 			// save construction elements
-			sb.append("<construction title=\"");
-			StringUtil.encodeXML(sb, getTitle());
-			sb.append("\" author=\"");
-			StringUtil.encodeXML(sb, getAuthor());
-			sb.append("\" date=\"");
-			StringUtil.encodeXML(sb, getDate());
-			sb.append("\">\n");
+			sb.startOpeningTag("construction", 0);
+			sb.attr("title", getTitle());
+			sb.attr("author", getAuthor());
+			sb.attr("date", getDate());
+			sb.endTag();
 
 			// worksheet text
 			if (worksheetTextDefined()) {
-				sb.append("\t<worksheetText above=\"");
-				StringUtil.encodeXML(sb, getWorksheetText(0));
-				sb.append("\" below=\"");
-				StringUtil.encodeXML(sb, getWorksheetText(1));
-				sb.append("\"/>\n");
+				sb.startTag("worksheetText");
+				sb.attr("above", getWorksheetText(0));
+				sb.attr("below", getWorksheetText(1));
+				sb.endTag();
 			}
 
 			getConstructionElementsXML(sb, getListenersToo);
 
 			getGroupsXML(sb);
 
-			sb.append("</construction>\n");
+			sb.closeTag("construction");
 		} catch (Exception e) {
 			Log.debug(e);
 		}
 	}
 
-	private void getGroupsXML(StringBuilder sb) {
+	private void getGroupsXML(XMLStringBuilder sb) {
 		for (Group gr : getGroups()) {
 			gr.getXML(sb);
 		}
@@ -1288,7 +1332,7 @@ public class Construction {
 	 * @param sb String builder
 	 * @param getListenersToo whether to include JS listener names
 	 */
-	public void getConstructionElementsXML(StringBuilder sb,
+	public void getConstructionElementsXML(XMLStringBuilder sb,
 			boolean getListenersToo) {
 
 		ConstructionElement ce;
@@ -1305,7 +1349,7 @@ public class Construction {
 	 * @param sb String builder
 	 * @param statement The statement to prove
 	 */
-	public void getConstructionElementsXML_OGP(StringBuilder sb,
+	public void getConstructionElementsXML_OGP(XMLStringBuilder sb,
 			GeoElement statement) {
 
 		ConstructionElement ce;
@@ -1573,7 +1617,7 @@ public class Construction {
 
 		// 4) build new construction
 		if (canReplace) {
-			buildConstructionWithGlobalListeners(consXML, oldXML, info);
+			buildConstructionWithGlobalListeners(new XMLStringBuilder(consXML), oldXML, info);
 		} else {
 			throw new MyError(getApplication().getLocalization(),
 					Errors.ReplaceFailed);
@@ -1599,7 +1643,7 @@ public class Construction {
 	}
 
 	private void buildConstructionWithGlobalListeners(
-			StringBuilder consXML, String oldXML,
+			XMLStringBuilder consXML, String oldXML,
 			EvalInfo info) throws XMLParseException {
 
 		ScriptManager scriptManager = kernel.getApplication().getScriptManager();
@@ -1652,7 +1696,7 @@ public class Construction {
 		try {
 			// 4) build new construction for all changes at once
 			if (canReplace) {
-				buildConstructionWithGlobalListeners(consXML, oldXML, null);
+				buildConstructionWithGlobalListeners(new XMLStringBuilder(consXML), oldXML, null);
 			} else {
 				throw new MyError(getApplication().getLocalization(),
 						Errors.ReplaceFailed);
@@ -1681,7 +1725,7 @@ public class Construction {
 
 		// build new construction to make sure all ceIDs are correct after the
 		// redefine
-		buildConstruction(consXML, oldXML, new EvalInfo(true, true, false));
+		buildConstruction(new XMLStringBuilder(consXML), oldXML, new EvalInfo(true, true, false));
 		setUpdateConstructionRunning(false);
 	}
 
@@ -2876,7 +2920,7 @@ public class Construction {
 	/**
 	 * Tries to build the new construction from the given XML string.
 	 */
-	private void buildConstruction(StringBuilder consXML, String oldXML,
+	private void buildConstruction(XMLStringBuilder consXML, String oldXML,
 			EvalInfo info) throws XMLParseException {
 		// try to process the new construction
 		try {
@@ -2900,7 +2944,7 @@ public class Construction {
 
 	private void restoreAfterRedefine(String oldXML, EvalInfo info) throws XMLParseException {
 		if (oldXML != null) {
-			buildConstruction(new StringBuilder(oldXML), null, info);
+			buildConstruction(new XMLStringBuilder(new StringBuilder(oldXML)), null, info);
 		}
 	}
 

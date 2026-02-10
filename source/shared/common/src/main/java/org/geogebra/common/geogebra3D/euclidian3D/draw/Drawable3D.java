@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.geogebra3D.euclidian3D.draw;
 
 import java.util.ArrayList;
@@ -8,12 +24,12 @@ import java.util.TreeSet;
 
 import javax.annotation.CheckForNull;
 
+import org.geogebra.common.awt.AwtFactory;
 import org.geogebra.common.awt.GColor;
 import org.geogebra.common.awt.GGraphics2D;
 import org.geogebra.common.awt.GRectangle;
 import org.geogebra.common.euclidian.DrawableND;
 import org.geogebra.common.euclidian.MoveMode;
-import org.geogebra.common.factories.AwtFactory;
 import org.geogebra.common.geogebra3D.euclidian3D.EuclidianController3D;
 import org.geogebra.common.geogebra3D.euclidian3D.EuclidianView3D;
 import org.geogebra.common.geogebra3D.euclidian3D.Hits3D;
@@ -35,7 +51,7 @@ import org.geogebra.common.util.DoubleUtil;
  * 3D representation of a {@link GeoElement3D}
  * 
  * 
- * <h3>How to create the drawable of a new element</h3>
+ * <h2>How to create the drawable of a new element</h2>
  * 
  * We'll call here our new element "GeoNew3D" and create a drawable3D linked to
  * it:

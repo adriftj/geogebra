@@ -1,19 +1,17 @@
-/* 
-GeoGebra - Dynamic Mathematics for Everyone
-http://www.geogebra.org
-
-This file is part of GeoGebra.
-
-This program is free software; you can redistribute it and/or modify it 
-under the terms of the GNU General Public License as published by 
-the Free Software Foundation.
-
- */
-
 /*
- * Command.java
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
  *
- * Created on 05. September 2001, 12:05
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
  */
 
 package org.geogebra.common.kernel.arithmetic;
@@ -24,6 +22,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import org.geogebra.common.kernel.CommandLookupStrategy;
@@ -45,17 +44,17 @@ import org.geogebra.common.main.App;
 import org.geogebra.common.main.MyError;
 import org.geogebra.common.plugin.Operation;
 import org.geogebra.common.util.debug.Log;
+import org.geogebra.editor.share.input.Character;
+import org.geogebra.editor.share.util.Unicode;
 
 import com.google.j2objc.annotations.Weak;
-import com.himamis.retex.editor.share.input.Character;
-import com.himamis.retex.editor.share.util.Unicode;
 
 /**
  * 
  * @author Markus
  */
 public class Command extends ValidExpression
-		implements ReplaceChildrenByValues, GetItem, HasArguments {
+		implements ReplaceChildrenByValues, GetItem {
 
 	private static final String DEFAULT_FUNCTION_VAR_NAME = "x";
 	// list of arguments
@@ -205,7 +204,11 @@ public class Command extends ValidExpression
 		return args.toArray(new ExpressionNode[0]);
 	}
 
-	@Override
+	/**
+	 * @param i
+	 *            index
+	 * @return i-th argument
+	 */
 	public ExpressionNode getArgument(int i) {
 		return args.get(i);
 	}
@@ -220,7 +223,9 @@ public class Command extends ValidExpression
 		args.set(i, en);
 	}
 
-	@Override
+	/**
+	 * @return number of arguments
+	 */
 	public int getArgumentNumber() {
 		return args.size();
 	}
@@ -259,9 +264,7 @@ public class Command extends ValidExpression
 			}
 			sbToString.setLength(0);
 			if ("Integral".equals(name)) {
-				String var = getIntegralVar();
-				appendIntegral(this, sbToString, var, tpl);
-				return sbToString.toString();
+				return getIntegralLaTeX(tpl);
 			} else if ("Sum".equals(name) && getArgumentNumber() == 4) {
 				sbToString.append("\\sum_{");
 				sbToString.append(args.get(1).toString(tpl));
@@ -450,49 +453,55 @@ public class Command extends ValidExpression
 		return !funcStr.contains("(" + functionVar + ")");
 	}
 
-	/**
-	 * @param integral integral command/algo
-	 * @param sb target string builder
-	 * @param defaultVar fallback variable for dx
-	 *                  (overwritten by 2nd / 4th argument for indefinite / definite integral)
-	 * @param tpl template
-	 */
-	public static void appendIntegral(HasArguments integral,
-			StringBuilder sb, String defaultVar, StringTemplate tpl) {
-		sb.append("\\int");
-		String var = defaultVar;
-		switch (integral.getArgumentNumber()) {
+	private String getIntegralLaTeX(StringTemplate tpl) {
+		String defaultVar = getIntegralVar();
+		switch (getArgumentNumber()) {
 		case 1:
-			sb.append(" ");
-			sb.append(getLabelOrDefinition(integral.getArgument(0), tpl));
-			break;
+			return getIntegralLaTeX(tpl, defaultVar, getArgument(0), null, null, null);
 		case 2:
-			sb.append(" ");
-			sb.append(getLabelOrDefinition(integral.getArgument(0), tpl));
-			var = getLabelOrDefinition(integral.getArgument(1), tpl);
-			break;
+			return getIntegralLaTeX(tpl, defaultVar, getArgument(0), getArgument(1), null, null);
 		case 3:
-			sb.append("\\limits_{");
-			sb.append(getLabelOrDefinition(integral.getArgument(1), tpl));
-			sb.append("}^{");
-			sb.append(getLabelOrDefinition(integral.getArgument(2), tpl));
-			sb.append("}");
-			sb.append(getLabelOrDefinition(integral.getArgument(0), tpl));
-			break;
+			return getIntegralLaTeX(tpl, defaultVar, getArgument(0), null,
+					getArgument(1), getArgument(2));
 		case 4:
-			sb.append("\\limits_{");
-			sb.append(getLabelOrDefinition(integral.getArgument(2), tpl));
-			sb.append("}^{");
-			sb.append(getLabelOrDefinition(integral.getArgument(3), tpl));
-			sb.append("}");
-			sb.append(getLabelOrDefinition(integral.getArgument(0), tpl));
-			var = getLabelOrDefinition(integral.getArgument(1), tpl);
-			break;
+			return getIntegralLaTeX(tpl, defaultVar, getArgument(0), getArgument(1),
+					getArgument(2), getArgument(3));
 		default:
-			break;
+			return getIntegralLaTeX(tpl, defaultVar, null, null, null, null);
 		}
-		sb.append("\\,\\mathrm{d}");
-		sb.append(var);
+	}
+
+	/**
+	 * Returns the LaTeX representation of an integral expression.
+	 * @param template template
+	 * @param defaultVariable fallback variable for dx (if variable is null)
+	 * @param function function value
+	 * @param startValue start limit
+	 * @param endValue end limit
+	 * @param variable integral variable
+	 * @return LaTeX representation
+	 */
+	public static String getIntegralLaTeX(
+			StringTemplate template,
+			String defaultVariable,
+			@CheckForNull ExpressionValue function,
+			@CheckForNull ExpressionValue variable,
+			@CheckForNull ExpressionValue startValue,
+			@CheckForNull ExpressionValue endValue) {
+		String result = "\\int";
+		if (startValue != null && endValue != null) {
+			String start = getLabelOrDefinition(startValue, template);
+			String end = getLabelOrDefinition(endValue, template);
+			result += "\\limits_{" + start + "}^{" + end + "}";
+		} else {
+			result += " ";
+		}
+		if (function != null) {
+			result += getLabelOrDefinition(function, template);
+		}
+		result += "\\,\\mathrm{d}";
+		result += variable != null ? getLabelOrDefinition(variable, template) : defaultVariable;
+		return result;
 	}
 
 	private static String toString(ExpressionValue ev, boolean symbolic,

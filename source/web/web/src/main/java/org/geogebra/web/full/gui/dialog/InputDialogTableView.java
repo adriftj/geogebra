@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.web.full.gui.dialog;
 
 import static org.geogebra.common.main.settings.TableSettings.DEFAULT_MAX;
@@ -17,7 +33,6 @@ import org.geogebra.web.html5.main.AppW;
 import org.geogebra.web.html5.util.TestHarness;
 import org.geogebra.web.shared.components.dialog.ComponentDialog;
 import org.geogebra.web.shared.components.dialog.DialogData;
-import org.gwtproject.user.client.ui.FlowPanel;
 import org.gwtproject.user.client.ui.Label;
 
 /**
@@ -53,38 +68,26 @@ public class InputDialogTableView extends ComponentDialog
 		});
 	}
 
-	/**
-	 * @return input field for start value
-	 */
-	public ComponentInputField getStartField() {
-		return startValue;
-	}
-
 	private void buildContent() {
-		FlowPanel contentPanel = new FlowPanel();
-		buildTextFieldPanel(contentPanel);
-		errorLabel = new Label();
-		errorLabel.setStyleName("globalErrorLabel");
-		contentPanel.add(errorLabel);
-		addDialogContent(contentPanel);
-	}
-
-	private void buildTextFieldPanel(FlowPanel root) {
-		startValue = addTextField("StartValueX", root);
-		endValue = addTextField("EndValueX", root);
-		step = addTextField("Step", root);
+		startValue = createTextField("StartValueX");
+		endValue = createTextField("EndValueX");
+		step = createTextField("Step");
 		// last input text field shouldn't have any bottom margin
 		step.addStyleName("noBottomMarg");
 		TestHarness.setAttr(startValue, "startValue");
 		TestHarness.setAttr(endValue, "endValue");
 		TestHarness.setAttr(step, "stepValue");
+
+		errorLabel = new Label();
+		errorLabel.setStyleName("globalErrorLabel");
+		errorLabel.getElement().setTabIndex(-1);
+
+		addDialogContent(startValue, endValue, step, errorLabel);
 	}
 
-	private ComponentInputField addTextField(String labelText, FlowPanel root) {
-		final ComponentInputField field = new ComponentInputField((AppW) app,
+	private ComponentInputField createTextField(String labelText) {
+		return new ComponentInputField((AppW) app,
 				null, labelText, null, "");
-		root.add(field);
-		return field;
 	}
 
 	@Override

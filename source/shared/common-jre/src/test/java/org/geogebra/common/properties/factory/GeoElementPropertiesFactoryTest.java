@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ * 
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ * 
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.properties.factory;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
@@ -10,11 +26,13 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.geogebra.common.SuiteSubApp;
+import org.geogebra.common.kernel.geos.GeoAngle;
 import org.geogebra.common.kernel.geos.GeoConic;
 import org.geogebra.common.kernel.geos.GeoLine;
+import org.geogebra.common.kernel.geos.GeoNumeric;
 import org.geogebra.common.kernel.geos.GeoPoint;
 import org.geogebra.common.properties.Property;
-import org.geogebra.common.properties.impl.collections.NamedEnumeratedPropertyCollection;
+import org.geogebra.common.properties.impl.facade.NamedEnumeratedPropertyListFacade;
 import org.geogebra.common.properties.impl.objects.LinearEquationFormProperty;
 import org.geogebra.common.properties.impl.objects.QuadraticEquationFormProperty;
 import org.geogebra.test.BaseAppTestSetup;
@@ -56,11 +74,50 @@ public class GeoElementPropertiesFactoryTest extends BaseAppTestSetup {
 		GeoPoint onePoint = evaluateGeoElement("(1,1)");
 		List<PropertiesArray> propertiesArray = new GeoElementPropertiesFactory()
 				.createStructuredProperties(getKernel().getAlgebraProcessor(),
-						getApp().getLocalization(), List.of(zeroPoint, onePoint));
+						getApp().getLocalization(), getApp().getImageManager(),
+						List.of(zeroPoint, onePoint));
 		List<String> basicProperties = Arrays.stream(propertiesArray.get(0).getProperties())
 				.map(Property::getName).collect(Collectors.toList());
-		assertEquals(List.of("Name", "Caption", "Show", "Show trace", "Set caption style", "Fixed",
-				"Show in Algebra View"), basicProperties);
+		assertEquals(List.of("Name", "Caption", "Label", "Show", "Show trace", "Fix Object",
+				"Auxiliary Object"), basicProperties);
+	}
+
+	@Test
+	public void testAngleStructured() {
+		GeoAngle angle = evaluateGeoElement("Angle[(0,1), (0,0), (1,0)]");
+		List<PropertiesArray> propertiesArray = new GeoElementPropertiesFactory()
+				.createStructuredProperties(getKernel().getAlgebraProcessor(),
+						getApp().getLocalization(), getApp().getImageManager(), List.of(angle));
+		List<String> basicProperties = Arrays.stream(propertiesArray.get(0).getProperties())
+				.map(Property::getName).collect(Collectors.toList());
+		assertEquals(List.of("Name", "Definition", "Caption", "Label", "Show",
+				"Auxiliary Object"), basicProperties);
+	}
+
+	@Test
+	public void testNumberStructured() {
+		GeoNumeric number = evaluateGeoElement("a=1.5");
+		List<PropertiesArray> propertiesArray = new GeoElementPropertiesFactory()
+				.createStructuredProperties(getKernel().getAlgebraProcessor(),
+						getApp().getLocalization(), getApp().getImageManager(), List.of(number));
+		List<String> basicProperties = Arrays.stream(propertiesArray.get(0).getProperties())
+				.map(Property::getName).collect(Collectors.toList());
+		assertEquals(List.of("Name", "Definition", "Caption", "Label", "Show", "Fix Object",
+				"Auxiliary Object"), basicProperties);
+	}
+
+	@Test
+	public void testSliderIsFixed() {
+		GeoNumeric numeric1 = evaluateGeoElement("a = 5");
+		GeoNumeric numeric2 = evaluateGeoElement("a = 10");
+		List<PropertiesArray> propertiesArray = new GeoElementPropertiesFactory()
+				.createStructuredProperties(getKernel().getAlgebraProcessor(),
+						getApp().getLocalization(), getApp().getImageManager(),
+						List.of(numeric1, numeric2));
+		List<String> basicProperties = Arrays.stream(propertiesArray.get(0).getProperties())
+				.map(Property::getName).collect(Collectors.toList());
+		assertEquals(List.of("Name", "Caption", "Label", "Show", "Fix Object",
+				"Auxiliary Object"), basicProperties);
 	}
 
 	@Test
@@ -82,15 +139,15 @@ public class GeoElementPropertiesFactoryTest extends BaseAppTestSetup {
 
 	private boolean containsLinearEquationFormProperty(PropertiesArray array) {
 		return Arrays.stream(array.getProperties())
-				.anyMatch(property -> property instanceof NamedEnumeratedPropertyCollection<?, ?>
-						&& ((NamedEnumeratedPropertyCollection<?, ?>) property)
+				.anyMatch(property -> property instanceof NamedEnumeratedPropertyListFacade<?, ?>
+						&& ((NamedEnumeratedPropertyListFacade<?, ?>) property)
 						.getFirstProperty() instanceof LinearEquationFormProperty);
 	}
 
 	private boolean containsQuadraticEquationFormProperty(PropertiesArray array) {
 		return Arrays.stream(array.getProperties())
-				.anyMatch(property -> property instanceof NamedEnumeratedPropertyCollection<?, ?>
-						&& ((NamedEnumeratedPropertyCollection<?, ?>) property)
+				.anyMatch(property -> property instanceof NamedEnumeratedPropertyListFacade<?, ?>
+						&& ((NamedEnumeratedPropertyListFacade<?, ?>) property)
 						.getFirstProperty() instanceof QuadraticEquationFormProperty);
 	}
 }

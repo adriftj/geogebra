@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.exam;
 
 import java.util.ArrayList;
@@ -44,7 +60,7 @@ import com.google.j2objc.annotations.Weak;
 /**
  * A controller for coordinating the core aspects of exam mode.
  *
- * <h3>Responsibilities</h3>
+ * <h2>Responsibilities</h2>
  * Here's the list of responsibilities of this controller:
  * <ul>
  *     <li><b>Exam state</b>: Starting, stopping, and finishing up the exam, and making the
@@ -57,7 +73,7 @@ import com.google.j2objc.annotations.Weak;
  *     when the exam ends.
  *     <li><b>Events</b>: Collect relevant events (e.g., cheating attempts).
  * </ul>
- * <h3>NOT Responsibilities</h3>
+ * <h2>NOT Responsibilities</h2>
  * Conversely, here's what's not in the responsibility of this controller:
  * <ul>
  *     <li><b>UI</b>: Each client platform will need to implement UI or permissions flows

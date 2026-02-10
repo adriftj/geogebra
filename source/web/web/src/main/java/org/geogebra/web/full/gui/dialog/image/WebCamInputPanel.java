@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.web.full.gui.dialog.image;
 
 import org.geogebra.common.util.debug.Log;
@@ -128,7 +144,7 @@ public class WebCamInputPanel extends FlowPanel {
 
 	private String getPermissionDeniedMessageKey() {
 		return isElectronMac && !app.isByCS() ? "permission.request"
-				: "Webcam.Denied.Message";
+				: app.getVendorSettings().getMenuLocalizationKey("Webcam.Denied.Message");
 	}
 
 	private void showRequestDialog() {
@@ -198,21 +214,24 @@ public class WebCamInputPanel extends FlowPanel {
 	 * @param errName - error
 	 */
 	public void onCameraError(String errName) {
-		if ("PermissionDeniedError".equals(errName)
-				|| "NotAllowedError".equals(errName)
-				|| isElectronMac
-				&& "TrackStartError".equals(errName)) {
-			// permission denied by user
-			showPermissionDeniedDialog();
-		} else if ("NotFoundError".equals(errName)
-				|| "DevicesNotFoundError".equals(errName)
-				|| "TrackStartError".equals(errName)
-				|| "NotReadableError".equals(errName)
-				|| "SourceUnavailableError".equals(errName)
-				|| "Error".equals(errName)) {
-			showErrorDialog();
+		switch (errName) {
+		case "PermissionDeniedError",
+			 "NotAllowedError" -> showPermissionDeniedDialog();
+		case "TrackStartError" -> {
+			if (isElectronMac) {
+				showPermissionDeniedDialog();
+			} else {
+				showErrorDialog();
+			}
 		}
-		Log.debug("Error from WebCam: " + errName);
+		case "NotFoundError",
+			 "DevicesNotFoundError",
+			 "NotReadableError",
+			 "SourceUnavailableError",
+			 "AbortError",
+			 "Error" -> showErrorDialog();
+		default -> Log.debug("Error from WebCam: " + errName);
+		}
 	}
 
 	/**

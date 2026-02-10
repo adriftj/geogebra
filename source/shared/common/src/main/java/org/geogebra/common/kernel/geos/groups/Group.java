@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.kernel.geos.groups;
 
 import java.util.ArrayList;
@@ -5,6 +21,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.stream.Stream;
 
+import org.geogebra.common.io.XMLStringBuilder;
 import org.geogebra.common.kernel.geos.GeoElement;
 
 /**
@@ -85,16 +102,12 @@ public class Group {
      * xml representation of group for saving/loading
      * @param sb - xml string builder
      */
-    public void getXML(StringBuilder sb) {
-        sb.append("<group ");
+    public void getXML(XMLStringBuilder sb) {
+        sb.startTag("group", 0);
         for (int i = 0; i < getGroupedGeos().size(); i++) {
-            sb.append("l");
-            sb.append(i);
-            sb.append("=\"");
-            sb.append(getGroupedGeos().get(i).getLabelSimple());
-            sb.append("\" ");
+            sb.attr("l" + i, getGroupedGeos().get(i).getLabelSimple());
         }
-        sb.append("/>\n");
+        sb.endTag();
     }
 
     /**

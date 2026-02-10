@@ -1,19 +1,17 @@
-/* 
-GeoGebra - Dynamic Mathematics for Everyone
-http://www.geogebra.org
-
-This file is part of GeoGebra.
-
-This program is free software; you can redistribute it and/or modify it 
-under the terms of the GNU General Public License as published by 
-the Free Software Foundation.
-
- */
-
 /*
- * XMLFileReader.java
- *
- * Created on 09. Mai 2003, 16:05
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ * 
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ * 
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
  */
 
 package org.geogebra.desktop.io;
@@ -28,7 +26,7 @@ import java.util.zip.ZipInputStream;
 
 import javax.imageio.ImageIO;
 
-import org.geogebra.common.jre.gui.MyImageJre;
+import org.geogebra.common.awt.MyImage;
 import org.geogebra.common.jre.headless.AppDI;
 import org.geogebra.common.jre.io.MyXMLioJre;
 import org.geogebra.common.kernel.Construction;
@@ -76,18 +74,18 @@ public class MyXMLioD extends MyXMLioJre {
 	}
 
 	@Override
-	final protected MyImageJre getExportImage(double width, double height) {
+	final protected MyImage getExportImage(double width, double height) {
 		return ((AppDI) app).getExportImage(THUMBNAIL_PIXELS_X,
 				THUMBNAIL_PIXELS_Y);
 	}
 
 	@Override
-	final protected MyImageJre getExternalImage(String fileName) {
+	final protected MyImage getExternalImage(String fileName) {
 		return ((AppDI) app).getExternalImage(fileName);
 	}
 
 	@Override
-	final protected void writeImage(MyImageJre img, String ext, OutputStream os)
+	final protected void writeImage(MyImage img, String ext, OutputStream os)
 			throws IOException {
 		ImageIO.write((BufferedImage) ((MyImageD) img).getImage(), ext, os);
 

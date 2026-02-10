@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ * 
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ * 
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.jre.undoredo;
 
 import static org.geogebra.common.plugin.EuclidianStyleConstants.LINE_TYPE_DASHED_DOTTED;
@@ -20,8 +36,8 @@ import org.geogebra.common.kernel.geos.GeoElement;
 import org.geogebra.common.properties.PropertySupplier;
 import org.geogebra.common.properties.PropertyWrapper;
 import org.geogebra.common.properties.factory.GeoElementPropertiesFactory;
-import org.geogebra.common.properties.impl.collections.ColorPropertyCollection;
-import org.geogebra.common.properties.impl.collections.EnumeratedPropertyCollection;
+import org.geogebra.common.properties.impl.facade.ColorPropertyListFacade;
+import org.geogebra.common.properties.impl.facade.EnumeratedPropertyListFacade;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -153,7 +169,7 @@ public class StrokeSplittingTest extends BaseEuclidianControllerTest {
 		PropertySupplier lineStyleProp = propertyWrapper.withStrokeSplitting(
 				geos2 -> propFactory.createColorProperty(
 						getApp().getLocalization(), geos2), geos);
-		((ColorPropertyCollection<?>) lineStyleProp.updateAndGet())
+		((ColorPropertyListFacade<?>) lineStyleProp.updateAndGet())
 				.setValue(GColor.GREEN);
 
 		assertEquals(GColor.GREEN, lookup("stroke2").getObjectColor());
@@ -168,7 +184,7 @@ public class StrokeSplittingTest extends BaseEuclidianControllerTest {
 		PropertySupplier lineStyleProp = propertyWrapper.withStrokeSplitting(
 				geos2 -> propFactory.createLineStyleProperty(
 						getApp().getLocalization(), geos2), geos);
-		((EnumeratedPropertyCollection<?, Integer>) lineStyleProp.updateAndGet())
+		((EnumeratedPropertyListFacade<?, Integer>) lineStyleProp.updateAndGet())
 				.setValue(LINE_TYPE_DASHED_DOTTED);
 		assertEquals(LINE_TYPE_DASHED_DOTTED, lookup("stroke2").getLineType());
 		assertEquals(0, lookup("stroke3").getLineType());

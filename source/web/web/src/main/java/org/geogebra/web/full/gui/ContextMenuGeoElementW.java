@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.web.full.gui;
 
 import java.util.ArrayList;
@@ -38,7 +54,10 @@ import org.geogebra.web.full.javax.swing.GPopupMenuW;
 import org.geogebra.web.html5.css.GuiResourcesSimple;
 import org.geogebra.web.html5.gui.menu.AriaMenuBar;
 import org.geogebra.web.html5.gui.menu.AriaMenuItem;
+import org.geogebra.web.html5.gui.view.IconSpec;
 import org.geogebra.web.html5.main.AppW;
+import org.geogebra.web.html5.main.general.GeneralIcon;
+import org.geogebra.web.html5.main.general.GeneralIconResource;
 import org.geogebra.web.html5.util.CopyPasteW;
 import org.geogebra.web.resources.SVGResource;
 import org.gwtproject.dom.client.Element;
@@ -65,6 +84,7 @@ public class ContextMenuGeoElementW extends ContextMenuGeoElement
 	protected Localization loc;
 	private LabelController labelController;
 	private final ContextMenuItemFactory factory;
+	private final GeneralIconResource generalIconResource;
 
 	/**
 	 * Creates new context menu
@@ -77,6 +97,7 @@ public class ContextMenuGeoElementW extends ContextMenuGeoElement
 		super(app);
 		this.factory = factory;
 		this.loc = app.getLocalization();
+		this.generalIconResource = app.getGeneralIconResource();
 		wrappedPopup = factory.newPopupMenu(app);
 	}
 
@@ -276,22 +297,17 @@ public class ContextMenuGeoElementW extends ContextMenuGeoElement
 				wrappedPopup.addSeparator();
 			}
 
-			SVGResource img = MaterialDesignResources.INSTANCE.gear();
-
 			// open properties dialog
-			addHtmlAction(this::openPropertiesDialogCmd, img,
-					loc.getMenu("Settings"));
+			addHtmlAction(this::openPropertiesDialogCmd, generalIconResource
+							.getImageResource(GeneralIcon.SETTINGS), loc.getMenu("Settings"));
 		}
 	}
 
 	private void addDeleteItem() {
 		if (app.letDelete() && !getGeo().isProtected(EventType.REMOVE)
 				&& !app.isUnbundledOrWhiteboard()) {
-
-			SVGResource img = MaterialDesignResources.INSTANCE.delete_black();
-
-			addHtmlAction(() -> deleteCmd(false),
-					img, loc.getMenu("Delete"));
+			addHtmlAction(() -> deleteCmd(false), generalIconResource
+					.getImageResource(GeneralIcon.DELETE), loc.getMenu("Delete"));
 		}
 	}
 
@@ -478,10 +494,9 @@ public class ContextMenuGeoElementW extends ContextMenuGeoElement
 	}
 
 	private void addFixObjectMenuItem(boolean locked, Runnable command) {
-		SVGResource img = MaterialDesignResources.INSTANCE.lock_black();
 		final GCheckmarkMenuItem cmItem = factory.newCheckmarkMenuItem(
-				img, loc.getMenu("FixObject"),
-				locked, command::run);
+				generalIconResource.getImageResource(GeneralIcon.LOCK),
+				loc.getMenu("FixObject"), locked, command::run);
 		wrappedPopup.addItem(cmItem);
 	}
 
@@ -512,15 +527,13 @@ public class ContextMenuGeoElementW extends ContextMenuGeoElement
 	}
 
 	private void addCutCopy() {
-		MaterialDesignResources resources = MaterialDesignResources.INSTANCE;
-
 		Command cutCommand = () -> {
 			app.setWaitCursor();
 			cutCmd();
 			app.setDefaultCursor();
 		};
 
-		addHtmlAction(cutCommand, resources.cut_black(),
+		addHtmlAction(cutCommand, generalIconResource.getImageResource(GeneralIcon.CUT),
 				loc.getMenu("Cut"));
 
 		Command copyCommand = () -> {
@@ -529,7 +542,8 @@ public class ContextMenuGeoElementW extends ContextMenuGeoElement
 			app.setDefaultCursor();
 		};
 
-		addHtmlAction(copyCommand, resources.copy_black(), loc.getMenu("Copy"));
+		addHtmlAction(copyCommand, generalIconResource.getImageResource(GeneralIcon.COPY),
+				loc.getMenu("Copy"));
 	}
 
 	private void addDuplicate() {
@@ -549,16 +563,14 @@ public class ContextMenuGeoElementW extends ContextMenuGeoElement
 	 * add paste menu item
 	 */
 	protected void addPasteItem() {
-		ResourcePrototype img = MaterialDesignResources.INSTANCE.paste_black();
-
 		Command pasteCommand = () -> {
 			app.setWaitCursor();
 			pasteCmd();
 			app.setDefaultCursor();
 		};
 
-		final AriaMenuItem menuPaste = addHtmlAction(pasteCommand, img,
-				loc.getMenu("Paste"));
+		final AriaMenuItem menuPaste = addHtmlAction(pasteCommand, generalIconResource
+						.getImageResource(GeneralIcon.PASTE), loc.getMenu("Paste"));
 
 		CopyPasteW.checkClipboard(menuPaste::setEnabled);
 	}
@@ -784,7 +796,7 @@ public class ContextMenuGeoElementW extends ContextMenuGeoElement
 	 *            text of menu item
 	 */
 	private void addAction(Command action, String text) {
-		AriaMenuItem mi = factory.newAriaMenuItem(null, text, action);
+		AriaMenuItem mi = factory.newAriaMenuItem((ResourcePrototype) null, text, action);
 		wrappedPopup.addItem(mi);
 	}
 
@@ -796,6 +808,19 @@ public class ContextMenuGeoElementW extends ContextMenuGeoElement
 	 * @return new menu item
 	 */
 	private AriaMenuItem addHtmlAction(Command action, ResourcePrototype icon, String html) {
+		AriaMenuItem mi = factory.newAriaMenuItem(icon, html, action);
+		wrappedPopup.addItem(mi);
+		return mi;
+	}
+
+	/**
+	 * @param action
+	 *            action to perform on click
+	 * @param html
+	 *            html string of menu item
+	 * @return new menu item
+	 */
+	private AriaMenuItem addHtmlAction(Command action, IconSpec icon, String html) {
 		AriaMenuItem mi = factory.newAriaMenuItem(icon, html, action);
 		wrappedPopup.addItem(mi);
 		return mi;
@@ -853,12 +878,11 @@ public class ContextMenuGeoElementW extends ContextMenuGeoElement
 	}
 
 	private AriaMenuBar getAngleSubMenu() {
-		String[] angleIntervals = new String[GeoAngle.getIntervalMinListLength()
-				- 1];
-		for (int i = 0; i < GeoAngle.getIntervalMinListLength() - 1; i++) {
-			angleIntervals[i] = app.getLocalization().getPlain(
-					"AngleBetweenAB.short", GeoAngle.getIntervalMinList(i),
-					GeoAngle.getIntervalMaxList(i));
+		String[] angleIntervals = new String[GeoAngle.AngleStyle.values().length - 1];
+		for (int i = 0; i < angleIntervals.length; i++) {
+			GeoAngle.AngleStyle style = GeoAngle.AngleStyle.values()[i];
+			angleIntervals[i] = app.getLocalization()
+					.getPlain("AngleBetweenAB.short", style.getMin(), style.getMax());
 		}
 
 		AriaMenuBar mnu = new AriaMenuBar();

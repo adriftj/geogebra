@@ -1,19 +1,37 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.web.full.euclidian.quickstylebar.components;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import org.geogebra.common.euclidian.event.PointerEventType;
-import org.geogebra.common.properties.impl.collections.RangePropertyCollection;
+import org.geogebra.common.properties.impl.facade.RangePropertyListFacade;
 import org.geogebra.common.properties.impl.objects.BorderThicknessProperty;
 import org.geogebra.web.full.javax.swing.LineThicknessCheckMarkItem;
 import org.geogebra.web.html5.gui.BaseWidgetFactory;
 import org.geogebra.web.html5.gui.util.ClickStartHandler;
+import org.geogebra.web.html5.gui.view.IconSpec;
 import org.geogebra.web.html5.main.AppW;
+import org.geogebra.web.html5.main.general.GeneralIcon;
 import org.gwtproject.user.client.ui.FlowPanel;
 
 public class BorderThicknessPanel extends FlowPanel {
-	private final RangePropertyCollection<?> property;
+	private final RangePropertyListFacade<?> property;
 	private final AppW appW;
 	private List<LineThicknessCheckMarkItem> checkMarkItems;
 
@@ -22,7 +40,7 @@ public class BorderThicknessPanel extends FlowPanel {
 	 * @param property - cell border thickness property
 	 * @param appW - application
 	 */
-	public BorderThicknessPanel(RangePropertyCollection<?> property, AppW appW) {
+	public BorderThicknessPanel(RangePropertyListFacade<?> property, AppW appW) {
 		this.property = property;
 		this.appW = appW;
 		buildGui();
@@ -39,9 +57,10 @@ public class BorderThicknessPanel extends FlowPanel {
 		addThicknessCheckMarkItem(property, "thick", 3);
 	}
 
-	private void addThicknessCheckMarkItem(RangePropertyCollection<?> property,
+	private void addThicknessCheckMarkItem(RangePropertyListFacade<?> property,
 			String style, int value) {
-		LineThicknessCheckMarkItem checkMarkItem = new LineThicknessCheckMarkItem(style, value);
+		LineThicknessCheckMarkItem checkMarkItem = new LineThicknessCheckMarkItem(style, value,
+				appW.getGeneralIconResource().getImageResource(GeneralIcon.CHECK_MARK));
 		add(checkMarkItem);
 		checkMarkItem.setSelected(property.getValue() == value);
 		checkMarkItems.add(checkMarkItem);
@@ -50,8 +69,11 @@ public class BorderThicknessPanel extends FlowPanel {
 	}
 
 	private void addNoBorderItem() {
+		IconSpec noColorIcon = appW.getGeneralIconResource()
+				.getImageResource(GeneralIcon.CHECK_MARK);
 		LineThicknessCheckMarkItem noBorder = new LineThicknessCheckMarkItem(
-				appW.getLocalization().getMenu("stylebar.NoBorder"), "textItem", 0);
+				appW.getLocalization().getMenu("stylebar.NoBorder"), "textItem", 0,
+				noColorIcon);
 		add(noBorder);
 		noBorder.setSelected(property.getValue() == 0);
 		checkMarkItems.add(noBorder);
@@ -60,7 +82,7 @@ public class BorderThicknessPanel extends FlowPanel {
 	}
 
 	private void addClickHandler(int value, LineThicknessCheckMarkItem checkMarkItem,
-			RangePropertyCollection<?> property) {
+			RangePropertyListFacade<?> property) {
 		ClickStartHandler.init(checkMarkItem,
 				new ClickStartHandler(true, true) {
 					@Override

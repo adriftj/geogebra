@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.geogebra.common.io.XMLStringBuilder;
 import org.geogebra.common.kernel.StringTemplate;
 import org.geogebra.common.kernel.arithmetic.FunctionalNVar;
 import org.geogebra.common.kernel.geos.GeoBoolean;
@@ -136,7 +137,7 @@ public class GeoElementToGpadConverter {
 		
 		// Use getXML(true) to include listeners and other tags
 		// getStyleXML() only includes style properties, not data like coords or listeners
-		StringBuilder sb = new StringBuilder();
+		XMLStringBuilder sb = new XMLStringBuilder();
 		geo.getXML(true, sb);
 		String fullXML = sb.toString();
 		// Extract only the <element>...</element> part for parsing

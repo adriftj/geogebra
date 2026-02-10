@@ -1,19 +1,17 @@
 /*
-GeoGebra - Dynamic Mathematics for Everyone
-http://www.geogebra.org
-
-This file is part of GeoGebra.
-
-This program is free software; you can redistribute it and/or modify it 
-under the terms of the GNU General Public License as published by 
-the Free Software Foundation.
-
- */
-
-/*
- * GeoLine.java
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
  *
- * Created on 30. August 2001, 17:39
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
  */
 
 package org.geogebra.common.kernel.geos;
@@ -25,6 +23,7 @@ import java.util.HashSet;
 
 import javax.annotation.CheckForNull;
 
+import org.geogebra.common.io.XMLStringBuilder;
 import org.geogebra.common.kernel.Construction;
 import org.geogebra.common.kernel.Kernel;
 import org.geogebra.common.kernel.LinearEquationRepresentable;
@@ -69,8 +68,7 @@ import org.geogebra.common.plugin.Operation;
 import org.geogebra.common.util.DoubleUtil;
 import org.geogebra.common.util.ExtendedBoolean;
 import org.geogebra.common.util.MyMath;
-
-import com.himamis.retex.editor.share.util.Unicode;
+import org.geogebra.editor.share.util.Unicode;
 
 /**
  * Geometrical representation of line
@@ -85,7 +83,7 @@ public class GeoLine extends GeoVec3D implements Path, Translateable,
 
 	private boolean showUndefinedInAlgebraView = false;
 
-	private String parameter = Unicode.lambda + "";
+	private String parameter = Unicode.lambda_STRING;
 	/** start point */
 	public GeoPoint startPoint;
 	/** end point */
@@ -895,8 +893,8 @@ public class GeoLine extends GeoVec3D implements Path, Translateable,
 	@Override
 	public String toValueString(StringTemplate tpl) {
 		if (tpl.hasCASType()) {
-			if (getDefinition() != null) {
-				return getDefinition().toValueString(tpl);
+			if (definition != null) {
+				return definition.toValueString(tpl);
 			}
 
 			double[] numbers = new double[3];
@@ -985,8 +983,8 @@ public class GeoLine extends GeoVec3D implements Path, Translateable,
 					false, false, tpl,
 					false).toString();
 		case USER:
-			if (getDefinition() != null) {
-				return getDefinition().toValueString(tpl);
+			if (definition != null) {
+				return definition.toValueString(tpl);
 			}
 			return buildImplicitEquation(g, tpl);
 		default: // EquationLinear.Type.IMPLICIT
@@ -1028,7 +1026,7 @@ public class GeoLine extends GeoVec3D implements Path, Translateable,
 	}
 
 	@Override
-	protected void getStyleXML(StringBuilder sb) {
+	protected void getStyleXML(XMLStringBuilder sb) {
 		super.getStyleXML(sb);
 		// line thickness and type
 		getLineStyleXML(sb);
@@ -1729,7 +1727,7 @@ public class GeoLine extends GeoVec3D implements Path, Translateable,
 
 	@Override
 	public boolean isLaTeXDrawableGeo() {
-		return getEquationForm() == Form.USER && getDefinition() != null;
+		return getEquationForm() == Form.USER && definition != null;
 	}
 
 	@Override
@@ -1741,7 +1739,7 @@ public class GeoLine extends GeoVec3D implements Path, Translateable,
 		if (!MyDouble.exactEqual(y, 0)) {
 			usedVars.add("y");
 		}
-		addUsedVars(usedVars, getDefinition());
+		addUsedVars(usedVars, definition);
 		return usedVars.toArray(new String[0]);
 	}
 
@@ -1752,7 +1750,7 @@ public class GeoLine extends GeoVec3D implements Path, Translateable,
 	 *            (wrapped) equation
 	 */
 	public static void addUsedVars(ArrayList<String> usedVars,
-			ExpressionNode definition) {
+			@CheckForNull ExpressionNode definition) {
 		if (usedVars.isEmpty() && definition != null
 				&& definition.unwrap() instanceof Equation) {
 			if (((Equation) definition.unwrap())
@@ -1795,7 +1793,7 @@ public class GeoLine extends GeoVec3D implements Path, Translateable,
 
 	@Override
 	public Function getFunction() {
-		Function definitionFn = definitionAsFunction(getDefinition());
+		Function definitionFn = definitionAsFunction(definition);
 		if (definitionFn != null) {
 			return definitionFn;
 		}
@@ -1807,7 +1805,7 @@ public class GeoLine extends GeoVec3D implements Path, Translateable,
 	 * @param definition definition
 	 * @return definition converted to function
 	 */
-	public static Function definitionAsFunction(ExpressionNode definition) {
+	public static Function definitionAsFunction(@CheckForNull ExpressionNode definition) {
 		if (definition != null && definition.unwrap() instanceof Equation) {
 			return ((Equation) definition.unwrap()).asFunction();
 		}
@@ -1823,7 +1821,7 @@ public class GeoLine extends GeoVec3D implements Path, Translateable,
 
 	@Override
 	public boolean hasTableOfValues() {
-		return getDefinition() != null && !DoubleUtil.isZero(getY()) && super.hasTableOfValues();
+		return definition != null && !DoubleUtil.isZero(getY()) && super.hasTableOfValues();
 	}
 
 	@Override

@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.util;
 
 import java.text.Normalizer;
@@ -16,12 +32,10 @@ import org.geogebra.common.kernel.Kernel;
 import org.geogebra.common.kernel.StringTemplate;
 import org.geogebra.common.kernel.parser.ParserInfo;
 import org.geogebra.common.main.Localization;
-import org.geogebra.common.util.debug.Log;
+import org.geogebra.editor.share.util.Greek;
+import org.geogebra.editor.share.util.Unicode;
 
-import com.himamis.retex.editor.share.util.Greek;
-import com.himamis.retex.editor.share.util.Unicode;
-
-public class StringUtil extends com.himamis.retex.editor.share.input.Character {
+public class StringUtil extends org.geogebra.editor.share.input.Character {
 
 	final static public String mp3Marker = "data:audio/mp3;base64,";
 	final static public String pngMarker = "data:image/png;base64,";
@@ -267,84 +281,6 @@ public class StringUtil extends com.himamis.retex.editor.share.input.Character {
 	}
 
 	/**
-	 * Converts the given unicode string to a string where special characters
-	 * are converted to <code>&amp;#encoding;</code> sequences . The resulting
-	 * string can be used in XML files.
-	 * 
-	 * @param str
-	 *            unicode string
-	 * @return XML string
-	 */
-	public static String encodeXML(String str) {
-		StringBuilder sb = new StringBuilder(str.length());
-		encodeXML(sb, str);
-		return sb.toString();
-	}
-
-	/**
-	 * Converts the given unicode string to a string where special characters
-	 * are converted to <code>&amp;#encoding;</code> sequences . The resulting
-	 * string can be used in XML files.
-	 * 
-	 * @param sb
-	 *            output builder
-	 * @param str
-	 *            raw string
-	 */
-	public static void encodeXML(StringBuilder sb, String str) {
-		if (str == null) {
-			return;
-		}
-
-		// convert every single character and append it to sb
-		int len = str.length();
-
-		// support for high Unicode characters
-		// https://stackoverflow.com/questions/24501020/how-can-i-convert-a-java-string-to-xml-entities-for-versions-of-unicode-beyond-3
-		for (int i = 0; i < len; i = str.offsetByCodePoints(i, 1)) {
-			int c = str.codePointAt(i);
-
-			if (c <= '\u001f' || c >= 0x10000) {
-				// #2399 all apart from U+0009, U+000A, U+000D are invalid in
-				// XML
-				// none should appear anyway, but encode to be safe
-
-				// eg &#x0A;
-				sb.append("&#x");
-				sb.append(Integer.toHexString(c));
-				sb.append(';');
-
-				if (c <= '\u001f' && c != '\n' && c != '\r') {
-					Log.warn("Control character being written to XML: " + c);
-				}
-
-			} else {
-
-				switch (c) {
-				case '>':
-					sb.append("&gt;");
-					break;
-				case '<':
-					sb.append("&lt;");
-					break;
-				case '"':
-					sb.append("&quot;");
-					break;
-				case '\'':
-					sb.append("&apos;");
-					break;
-				case '&':
-					sb.append("&amp;");
-					break;
-
-				default:
-					sb.append((char) c);
-				}
-			}
-		}
-	}
-
-	/**
 	 * @param parseString raw parser input
 	 * @param decimalComma whether , means decimal (rather than thousand separator)
 	 * @return preprocessed input
@@ -434,45 +370,12 @@ public class StringUtil extends com.himamis.retex.editor.share.input.Character {
 				continue;
 			}
 
-			switch (c) {
-			/*
-			 * case '(': sbReplaceExp.append("\\left("); break;
-			 * 
-			 * case ')': sbReplaceExp.append("\\right)"); break;
-			 */
-
-			case '%': // % -> \%
+			if (c == '%') { // % -> \%
 				if (previousChar != '\\') {
 					sbReplaceExp.append("\\");
 				}
 				sbReplaceExp.append("%");
-				break;
-
-			/*
-			 * not needed for JLaTeXMath and in fact it doesn't work inside
-			 * \text{} // Exponents // added by Loic Le Coq 2009/11/04 case
-			 * '\u2070': // ^0 sbReplaceExp.append("^0"); break;
-			 * 
-			 * case '\u00b9': // ^1 sbReplaceExp.append("^1"); break; // end
-			 * Loic case '\u00b2': // ^2 sbReplaceExp.append("^2"); break;
-			 * 
-			 * case '\u00b3': // ^3 sbReplaceExp.append("^3"); break;
-			 * 
-			 * case '\u2074': // ^4 sbReplaceExp.append("^4"); break;
-			 * 
-			 * case '\u2075': // ^5 sbReplaceExp.append("^5"); break;
-			 * 
-			 * case '\u2076': // ^6 sbReplaceExp.append("^6"); break; // added
-			 * by Loic Le Coq 2009/11/04 case '\u2077': // ^7
-			 * sbReplaceExp.append("^7"); break;
-			 * 
-			 * case '\u2078': // ^8 sbReplaceExp.append("^8"); break;
-			 * 
-			 * case '\u2079': // ^9 sbReplaceExp.append("^9"); break; // end
-			 * Loic Le Coq
-			 */
-
-			default:
+			} else {
 				if (!convertGreekLetters) {
 					sbReplaceExp.append(c);
 				} else {
@@ -1861,7 +1764,12 @@ public class StringUtil extends com.himamis.retex.editor.share.input.Character {
 	public static List<String> labelVariants(String label) {
 		int startPos;
 		if ((startPos = label.indexOf("_{")) > 0) {
-			String index = label.substring(startPos + 2, label.length() - 1);
+			int fromIndex = startPos + 2;
+			int toIndex = label.length() - 1;
+			if (fromIndex > toIndex) {
+				return List.of();
+			}
+			String index = label.substring(fromIndex, toIndex);
 			String base = label.substring(0, startPos);
 
 			List<String> variants = new ArrayList<>();

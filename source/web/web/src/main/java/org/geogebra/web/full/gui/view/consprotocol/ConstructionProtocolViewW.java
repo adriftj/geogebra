@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.web.full.gui.view.consprotocol;
 
 import org.geogebra.common.awt.GColor;
@@ -33,6 +49,7 @@ import org.gwtproject.event.dom.client.ClickEvent;
 import org.gwtproject.event.dom.client.ClickHandler;
 import org.gwtproject.event.dom.client.DragEndEvent;
 import org.gwtproject.event.dom.client.DragStartEvent;
+import org.gwtproject.resources.client.ResourcePrototype;
 import org.gwtproject.safehtml.shared.SafeHtml;
 import org.gwtproject.safehtml.shared.SafeHtmlBuilder;
 import org.gwtproject.safehtml.shared.SafeHtmlUtils;
@@ -364,7 +381,7 @@ public class ConstructionProtocolViewW extends ConstructionProtocolView
 					initGUI();
 				};
 
-				GCheckmarkMenuItem columnItem = new GCheckmarkMenuItem(null,
+				GCheckmarkMenuItem columnItem = new GCheckmarkMenuItem((ResourcePrototype) null,
 						data.columns[j].getTranslatedTitle(),
 						data.columns[j].isVisible(), com);
 				popupMenu.addItem(columnItem);
@@ -373,7 +390,7 @@ public class ConstructionProtocolViewW extends ConstructionProtocolView
 
 		popupMenu.addVerticalSeparator();
 
-		GCheckmarkMenuItem miShowOnlyBreakpoints = new GCheckmarkMenuItem(null,
+		GCheckmarkMenuItem miShowOnlyBreakpoints = new GCheckmarkMenuItem((ResourcePrototype) null,
 				app.getLocalization().getMenu("ShowOnlyBreakpoints"),
 				app.getKernel().getConstruction().showOnlyBreakpoints(), null);
 

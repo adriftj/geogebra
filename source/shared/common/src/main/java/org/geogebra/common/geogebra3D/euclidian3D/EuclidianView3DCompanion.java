@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.geogebra3D.euclidian3D;
 
 import org.geogebra.common.awt.GColor;
@@ -12,6 +28,7 @@ import org.geogebra.common.euclidian3D.EuclidianView3DInterface;
 import org.geogebra.common.geogebra3D.euclidian3D.openGL.PlotterCursor;
 import org.geogebra.common.geogebra3D.euclidian3D.openGL.Renderer;
 import org.geogebra.common.geogebra3D.kernel3D.geos.GeoPoint3D;
+import org.geogebra.common.io.XMLStringBuilder;
 import org.geogebra.common.kernel.geos.GeoElement;
 import org.geogebra.common.kernel.kernelND.GeoPointND;
 import org.geogebra.common.kernel.matrix.CoordMatrix4x4;
@@ -198,14 +215,12 @@ public class EuclidianView3DCompanion extends EuclidianViewCompanion {
 				EuclidianView3DInterface.ANGLE_ROT_XOY, false);
 	}
 
-	protected void getXMLForStereo(StringBuilder sb, int eyeDistance, int sep) {
+	protected void getXMLForStereo(XMLStringBuilder sb, int eyeDistance, int sep) {
 		if (eyeDistance != EuclidianSettings3D.PROJECTION_PERSPECTIVE_EYE_DISTANCE_DEFAULT) {
-			sb.append("\" distance=\"");
-			sb.append(eyeDistance);
+			sb.attr("distance", eyeDistance);
 		}
 		if (sep != EuclidianSettings3D.EYE_SEP_DEFAULT) {
-			sb.append("\" separation=\"");
-			sb.append(sep);
+			sb.attr("separation", sep);
 		}
 	}
 

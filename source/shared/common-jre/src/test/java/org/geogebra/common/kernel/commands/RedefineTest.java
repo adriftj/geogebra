@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ * 
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ * 
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+ 
 package org.geogebra.common.kernel.commands;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -33,6 +49,7 @@ import org.geogebra.common.kernel.kernelND.GeoSurfaceCartesian2D;
 import org.geogebra.common.main.App;
 import org.geogebra.common.plugin.GeoClass;
 import org.geogebra.common.util.IndexHTMLBuilder;
+import org.geogebra.editor.share.util.Unicode;
 import org.geogebra.test.EventAccumulator;
 import org.geogebra.test.TestErrorHandler;
 import org.geogebra.test.TestStringUtil;
@@ -43,8 +60,6 @@ import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.himamis.retex.editor.share.util.Unicode;
 
 public class RedefineTest extends BaseUnitTest {
 
@@ -739,5 +754,21 @@ public class RedefineTest extends BaseUnitTest {
 		add("B=42");
 		assertThat(lookup("B"), hasValue("42"));
 		assertThat(lookup("B_1"), hasValue("(2, 0)"));
+	}
+
+	@Test
+	public void reloadYConic() {
+		add("f: y=x^2");
+		t("f'", "(2 * x)");
+		reload();
+	}
+
+	@Test
+	public void redefineYConic() {
+		add("f:y=x^2");
+		t("f'", "(2 * x)");
+		add("f:y^2 + x = x^2");
+		GeoElement derivative = lookup("f'");
+		assertThat(derivative, hasValue("?"));
 	}
 }

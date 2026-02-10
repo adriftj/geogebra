@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.web.full.gui.toolbar.mow.toolbox.text;
 
 import java.util.List;
@@ -7,6 +23,7 @@ import org.geogebra.web.full.gui.toolbar.mow.toolbox.components.ToolIconButton;
 import org.geogebra.web.html5.gui.GPopupPanel;
 import org.geogebra.web.html5.gui.util.AriaHelper;
 import org.geogebra.web.html5.main.AppW;
+import org.geogebra.web.html5.main.toolbox.ToolboxIcon;
 
 public class TextIconButton extends ToolIconButton {
 	private final AppW appW;
@@ -17,10 +34,11 @@ public class TextIconButton extends ToolIconButton {
 	 * Constructor
 	 * @param appW - application
 	 * @param deselectButtons - deselect buttons callback
+	 * @param tools list of tools
 	 */
-	public TextIconButton(AppW appW, Runnable deselectButtons,
-			List<Integer> tools) {
-		super(tools.get(0), appW);
+	public TextIconButton(AppW appW, Runnable deselectButtons, List<Integer> tools) {
+		super(tools.get(0), appW, appW.getToolboxIconResource()
+				.getImageResource(ToolboxIcon.TEXTS), () -> {});
 		this.appW = appW;
 		this.tools = tools;
 

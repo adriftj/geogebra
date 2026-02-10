@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.properties;
 
 import javax.annotation.CheckForNull;
@@ -77,18 +93,18 @@ public interface PropertiesRegistry {
 	/**
 	 * Look up a property by raw (unlocalized) name in the current context.
 	 *
-	 * @param rawName The raw (unlocalized) name of a property.
+	 * @param key A {@link PropertyKey} that uniquely identifies a property type.
 	 * @return The property if found, or null if no such property has been registered.
 	 */
-	@CheckForNull Property lookup(@Nonnull String rawName);
+	@CheckForNull Property lookup(@Nonnull PropertyKey key);
 
 	/**
-	 * Same as {@link #lookup(String)}, but using the provided context instead of the
+	 * Same as {@link #lookup(PropertyKey)}, but using the provided context instead of the
 	 * current context.
-	 * @return The property with the given name in the given context, or null if no such
+	 * @return The property with the given key in the given context, or null if no such
 	 * property could be found.
 	 */
-	@CheckForNull Property lookup(@Nonnull String rawName, @CheckForNull Object context);
+	@CheckForNull Property lookup(@Nonnull PropertyKey key, @CheckForNull Object context);
 
 	/**
 	 * "Release" (i.e., clear out strong references to) all properties registered for the

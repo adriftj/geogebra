@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.web.html5.euclidian;
 
 import java.util.ArrayList;
@@ -21,7 +37,7 @@ import org.geogebra.common.kernel.geos.GeoText;
 import org.geogebra.common.kernel.kernelND.GeoElementND;
 import org.geogebra.common.main.App;
 import org.geogebra.common.util.StringUtil;
-import org.geogebra.web.html5.css.GuiResourcesSimple;
+import org.geogebra.web.awt.MyImageW;
 import org.geogebra.web.html5.event.PointerEvent;
 import org.geogebra.web.html5.gui.GuiManagerInterfaceW;
 import org.geogebra.web.html5.gui.tooltip.PreviewPointPopup;
@@ -29,7 +45,8 @@ import org.geogebra.web.html5.gui.tooltip.ToolTipManagerW;
 import org.geogebra.web.html5.gui.util.Dom;
 import org.geogebra.web.html5.gui.util.LongTouchManager;
 import org.geogebra.web.html5.main.AppW;
-import org.geogebra.web.html5.main.MyImageW;
+import org.geogebra.web.html5.main.general.DefaultGeneralIconResources;
+import org.geogebra.web.resources.SVGResource;
 import org.gwtproject.event.dom.client.DropEvent;
 import org.gwtproject.event.dom.client.DropHandler;
 
@@ -263,15 +280,19 @@ public class EuclidianControllerW extends EuclidianController implements
 
 	@Override
 	public void showDynamicStylebar() {
-		if (((AppW) app).allowStylebar() && !hasMeasurementObjOrSpotlightSelected()) {
+		if (((AppW) app).allowStylebar() && selectedGeoShouldHaveQuickStyleBar()) {
 			getView().getDynamicStyleBar().setVisible(true);
 			getView().getDynamicStyleBar().updateStyleBar();
 		}
 	}
 
-	private boolean hasMeasurementObjOrSpotlightSelected() {
-		return getAppSelectedGeos().stream().anyMatch(f -> f.isMeasurementTool()
-			|| f.isSpotlight());
+	/**
+	 * Measurement tools, spotlight and input-box has no style bar.
+	 * @return whether selected geos should have quick style bar
+	 */
+	private boolean selectedGeoShouldHaveQuickStyleBar() {
+		return !getAppSelectedGeos().isEmpty() && getAppSelectedGeos().stream()
+				.noneMatch(f -> f.isMeasurementTool() || f.isSpotlight() || f.isGeoInputBox());
 	}
 
 	@Override
@@ -322,7 +343,10 @@ public class EuclidianControllerW extends EuclidianController implements
 	@Override
 	public MyImage getRotationImage() {
 		HTMLImageElement img = Dom.createImage();
-		img.src = GuiResourcesSimple.INSTANCE.rotateIcon().getSafeUri().asString();
+		SVGResource rotateIcon = ((AppW) app).isUsingFontAwesome()
+			? DefaultGeneralIconResources.INSTANCE.rotate_arrow_fontawesome()
+			: DefaultGeneralIconResources.INSTANCE.rotate_arrow();
+		img.src =  rotateIcon.getSafeUri().asString();
 		return new MyImageW(img, true);
 	}
 }

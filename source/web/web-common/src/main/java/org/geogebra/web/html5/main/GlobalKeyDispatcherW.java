@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.web.html5.main;
 
 import java.util.List;
@@ -9,6 +25,11 @@ import org.geogebra.common.main.App;
 import org.geogebra.common.main.GlobalKeyDispatcher;
 import org.geogebra.common.util.CopyPaste;
 import org.geogebra.common.util.debug.Log;
+import org.geogebra.editor.share.util.GWTKeycodes;
+import org.geogebra.editor.share.util.JavaKeyCodes;
+import org.geogebra.editor.share.util.KeyCodes;
+import org.geogebra.editor.web.KeyCodeUtil;
+import org.geogebra.editor.web.MathFieldW;
 import org.geogebra.gwtutil.NavigatorUtil;
 import org.geogebra.web.html5.gui.AlgebraInput;
 import org.geogebra.web.html5.gui.GuiManagerInterfaceW;
@@ -24,11 +45,6 @@ import org.gwtproject.event.dom.client.KeyUpHandler;
 import org.gwtproject.user.client.DOM;
 import org.gwtproject.user.client.Event;
 import org.gwtproject.user.client.EventListener;
-
-import com.himamis.retex.editor.share.util.GWTKeycodes;
-import com.himamis.retex.editor.share.util.JavaKeyCodes;
-import com.himamis.retex.editor.share.util.KeyCodes;
-import com.himamis.retex.editor.web.MathFieldW;
 
 import elemental2.dom.DomGlobal;
 
@@ -157,10 +173,10 @@ public class GlobalKeyDispatcherW extends GlobalKeyDispatcher
 				handled = true;
 			}
 			if (isControlKeyDown(event)) {
-				handled = handleCtrlKeys(NavigatorUtil.translateGWTcode(event.getKeyCode()),
+				handled = handleCtrlKeys(KeyCodeUtil.translateGWTCode(event.getKeyCode()),
 						event.getShiftKey(), false, true);
 			}
-			KeyCodes kc = NavigatorUtil.translateGWTcode(event.getKeyCode());
+			KeyCodes kc = KeyCodeUtil.translateGWTCode(event.getKeyCode());
 			if (kc == KeyCodes.TAB) {
 				if (!escPressed) {
 					handled = handleTab(event.getShiftKey());
@@ -226,7 +242,7 @@ public class GlobalKeyDispatcherW extends GlobalKeyDispatcher
 	@Override
 	public void onKeyPress(KeyPressEvent event) {
 		setDownKeys(event);
-		KeyCodes kc = NavigatorUtil.translateGWTcode(event.getNativeEvent()
+		KeyCodes kc = KeyCodeUtil.translateGWTCode(event.getNativeEvent()
 				.getKeyCode());
 		// Do not prevent default for the v key, otherwise paste events are not fired
 		if (kc != KeyCodes.TAB && event.getCharCode() != 'v'
@@ -255,7 +271,7 @@ public class GlobalKeyDispatcherW extends GlobalKeyDispatcher
 	 *            event
 	 */
 	public void handleGeneralKeys(KeyUpEvent event) {
-		KeyCodes kc = NavigatorUtil.translateGWTcode(event.getNativeKeyCode());
+		KeyCodes kc = KeyCodeUtil.translateGWTCode(event.getNativeKeyCode());
 
 		boolean handled = handleGeneralKeys(kc,
 				event.isShiftKeyDown(),
@@ -279,7 +295,7 @@ public class GlobalKeyDispatcherW extends GlobalKeyDispatcher
 	 */
 	public boolean handleSelectedGeosKeys(NativeEvent event) {
 		return handleSelectedGeosKeys(
-				NavigatorUtil.translateGWTcode(event
+				KeyCodeUtil.translateGWTCode(event
 						.getKeyCode()), selection.getSelectedGeos(),
 				event.getShiftKey(), event.getCtrlKey(), event.getAltKey(),
 				false);
@@ -287,7 +303,7 @@ public class GlobalKeyDispatcherW extends GlobalKeyDispatcher
 
 	@Override
 	public void onKeyDown(KeyDownEvent event) {
-		KeyCodes kc = NavigatorUtil.translateGWTcode(event.getNativeKeyCode());
+		KeyCodes kc = KeyCodeUtil.translateGWTCode(event.getNativeKeyCode());
 		setDownKeys(event);
 
 		boolean handled = handleSelectedGeosKeys(event.getNativeEvent());

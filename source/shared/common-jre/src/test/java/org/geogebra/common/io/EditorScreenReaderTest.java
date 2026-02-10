@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ * 
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ * 
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.io;
 
 import static org.junit.Assert.assertEquals;
@@ -8,22 +24,22 @@ import org.geogebra.common.AppCommonFactory;
 import org.geogebra.common.jre.headless.AppCommon;
 import org.geogebra.common.main.ScreenReader;
 import org.geogebra.common.util.SyntaxAdapterImpl;
+import org.geogebra.editor.share.catalog.TemplateCatalog;
+import org.geogebra.editor.share.controller.CursorController;
+import org.geogebra.editor.share.controller.ExpressionReader;
+import org.geogebra.editor.share.editor.MathFieldInternal;
+import org.geogebra.editor.share.io.latex.ParseException;
+import org.geogebra.editor.share.io.latex.Parser;
+import org.geogebra.editor.share.serializer.GeoGebraSerializer;
+import org.geogebra.editor.share.serializer.ScreenReaderSerializer;
+import org.geogebra.editor.share.tree.ArrayNode;
+import org.geogebra.editor.share.tree.Formula;
+import org.geogebra.editor.share.tree.Node;
+import org.geogebra.editor.share.tree.SequenceNode;
+import org.geogebra.editor.share.util.Unicode;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.himamis.retex.editor.share.controller.CursorController;
-import com.himamis.retex.editor.share.controller.ExpressionReader;
-import com.himamis.retex.editor.share.editor.MathFieldInternal;
-import com.himamis.retex.editor.share.io.latex.ParseException;
-import com.himamis.retex.editor.share.io.latex.Parser;
-import com.himamis.retex.editor.share.meta.MetaModel;
-import com.himamis.retex.editor.share.model.MathArray;
-import com.himamis.retex.editor.share.model.MathComponent;
-import com.himamis.retex.editor.share.model.MathFormula;
-import com.himamis.retex.editor.share.model.MathSequence;
-import com.himamis.retex.editor.share.serializer.GeoGebraSerializer;
-import com.himamis.retex.editor.share.serializer.ScreenReaderSerializer;
-import com.himamis.retex.editor.share.util.Unicode;
 import com.himamis.retex.renderer.share.platform.FactoryProvider;
 
 public class EditorScreenReaderTest {
@@ -40,7 +56,7 @@ public class EditorScreenReaderTest {
 			FactoryProvider.setInstance(new FactoryProviderCommon());
 		}
 		app = AppCommonFactory.create3D();
-		MetaModel m = new MetaModel();
+		TemplateCatalog m = new TemplateCatalog();
 		parser = new Parser(m);
 	}
 
@@ -80,7 +96,7 @@ public class EditorScreenReaderTest {
 				"start of formula start fraction x cubed over end fraction",
 				"start of numerator before x", "after x before superscript",
 				"start of superscript before 3", "end of superscript after 3",
-				"end of numerator after x cubed", "empty denominator",
+				"end of numerator after x cubed", "denominator blank",
 				"end of formula start fraction x cubed over end fraction");
 	}
 
@@ -223,7 +239,7 @@ public class EditorScreenReaderTest {
 	public void testBracketsIncomplete() {
 		checkReader("3-()", "start of formula 3 minus empty parentheses",
 				"after 3 before minus", "after minus before parenthesis",
-				"empty parentheses",
+				"parentheses blank",
 				"end of formula 3 minus empty parentheses");
 	}
 
@@ -237,12 +253,12 @@ public class EditorScreenReaderTest {
 
 	@Test
 	public void shouldNotRemoveCommasForPoints() throws ParseException {
-		Parser p = new Parser(new MetaModel());
-		MathFormula mf = p.parse("(1,2)");
-		MathSequence argument = ((MathArray) mf.getRootComponent()
-				.getArgument(0)).getArgument(0);
+		Parser p = new Parser(new TemplateCatalog());
+		Formula mf = p.parse("(1,2)");
+		SequenceNode argument = ((ArrayNode) mf.getRootNode()
+				.getChild(0)).getChild(0);
 		StringBuilder desc = new StringBuilder();
-		for (MathComponent comp: argument) {
+		for (Node comp: argument) {
 			desc.append(ScreenReaderSerializer.fullDescription(comp, null));
 		}
 		assertEquals("1,2", desc.toString());
@@ -252,10 +268,10 @@ public class EditorScreenReaderTest {
 	}
 
 	private static void checkReader(String input, String... output) {
-		MathFormula mf = LaTeXSerializationTest.checkLaTeXRender(parser, input);
+		Formula mf = LaTeXSerializationTest.checkLaTeXRender(parser, input);
 
 		SyntaxAdapterImpl adapter = new SyntaxAdapterImpl(app.getKernel());
-		final MathFieldCommon mathField = new MathFieldCommon(new MetaModel(), adapter);
+		final MathFieldCommon mathField = new MathFieldCommon(new TemplateCatalog(), adapter);
 		MathFieldInternal mfi = mathField.getInternal();
 		mfi.setFormula(Objects.requireNonNull(mf));
 		CursorController.firstField(mfi.getEditorState());

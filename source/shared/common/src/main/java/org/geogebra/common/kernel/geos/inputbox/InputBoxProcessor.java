@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.kernel.geos.inputbox;
 
 import org.geogebra.common.kernel.Kernel;
@@ -25,9 +41,8 @@ import org.geogebra.common.main.MyError;
 import org.geogebra.common.main.error.ErrorHandler;
 import org.geogebra.common.plugin.GeoClass;
 import org.geogebra.common.util.debug.Log;
-
-import com.himamis.retex.editor.share.serializer.TeXSerializer;
-import com.himamis.retex.editor.share.util.Unicode;
+import org.geogebra.editor.share.serializer.TeXSerializer;
+import org.geogebra.editor.share.util.Unicode;
 
 /**
  * Updates linked element for an input box from user input
@@ -151,6 +166,8 @@ public class InputBoxProcessor {
 		}
 
 		String defineText = prependLabel(preprocess(content, tpl), tpl);
+		// Make sure single spaces between digits are removed, so no multiplication is inserted
+		defineText = defineText.replaceAll("(?<=\\d) (?=\\d)", "");
 		if (linkedGeo.isPointOnPath() || linkedGeo.isPointInRegion()) {
 			GeoPointND val = algebraProcessor.evaluateToPoint(defineText, errorHandler, true);
 			if (val != null) {

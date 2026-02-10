@@ -1,17 +1,33 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ * 
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ * 
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.io;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import org.geogebra.editor.share.catalog.TemplateCatalog;
+import org.geogebra.editor.share.input.KeyboardInputAdapter;
+import org.geogebra.editor.share.syntax.SyntaxController;
+import org.geogebra.editor.share.syntax.SyntaxHint;
+import org.geogebra.editor.share.util.JavaKeyCodes;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.himamis.retex.editor.share.input.KeyboardInputAdapter;
-import com.himamis.retex.editor.share.meta.MetaModel;
-import com.himamis.retex.editor.share.syntax.SyntaxController;
-import com.himamis.retex.editor.share.syntax.SyntaxHint;
-import com.himamis.retex.editor.share.util.JavaKeyCodes;
 import com.himamis.retex.renderer.share.platform.FactoryProvider;
 
 public class SyntaxHintCheck {
@@ -32,7 +48,7 @@ public class SyntaxHintCheck {
 	@Before
 	public void setUp() {
 		controller = new SyntaxController();
-		mathField = new MathFieldCommon(new MetaModel(), null);
+		mathField = new MathFieldCommon(new TemplateCatalog(), null);
 		mathField.getInternal().registerMathFieldInternalListener(controller);
 	}
 

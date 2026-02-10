@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.util;
 
 import java.util.ArrayList;
@@ -12,8 +28,7 @@ import org.geogebra.common.geogebra3D.kernel3D.algos.AlgoQuadricLimitedPointPoin
 import org.geogebra.common.geogebra3D.kernel3D.geos.GeoCoordSys1D;
 import org.geogebra.common.geogebra3D.kernel3D.geos.GeoPolyhedron;
 import org.geogebra.common.geogebra3D.kernel3D.geos.GeoPolyhedronNet;
-import org.geogebra.common.geogebra3D.kernel3D.geos.GeoQuadric3DLimited;
-import org.geogebra.common.kernel.Construction;
+import org.geogebra.common.geogebra3D.kernel3D.geos.GeoQuadric3DLimitedOrPart;
 import org.geogebra.common.kernel.Kernel;
 import org.geogebra.common.kernel.algos.AlgoCirclePointRadius;
 import org.geogebra.common.kernel.algos.AlgoCircleThreePoints;
@@ -290,7 +305,7 @@ public abstract class CopyPaste {
 						}
 					}
 				}
-			} else if (geo instanceof GeoQuadric3DLimited) {
+			} else if (geo instanceof GeoQuadric3DLimitedOrPart) {
 				if (parentAlgorithm instanceof AlgoQuadricLimitedPointPointRadiusCone
 						|| parentAlgorithm instanceof AlgoQuadricLimitedPointPointRadiusCylinder
 						|| parentAlgorithm instanceof AlgoQuadricLimitedConicHeightCone
@@ -375,8 +390,7 @@ public abstract class CopyPaste {
 			ts = geo.getAllPredecessors();
 			for (GeoElement geo2 : ts) {
 				if (!ret.contains(geo2) && !geos.contains(geo2)
-						&& geo2.getConstruction().isConstantElement(
-						geo2) == Construction.Constants.NOT) {
+						&& !geo2.getConstruction().isConstantElement(geo2)) {
 					ret.add(geo2);
 				}
 			}

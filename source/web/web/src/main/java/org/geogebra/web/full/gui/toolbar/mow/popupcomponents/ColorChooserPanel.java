@@ -1,4 +1,22 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ * 
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.web.full.gui.toolbar.mow.popupcomponents;
+
+import static org.geogebra.common.properties.PropertyView.*;
 
 import java.util.HashMap;
 import java.util.List;
@@ -21,7 +39,8 @@ import org.gwtproject.user.client.ui.FlowPanel;
 import org.gwtproject.user.client.ui.Label;
 import org.gwtproject.user.client.ui.SimplePanel;
 
-public class ColorChooserPanel extends FlowPanel implements SetLabels {
+public class ColorChooserPanel extends FlowPanel implements SetLabels,
+		ConfigurationUpdateDelegate {
 	private final Consumer<GColor> callback;
 	private GColor activeColor;
 	private FlowPanel activeButton;
@@ -29,6 +48,7 @@ public class ColorChooserPanel extends FlowPanel implements SetLabels {
 	private Map<GColor, FlowPanel> colorButtons;
 	private Label label;
 	private final String labelKey;
+	private ColorSelectorRow colorProperty;
 
 	/**
 	 * constructor
@@ -54,6 +74,21 @@ public class ColorChooserPanel extends FlowPanel implements SetLabels {
 		this.appW = appW;
 		this.labelKey = labelKey;
 		buildGUI(colorValues, labelKey);
+	}
+
+	/**
+	 * constructor
+	 * @param appW application
+	 * @param colorValues color values
+	 * @param callback callback for setting the color for object
+	 * @param colorProperty {@link ColorSelectorRow}
+	 */
+	public ColorChooserPanel(AppW appW, List<GColor> colorValues, Consumer<GColor> callback,
+			ColorSelectorRow colorProperty) {
+		this(appW, colorValues, callback, colorProperty.getLabel());
+		this.colorProperty = colorProperty;
+		setDisabled(!colorProperty.isEnabled());
+		colorProperty.setConfigurationUpdateDelegate(this);
 	}
 
 	private void buildGUI(List<GColor> colorValues, String labelKey) {
@@ -217,6 +252,13 @@ public class ColorChooserPanel extends FlowPanel implements SetLabels {
 	public void setLabels() {
 		if (label != null) {
 			label.setText(appW.getLocalization().getMenu(labelKey));
+		}
+	}
+
+	@Override
+	public void configurationUpdated() {
+		if (colorProperty != null) {
+			setDisabled(!colorProperty.isEnabled());
 		}
 	}
 }

@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ * 
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ * 
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+ 
 package org.geogebra.common.gui.view.table;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -10,9 +26,8 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 
-import java.util.Locale;
-
 import org.geogebra.common.BaseUnitTest;
+import org.geogebra.common.io.XMLStringBuilder;
 import org.geogebra.common.kernel.StringTemplate;
 import org.geogebra.common.kernel.geos.GeoElement;
 import org.geogebra.common.kernel.geos.GeoList;
@@ -289,7 +304,7 @@ public class TableValuesInputProcessorTest extends BaseUnitTest {
 		GeoList data = (GeoList) view.getEvaluatable(1);
 		processor.processInput("1+1/2", data, 1);
 		processor.processInput("1++", data, 2);
-		StringBuilder sb = new StringBuilder();
+		XMLStringBuilder sb = new XMLStringBuilder();
 		data.getExpressionXML(sb);
 		assertThat(sb.toString(), equalTo("<expression label=\"y_{1}\" exp=\""
 				+ "{5 / 2,1 + 1 / 2,ParseToNumber[&quot;1++&quot;]}\" type=\"list\"/>\n"));

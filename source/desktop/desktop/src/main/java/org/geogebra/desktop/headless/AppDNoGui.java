@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ * 
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ * 
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.desktop.headless;
 
 import java.net.URL;
@@ -11,7 +27,6 @@ import org.geogebra.common.euclidian3D.EuclidianView3DInterface;
 import org.geogebra.common.factories.LaTeXFactory;
 import org.geogebra.common.factories.UtilFactory;
 import org.geogebra.common.io.MyXMLio;
-import org.geogebra.common.jre.gui.MyImageJre;
 import org.geogebra.common.jre.headless.ApiDelegate;
 import org.geogebra.common.jre.headless.App3DCompanionHeadless;
 import org.geogebra.common.jre.headless.AppCommon;
@@ -35,9 +50,9 @@ import org.geogebra.common.util.GTimer;
 import org.geogebra.common.util.GTimerListener;
 import org.geogebra.common.util.ImageManager;
 import org.geogebra.common.util.StringUtil;
+import org.geogebra.desktop.awt.AwtFactoryD;
 import org.geogebra.desktop.awt.GBufferedImageD;
 import org.geogebra.desktop.euclidian.DrawEquationD;
-import org.geogebra.desktop.factories.AwtFactoryD;
 import org.geogebra.desktop.factories.LaTeXFactoryD;
 import org.geogebra.desktop.factories.LoggingCASFactoryD;
 import org.geogebra.desktop.factories.UtilFactoryD;
@@ -79,19 +94,19 @@ public class AppDNoGui extends AppCommon implements AppDI {
 	}
 
 	@Override
-	public void addExternalImage(String name, MyImageJre img) {
+	public void addExternalImage(String name, MyImage img) {
 		// TODO Auto-generated method stub
 	}
 
 	@Override
-	public MyImageJre getExportImage(double thumbnailPixelsX,
+	public MyImage getExportImage(double thumbnailPixelsX,
 			double thumbnailPixelsY) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public MyImageJre getExternalImage(String fileName) {
+	public MyImage getExternalImage(String fileName) {
 		// TODO Auto-generated method stub
 		return null;
 	}
@@ -164,7 +179,7 @@ public class AppDNoGui extends AppCommon implements AppDI {
 	@Override
 	public MyImage getExternalImageAdapter(String filename, int width,
 			int height) {
-		return ImageManagerD.getExternalImage(filename);
+		return ImageManagerD.getStaticExternalImage(filename);
 	}
 
 	@Override
@@ -231,7 +246,7 @@ public class AppDNoGui extends AppCommon implements AppDI {
 			GBufferedImage img = ev
 					.getExportImage(exportScale, transparent,
 							ExportType.PNG);
-			return GgbAPID.base64encode(
+			return GBufferedImageD.base64encode(
 					GBufferedImageD.getAwtBufferedImage(img), DPI);
 		}
 	}

@@ -1,13 +1,17 @@
-/* 
-GeoGebra - Dynamic Mathematics for Everyone
-http://www.geogebra.org
-
-This file is part of GeoGebra.
-
-This program is free software; you can redistribute it and/or modify it 
-under the terms of the GNU General Public License as published by 
-the Free Software Foundation.
-
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
  */
 
 package org.geogebra.common.kernel.geos;
@@ -27,6 +31,7 @@ import org.geogebra.common.euclidian.EuclidianViewInterfaceCommon;
 import org.geogebra.common.euclidian.EuclidianViewInterfaceSlim;
 import org.geogebra.common.euclidian.draw.CanvasDrawable;
 import org.geogebra.common.euclidian.draw.dropdown.DrawDropDownList;
+import org.geogebra.common.io.XMLStringBuilder;
 import org.geogebra.common.kernel.CircularDefinitionException;
 import org.geogebra.common.kernel.Construction;
 import org.geogebra.common.kernel.ConstructionDefaults;
@@ -334,9 +339,9 @@ public class GeoList extends GeoElement
 			ret = geo.copy();
 		}
 		ret.setParentAlgorithm(getParentAlgorithm());
-		if (geo.getDefinition() != null
-				&& !geo.getDefinition().any(Inspecting::isDynamicGeoElement)) {
-			ret.setDefinition(geo.getDefinition().deepCopy(kernel));
+		if (geo.definition != null
+				&& !geo.definition.any(Inspecting::isDynamicGeoElement)) {
+			ret.setDefinition(geo.definition.deepCopy(kernel));
 		}
 		return ret;
 	}
@@ -950,13 +955,13 @@ public class GeoList extends GeoElement
 		return sb;
 	}
 
-	private void appendElementsForXml(StringBuilder sb) {
+	private void appendElementLabels(StringBuilder sb) {
 		for (int i = 0; i < elements.size(); i++) {
 			final GeoElement geo = elements.get(i);
 			if (i != 0) {
 				sb.append(',');
 			}
-			StringUtil.encodeXML(sb, geo.getLabel(StringTemplate.xmlTemplate));
+			sb.append(geo.getLabel(StringTemplate.xmlTemplate));
 		}
 	}
 
@@ -974,35 +979,40 @@ public class GeoList extends GeoElement
 	 * save object in XML format
 	 */
 	@Override
-	public final void getExpressionXML(final StringBuilder sb) {
+	public final void getExpressionXML(final XMLStringBuilder builder) {
 		// an independent list needs to add
 		// its expression itself
 		// e.g. {1,2,3}
 		if ((isDefined() || isUndefinedMatrix()) && isIndependent() && (getDefaultGeoType() < 0)) {
-			sb.append("<expression label=\"");
-			StringUtil.encodeXML(sb, label);
-			sb.append("\" exp=\"");
+			builder.startTag("expression", 0).attr("label", label);
 			if (isUndefinedMatrix()) {
+				StringBuilder sb = new StringBuilder();
 				sb.append('{');
+				int idx = 0;
 				for (GeoElement geo: elements) {
+					if (idx > 0) {
+						sb.append(',');
+					}
 					sb.append(((GeoList) geo).buildValueString(StringTemplate.xmlTemplate));
-					sb.append(',');
+					idx++;
 				}
-				sb.setLength(sb.length() - 1); // remove extra comma
 				sb.append('}');
-			} else if (getDefinition() != null) {
-				getDefinitionXML(sb);
+				builder.attr("exp", sb);
+			} else if (definition != null) {
+				builder.attr("exp", getDefinitionXML());
 			} else if (!isDefined) {
-				sb.append('?');
+				builder.attr("exp", "?");
 			} else {
+				StringBuilder sb = new StringBuilder();
 				sb.append('{');
-				appendElementsForXml(sb);
+				appendElementLabels(sb);
 				sb.append('}');
+				builder.attr("exp", sb);
 			}
 			if (getTableColumn() != -1) {
-				sb.append("\" type=\"list");
+				builder.attr("type", "list");
 			}
-			sb.append("\"/>\n");
+			builder.endTag();
 		}
 	}
 
@@ -1613,24 +1623,20 @@ public class GeoList extends GeoElement
 	}
 
 	@Override
-	protected void getStyleXML(StringBuilder sb) {
+	protected void getStyleXML(XMLStringBuilder sb) {
 		super.getStyleXML(sb);
 
 		getLineStyleXML(sb);
 		if (isElementTypeXMLNeeded()) {
-			sb.append("\t<listType val=\"");
-			sb.append(getTypeStringForXML());
-			sb.append("\"/>\n");
+			sb.startTag("listType").attrRaw("val", getTypeStringForXML()).endTag();
 		}
 
 		if (selectedIndex != 0) {
-			sb.append("\t<selectedIndex val=\"");
-			sb.append(selectedIndex);
-			sb.append("\"/>\n");
+			sb.startTag("selectedIndex").attr("val", selectedIndex).endTag();
 		}
 
 		if (drawAsComboBox) {
-			sb.append("\t<comboBox val=\"true\"/>\n");
+			sb.startTag("comboBox").attr("val", true).endTag();
 		}
 
 		// point style
@@ -1641,23 +1647,19 @@ public class GeoList extends GeoElement
 
 		// print decimals
 		if ((printDecimals >= 0) && !useSignificantFigures) {
-			sb.append("\t<decimals val=\"");
-			sb.append(printDecimals);
-			sb.append("\"/>\n");
+			sb.startTag("decimals").attr("val", printDecimals).endTag();
 		}
 
 		// print significant figures
 		if ((printFigures >= 0) && useSignificantFigures) {
-			sb.append("\t<significantfigures val=\"");
-			sb.append(printFigures);
-			sb.append("\"/>\n");
+			sb.startTag("significantfigures").attr("val", printFigures).endTag();
 		}
 
 		// AngleProperties
 		XMLBuilder.appendAngleStyle(sb, angleStyle, emphasizeRightAngle);
 
 		if (isSymbolicMode()) {
-			sb.append("\t<symbolic val=\"true\" />\n");
+			sb.startTag("symbolic").attr("val", true).endTag();
 		}
 		if (startPoint != null) {
 			startPoint.appendStartPointXML(sb, isAbsoluteScreenLocActive());
@@ -3542,7 +3544,6 @@ public class GeoList extends GeoElement
 
 	@Override
 	public char getLabelDelimiter() {
-		ExpressionNode definition = getDefinition();
 		if (definition != null && definition.unwrap() instanceof Equation) {
 			return ':';
 		}

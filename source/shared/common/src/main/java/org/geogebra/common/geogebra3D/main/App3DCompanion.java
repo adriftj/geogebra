@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.geogebra3D.main;
 
 import java.util.ArrayList;
@@ -18,6 +34,7 @@ import org.geogebra.common.geogebra3D.main.settings.EuclidianSettingsForPlane;
 import org.geogebra.common.gui.dialog.Export3dDialogInterface;
 import org.geogebra.common.gui.dialog.options.model.AxisModel;
 import org.geogebra.common.gui.layout.DockPanel;
+import org.geogebra.common.io.XMLStringBuilder;
 import org.geogebra.common.kernel.GeoFactory;
 import org.geogebra.common.kernel.Kernel;
 import org.geogebra.common.kernel.commands.CommandsConstants;
@@ -83,7 +100,7 @@ public abstract class App3DCompanion extends AppCompanion {
 	 * @param asPreference
 	 *            save as preference flag
 	 */
-	public void addCompleteUserInterfaceXMLForPlane(StringBuilder sb,
+	public void addCompleteUserInterfaceXMLForPlane(XMLStringBuilder sb,
 			boolean asPreference) {
 		if (euclidianViewForPlaneCompanionList != null) {
 			for (EuclidianViewForPlaneCompanion vfpc : euclidianViewForPlaneCompanionList) {
@@ -93,7 +110,7 @@ public abstract class App3DCompanion extends AppCompanion {
 	}
 
 	@Override
-	public void getEuclidianViewXML(StringBuilder sb, boolean asPreference) {
+	public void getEuclidianViewXML(XMLStringBuilder sb, boolean asPreference) {
 		super.getEuclidianViewXML(sb, asPreference);
 
 		if (app.isEuclidianView3Dinited()) {

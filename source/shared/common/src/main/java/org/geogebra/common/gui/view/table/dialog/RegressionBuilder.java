@@ -1,8 +1,25 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.gui.view.table.dialog;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.DoubleUnaryOperator;
 
 import org.geogebra.common.gui.view.table.regression.RegressionSpecification;
 import org.geogebra.common.kernel.CircularDefinitionException;
@@ -55,26 +72,20 @@ public class RegressionBuilder {
 			}
 			String[] parameters = new String[coeffs.length];
 			for (int i = 0; i < coeffs.length; i++) {
-				char coeffName = (char) ('a' + i);
+				char coeffName = regression.getCoeffName(i);
 				int index = regression.getCoeffOrdering().indexOf(coeffName);
 				parameters[i] = coeffName + " = "
 						+ kernel.format(coeffs[index], StringTemplate.defaultTemplate);
 			}
 			stats.add(new StatisticGroup(loc.getMenu("Parameters"), parameters));
 			if (regression.hasCoefficientOfDetermination()) {
-				Command residualCmd = new Command(kernel, Statistic.RSQUARE.getCommandName(),
-						false);
-				residualCmd.addArgument(points.wrap());
-				residualCmd.addArgument(geo.wrap());
-				GeoElementND residual = algebraProcessor.processValidExpressionSilent(
-						residualCmd)[0];
-				String lhs = Statistic.RSQUARE.getLHS(kernel.getLocalization(), "");
-				String rSquareRow = kernel.format(residual.evaluateDouble(),
-						StringTemplate.defaultTemplate);
-				stats.add(new StatisticGroup(loc.getMenu("CoefficientOfDetermination"),
-						lhs + " = " + rSquareRow));
+				addResidual(loc.getMenu("CoefficientOfDetermination"), x -> x,
+						Statistic.RSQUARE, geo, points, stats);
 			}
-			addCorrelationCoefficient(stats, points, regression);
+			if (regression.hasCorrelationCoefficient()) {
+				addResidual(kernel.getLocalization().getMenu("Stats.PMCC"), Math::sqrt,
+						Statistic.PMCC, geo, points, stats);
+			}
 		} catch (CommandNotLoadedError e) {
 			throw e; // commands not loaded => throw so that we can retry on UI level
 		} catch (Throwable t) {
@@ -83,25 +94,21 @@ public class RegressionBuilder {
 		return stats;
 	}
 
-	private void addCorrelationCoefficient(List<StatisticGroup> stats, MyVecNode points,
-			RegressionSpecification regression) {
-		if (regression.hasCorrelationCoefficient()) {
-			Command exec = new Command(kernel, Statistic.PMCC.getCommandName(), false);
-			exec.setRespectingFilters(false);
-			exec.addArgument(points.wrap());
-			String varName = xVal.getLabelSimple() + yVal.getLabelSimple();
-
-			try {
-				AlgebraProcessor algebraProcessor = kernel.getAlgebraProcessor();
-				GeoElementND r = algebraProcessor.processValidExpressionSilent(exec)[0];
-				String heading = kernel.getLocalization().getMenu(
-						"Stats." + Statistic.PMCC.getCommandName());
-				String lhs = Statistic.PMCC.getLHS(kernel.getLocalization(), varName);
-				String formula = lhs + " = " + r.toValueString(StringTemplate.defaultTemplate);
-				stats.add(new StatisticGroup(false, heading, formula));
-			} catch (RuntimeException | CircularDefinitionException e) {
-				Log.debug(e);
-			}
-		}
+	private void addResidual(String coefficient, DoubleUnaryOperator transform, Statistic lhsStat,
+			GeoElementND geo, MyVecNode points, List<StatisticGroup> stats)
+			throws CircularDefinitionException {
+		AlgebraProcessor algebraProcessor = kernel.getAlgebraProcessor();
+		Command residualCmd = new Command(kernel, Statistic.RSQUARE.getCommandName(),
+				false);
+		residualCmd.addArgument(points.wrap());
+		residualCmd.addArgument(geo.wrap());
+		residualCmd.setRespectingFilters(false);
+		GeoElementND residual = algebraProcessor.processValidExpressionSilent(
+				residualCmd)[0];
+		String lhs = lhsStat.getLHS(kernel.getLocalization(), "");
+		String rSquareRow = kernel.format(transform.applyAsDouble(residual.evaluateDouble()),
+				StringTemplate.defaultTemplate);
+		stats.add(new StatisticGroup(coefficient,
+				lhs + " = " + rSquareRow));
 	}
 }

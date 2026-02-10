@@ -1,12 +1,29 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.gui;
 
 import java.util.ArrayList;
 import java.util.List;
 
+import org.geogebra.common.awt.AwtFactory;
 import org.geogebra.common.euclidian.EuclidianViewInterfaceCommon;
-import org.geogebra.common.factories.AwtFactory;
 import org.geogebra.common.gui.layout.DockManager;
 import org.geogebra.common.gui.toolbar.ToolBar;
+import org.geogebra.common.io.XMLStringBuilder;
 import org.geogebra.common.io.layout.DockPanelData;
 import org.geogebra.common.io.layout.DockSplitPaneData;
 import org.geogebra.common.io.layout.Perspective;
@@ -496,7 +513,7 @@ public abstract class Layout implements SettingListener {
 	 * @param sb
 	 *            xml builder
 	 */
-	public void getCurrentPerspectiveXML(StringBuilder sb) {
+	public void getCurrentPerspectiveXML(XMLStringBuilder sb) {
 		/*
 		 * Create a temporary perspective which is used to store the layout of
 		 * the document at the moment. This perspective isn't accessible through
@@ -506,7 +523,7 @@ public abstract class Layout implements SettingListener {
 		Perspective tmpPerspective = createPerspective();
 		// save the current perspective
 		if (tmpPerspective != null) {
-			sb.append(tmpPerspective.getXml());
+			tmpPerspective.getXml(sb);
 		}
 
 	}
@@ -519,14 +536,14 @@ public abstract class Layout implements SettingListener {
 	 * @param asPreference
 	 *            If the collected data is used for the preferences
 	 */
-	public final void getXml(StringBuilder sb, boolean asPreference) {
+	public final void getXml(XMLStringBuilder sb, boolean asPreference) {
 
-		sb.append("\t<perspectives>\n");
+		sb.startOpeningTag("perspectives", 1).endTag();
 
 		// save the current perspective
 		getCurrentPerspectiveXML(sb);
 
-		sb.append("\t</perspectives>\n");
+		sb.closeTag("perspectives");
 
 		/*
 		 * Certain user elements should be just saved as preferences and not if
@@ -534,13 +551,11 @@ public abstract class Layout implements SettingListener {
 		 * of the user.
 		 */
 		if (asPreference) {
-			sb.append("\t<settings ignoreDocument=\"");
-			sb.append(settings.isIgnoringDocumentLayout());
-			sb.append("\" showTitleBar=\"");
-			sb.append(settings.showTitleBar());
-			sb.append("\" allowStyleBar=\"");
-			sb.append(settings.isAllowingStyleBar());
-			sb.append("\" />\n");
+			sb.startTag("settings", 1);
+			sb.attr("ignoreDocument", settings.isIgnoringDocumentLayout());
+			sb.attr("showTitleBar", settings.showTitleBar());
+			sb.attr("allowStyleBar", settings.isAllowingStyleBar());
+			sb.endTag();
 		}
 
 	}

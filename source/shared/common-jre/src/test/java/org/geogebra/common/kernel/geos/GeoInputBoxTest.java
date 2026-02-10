@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ * 
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ * 
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+ 
 package org.geogebra.common.kernel.geos;
 
 import static org.geogebra.common.kernel.commands.RedefineTest.isForceInequality;
@@ -28,13 +44,12 @@ import org.geogebra.common.main.App;
 import org.geogebra.common.plugin.GeoClass;
 import org.geogebra.common.plugin.JavaScriptAPI;
 import org.geogebra.common.util.TextObject;
+import org.geogebra.editor.share.util.Unicode;
 import org.geogebra.test.UndoRedoTester;
 import org.geogebra.test.annotation.Issue;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-
-import com.himamis.retex.editor.share.util.Unicode;
 
 public class GeoInputBoxTest extends BaseUnitTest {
 
@@ -931,4 +946,36 @@ public class GeoInputBoxTest extends BaseUnitTest {
 				((GeoInputBox) lookup("ib")).isSymbolicMode());
 	}
 
+	@Test
+	@Issue("APPS-7069")
+	public void singleSpaceBetweenDigitsShouldNotCreateMultiplication() {
+		GeoElement linked = add("a = 1");
+		GeoInputBox inputBox = add("ib = InputBox(a)");
+		inputBox.updateLinkedGeo("10 000");
+		assertEquals(10000, linked.evaluateDouble(), 0);
+		assertEquals("10000", inputBox.getTextForEditor());
+	}
+
+	@Test
+	@Issue("APPS-7069")
+	public void multipleSpacesBetweenDigitsShouldCreateMultiplication() {
+		GeoElement linked = add("a = 1");
+		GeoInputBox inputBox = add("ib = InputBox(a)");
+		inputBox.updateLinkedGeo("30  5");
+		assertEquals(150, linked.evaluateDouble(), 0);
+		assertEquals("30*5", inputBox.getTextForEditor());
+	}
+
+	@Test
+	@Issue("APPS-7069")
+	public void spacesWithinInputShouldNotAffectTexts() {
+		GeoElement linked = add("text = \"Hello\"");
+		GeoInputBox inputBox = add("ib = InputBox(text)");
+		inputBox.updateLinkedGeo("30 5");
+		assertEquals("30 5", linked.getDefinitionForEditor());
+		assertEquals("30 5", inputBox.getTextForEditor());
+		inputBox.updateLinkedGeo("15   3");
+		assertEquals("15   3", linked.getDefinitionForEditor());
+		assertEquals("15   3", inputBox.getTextForEditor());
+	}
 }

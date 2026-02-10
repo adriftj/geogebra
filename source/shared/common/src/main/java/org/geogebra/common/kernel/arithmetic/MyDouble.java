@@ -1,19 +1,17 @@
-/* 
-GeoGebra - Dynamic Mathematics for Everyone
-http://www.geogebra.org
-
-This file is part of GeoGebra.
-
-This program is free software; you can redistribute it and/or modify it 
-under the terms of the GNU General Public License as published by 
-the Free Software Foundation.
-
- */
-
 /*
- * MyDouble.java
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
  *
- * Created on 07. October 2001, 12:23
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
  */
 
 package org.geogebra.common.kernel.arithmetic;
@@ -415,7 +413,7 @@ public class MyDouble extends ValidExpression
 	 *            whether result should be degrees
 	 */
 	final public MyDouble acos(boolean deg) {
-		angleDim = deg ? 1 : 0;
+		makeAngle(deg);
 		set(MyMath.acos(val));
 		return this;
 	}
@@ -426,7 +424,7 @@ public class MyDouble extends ValidExpression
 	 *            whether result should be degrees
 	 */
 	final public MyDouble asin(boolean deg) {
-		angleDim = deg ? 1 : 0;
+		makeAngle(deg);
 		set(MyMath.asin(val));
 		return this;
 	}
@@ -437,7 +435,7 @@ public class MyDouble extends ValidExpression
 	 *            whether result should be degrees
 	 */
 	final public MyDouble atan(boolean deg) {
-		angleDim = deg ? 1 : 0;
+		makeAngle(deg);
 		set(Math.atan(val));
 		return this;
 	}
@@ -450,9 +448,13 @@ public class MyDouble extends ValidExpression
 	 * @return atan2(this,y)
 	 */
 	final public MyDouble atan2(NumberValue y, boolean deg) {
-		angleDim = deg ? 1 : 0;
+		makeAngle(deg);
 		set(Math.atan2(val, y.getDouble()));
 		return this;
+	}
+
+	protected void makeAngle(boolean deg) {
+		angleDim = deg ? 1 : 0;
 	}
 
 	/**
@@ -595,9 +597,13 @@ public class MyDouble extends ValidExpression
 					.floor(DoubleUtil.checkInteger(val * Kernel.CONST_180_PI)));
 		} else {
 			// number or angle in radians
-			set(Math.floor(DoubleUtil.checkInteger(val)));
+			setPrecise(Math.floor(DoubleUtil.checkInteger(val)));
 		}
 		return this;
+	}
+
+	protected void setPrecise(double newVal) {
+		set(newVal);
 	}
 
 	/**
@@ -613,7 +619,7 @@ public class MyDouble extends ValidExpression
 					.ceil(DoubleUtil.checkInteger(val * Kernel.CONST_180_PI)));
 		} else {
 			// number or angle in radians
-			set(Math.ceil(DoubleUtil.checkInteger(val)));
+			setPrecise(Math.ceil(DoubleUtil.checkInteger(val)));
 		}
 		return this;
 	}
@@ -650,7 +656,7 @@ public class MyDouble extends ValidExpression
 			set(Kernel.PI_180 * Precision.round(val * Kernel.CONST_180_PI, digits));
 		} else {
 			// number or angle in radians
-			set(Precision.round(val, digits));
+			setPrecise(Precision.round(val, digits));
 		}
 	}
 

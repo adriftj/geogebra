@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.web.full.gui.dialog.options;
 
 import java.util.Collection;
@@ -10,6 +26,7 @@ import org.geogebra.common.gui.view.consprotocol.ConstructionProtocolNavigation;
 import org.geogebra.common.kernel.StringTemplate;
 import org.geogebra.common.main.settings.EuclidianSettings;
 import org.geogebra.common.plugin.EuclidianStyleConstants;
+import org.geogebra.common.properties.PropertyView;
 import org.geogebra.common.properties.impl.graphics.RightAngleProperty;
 import org.geogebra.common.properties.impl.graphics.TooltipProperty;
 import org.geogebra.common.util.StringUtil;
@@ -426,7 +443,12 @@ public class BasicTab extends OptionsEuclidianW.EuclidianTab implements
 		// show tooltips
 		TooltipProperty tooltipProperty = new TooltipProperty(optionsEuclidianW.loc,
 				model.getSettings(), optionsEuclidianW.view);
-		lbTooltips = new ComponentDropDown(optionsEuclidianW.app, tooltipProperty);
+		PropertyView.Dropdown tooltipDropdownProperty =
+				(PropertyView.Dropdown) PropertyView.of(tooltipProperty);
+		if (tooltipDropdownProperty == null) {
+			return;
+		}
+		lbTooltips = new ComponentDropDown(optionsEuclidianW.app, tooltipDropdownProperty);
 		tooltips = new FormLabel(
 				optionsEuclidianW.loc.getMenu("Tooltips") + ":")
 						.setFor(lbTooltips);
@@ -434,7 +456,13 @@ public class BasicTab extends OptionsEuclidianW.EuclidianTab implements
 
 		RightAngleProperty angleProperty = new RightAngleProperty(optionsEuclidianW.loc,
 				optionsEuclidianW.app);
-		rightAngleStyleListBox = new ComponentDropDown(optionsEuclidianW.app, angleProperty);
+		PropertyView.Dropdown angleDropdownProperty =
+				(PropertyView.Dropdown) PropertyView.of(angleProperty);
+		if (angleDropdownProperty == null) {
+			return;
+		}
+		rightAngleStyleListBox = new ComponentDropDown(optionsEuclidianW.app,
+				angleDropdownProperty);
 		rightAngleStyleLabel = new FormLabel(
 				optionsEuclidianW.loc.getMenu("RightAngleStyle") + ":")
 						.setFor(rightAngleStyleListBox);

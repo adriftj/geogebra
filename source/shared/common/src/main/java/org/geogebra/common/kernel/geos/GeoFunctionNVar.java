@@ -1,13 +1,17 @@
-/* 
-GeoGebra - Dynamic Mathematics for Everyone
-http://www.geogebra.org
-
-This file is part of GeoGebra.
-
-This program is free software; you can redistribute it and/or modify it 
-under the terms of the GNU General Public License as published by 
-the Free Software Foundation.
-
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
  */
 
 package org.geogebra.common.kernel.geos;
@@ -16,6 +20,7 @@ import java.util.TreeMap;
 
 import javax.annotation.CheckForNull;
 
+import org.geogebra.common.io.XMLStringBuilder;
 import org.geogebra.common.kernel.AutoColor;
 import org.geogebra.common.kernel.Construction;
 import org.geogebra.common.kernel.Kernel;
@@ -52,7 +57,6 @@ import org.geogebra.common.main.MyError;
 import org.geogebra.common.plugin.GeoClass;
 import org.geogebra.common.util.DoubleUtil;
 import org.geogebra.common.util.ExtendedBoolean;
-import org.geogebra.common.util.StringUtil;
 
 /**
  * Explicit function in multiple variables, e.g. f(a, b, c) := a^2 + b - 3c.
@@ -481,24 +485,22 @@ public class GeoFunctionNVar extends GeoElement
 	}
 
 	@Override
-	public final void getExpressionXML(StringBuilder sb) {
+	public final void getExpressionXML(XMLStringBuilder sb) {
 		// an independent function needs to add
 		// its expression itself
 		// e.g. f(a,b) = a^2 - 3*b
 		if (isIndependent() && getDefaultGeoType() < 0) {
-			sb.append("<expression label=\"");
-			sb.append(label);
-			sb.append("\" exp=\"");
-			StringUtil.encodeXML(sb, toString(StringTemplate.xmlTemplate));
-			sb.append("\" type=\"");
-			sb.append(getFunctionType());
-			sb.append("\"/>\n");
+			sb.startTag("expression", 0)
+					.attr("label", label)
+					.attr("exp", toString(StringTemplate.xmlTemplate))
+					.attrRaw("type", getFunctionType())
+					.endTag();
 		}
 	}
 
 	@Override
-	public void getXMLtags(StringBuilder sbxml) {
-		super.getXMLtags(sbxml);
+	public void getXMLTags(XMLStringBuilder sbxml) {
+		super.getXMLTags(sbxml);
 		printCASEvalMapXML(sbxml);
 	}
 
@@ -1186,7 +1188,7 @@ public class GeoFunctionNVar extends GeoElement
 	}
 
 	@Override
-	protected void getStyleXML(StringBuilder sb) {
+	protected void getStyleXML(XMLStringBuilder sb) {
 		super.getStyleXML(sb);
 
 		// needed for inequalities
@@ -1197,7 +1199,7 @@ public class GeoFunctionNVar extends GeoElement
 		// level of detail
 		if (hasLevelOfDetail()
 				&& (getLevelOfDetail() == LevelOfDetail.QUALITY)) {
-			sb.append("\t<levelOfDetailQuality val=\"true\"/>\n");
+			sb.startTag("levelOfDetailQuality").attr("val", true).endTag();
 		}
 	}
 
@@ -1394,7 +1396,7 @@ public class GeoFunctionNVar extends GeoElement
 	}
 
 	@Override
-	public void printCASEvalMapXML(StringBuilder sb) {
+	public void printCASEvalMapXML(XMLStringBuilder sb) {
 		if (fun != null) {
 			fun.printCASevalMapXML(sb);
 		}

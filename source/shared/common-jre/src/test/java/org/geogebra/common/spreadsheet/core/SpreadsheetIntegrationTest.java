@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ * 
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ * 
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.spreadsheet.core;
 
 import static org.geogebra.common.spreadsheet.core.SpreadsheetTestHelpers.simulateCellMouseClick;
@@ -64,6 +80,7 @@ public final class SpreadsheetIntegrationTest extends BaseAppTestSetup {
 		getKernel().attach((KernelTabularDataAdapter) tabularData);
 		spreadsheet = new Spreadsheet(tabularData,
 				new TestCellRenderableFactory(),
+				null,
 				undoProvider);
 		spreadsheet.setViewportAdjustmentHandler(new DummyViewportAdjuster());
 		new SpreadsheetSettingsAdapter(spreadsheet, getApp()).registerListeners();
@@ -81,6 +98,7 @@ public final class SpreadsheetIntegrationTest extends BaseAppTestSetup {
 		spreadsheetSettings.getColumnWidths().put(1, 500.0);
 		Spreadsheet spreadsheet = new Spreadsheet(tabularData,
 				new TestCellRenderableFactory(),
+				null,
 				null);
 		new SpreadsheetSettingsAdapter(spreadsheet, getApp()).registerListeners();
 		Assertions.assertEquals(500 + 2 * 120 + 52, spreadsheet.getTotalWidth());

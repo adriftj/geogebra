@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ * 
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ * 
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+ 
 package org.geogebra.common.main;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -23,12 +39,11 @@ import org.geogebra.common.kernel.geos.GeoElement;
 import org.geogebra.common.kernel.geos.GeoNumeric;
 import org.geogebra.common.kernel.geos.GeoPoint;
 import org.geogebra.common.plugin.script.GgbScript;
+import org.geogebra.editor.share.util.KeyCodes;
 import org.geogebra.test.EventAccumulator;
 import org.geogebra.test.annotation.Issue;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.himamis.retex.editor.share.util.KeyCodes;
 
 public class GlobalKeyDispatcherTest extends BaseUnitTest {
 
@@ -165,5 +180,33 @@ public class GlobalKeyDispatcherTest extends BaseUnitTest {
 				false, false, false, false);
 		assertEquals(0, getConstruction().getGeoSetConstructionOrder().size());
 		verify(guiManager, never()).getSpreadsheetView();
+	}
+
+	@Test
+	@Issue("APPS-7045")
+	public void calculationShouldNotBeChangeableUsingArrowKeysOrPlusMinusKey() {
+		GeoNumeric calculation = add("10 + 2");
+		handleKey(KeyCodes.RIGHT, List.of(calculation));
+		handleKey(KeyCodes.UP, List.of(calculation));
+		handleKey(KeyCodes.PLUS, List.of(calculation));
+		assertEquals(12, calculation.getValue(), 0);
+		handleKey(KeyCodes.LEFT, List.of(calculation));
+		handleKey(KeyCodes.DOWN, List.of(calculation));
+		handleKey(KeyCodes.MINUS, List.of(calculation));
+		assertEquals(12, calculation.getValue(), 0);
+	}
+
+	@Test
+	@Issue("APPS-7045")
+	public void calculationShouldNotBeChangeableWithMultipleElementsSelected() {
+		GeoNumeric calculation = add("3 * 4");
+		GeoNumeric numeric = add("2");
+		GeoNumeric slider = add("Slider(-5,5,1)");
+		handleKey(KeyCodes.RIGHT, List.of(calculation, numeric, slider));
+		handleKey(KeyCodes.UP, List.of(calculation, numeric, slider));
+		handleKey(KeyCodes.PLUS, List.of(calculation, numeric, slider));
+		assertEquals(12, calculation.getValue(), 0);
+		assertEquals(3.5, numeric.getValue(), 0);
+		assertEquals(3, slider.getValue(), 0);
 	}
 }

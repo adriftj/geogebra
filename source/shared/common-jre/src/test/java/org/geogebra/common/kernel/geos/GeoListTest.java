@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ * 
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ * 
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.kernel.geos;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -11,12 +27,12 @@ import java.util.Objects;
 import org.geogebra.common.BaseUnitTest;
 import org.geogebra.common.awt.GGraphicsCommon;
 import org.geogebra.common.euclidian.draw.dropdown.DrawDropDownList;
+import org.geogebra.common.io.XMLStringBuilder;
 import org.geogebra.common.kernel.StringTemplate;
+import org.geogebra.editor.share.util.Unicode;
 import org.geogebra.test.annotation.Issue;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.himamis.retex.editor.share.util.Unicode;
 
 public class GeoListTest extends BaseUnitTest {
 
@@ -62,7 +78,7 @@ public class GeoListTest extends BaseUnitTest {
 		add("c=1");
 		allLists.set(add("{{c}}")); // equivalent to SetValue(allLists,{{c}})
 		add("SetValue(c,42)");
-		StringBuilder sb = new StringBuilder();
+		XMLStringBuilder sb = new XMLStringBuilder();
 		allLists.getExpressionXML(sb);
 		assertThat(sb.toString(), is("<expression label=\"allLists\" exp=\"{{1}}\"/>\n"));
 	}

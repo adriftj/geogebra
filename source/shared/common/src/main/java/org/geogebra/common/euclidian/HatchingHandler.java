@@ -1,5 +1,22 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.euclidian;
 
+import org.geogebra.common.awt.AwtFactory;
 import org.geogebra.common.awt.GAlphaComposite;
 import org.geogebra.common.awt.GBasicStroke;
 import org.geogebra.common.awt.GBufferedImage;
@@ -10,8 +27,8 @@ import org.geogebra.common.awt.GGraphics2D;
 import org.geogebra.common.awt.GPaint;
 import org.geogebra.common.awt.GRectangle;
 import org.geogebra.common.awt.MyImage;
+import org.geogebra.common.awt.VectorPatternPaint;
 import org.geogebra.common.awt.font.GTextLayout;
-import org.geogebra.common.factories.AwtFactory;
 import org.geogebra.common.kernel.Kernel;
 import org.geogebra.common.kernel.geos.properties.FillType;
 import org.geogebra.common.kernel.kernelND.GeoElementND;
@@ -197,7 +214,9 @@ public class HatchingHandler {
 
 		// use the middle square of our 3 x 3 grid to fill with
 		if (bufferedImage == null) {
-			return new VectorPatternPaint(g2d, width, height, startX, startY, exportType);
+			return new VectorPatternPaint(g2d, width, height, startX, startY,
+					exportType == ExportType.SVG ? VectorPatternPaint.VectorType.SVG
+							: VectorPatternPaint.VectorType.PDF);
 		} else {
 			return AwtFactory.getPrototype().newTexturePaint(
 					bufferedImage.getSubimage(startX, startY, width,

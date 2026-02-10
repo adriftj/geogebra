@@ -1,6 +1,26 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.euclidian.modes;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import org.geogebra.common.euclidian.BaseEuclidianControllerTest;
 import org.geogebra.common.euclidian.EuclidianConstants;
@@ -8,9 +28,11 @@ import org.geogebra.common.jre.util.ScientificFormat;
 import org.geogebra.common.kernel.StringTemplate;
 import org.geogebra.common.kernel.geos.GeoElement;
 import org.geogebra.common.kernel.geos.GeoNumeric;
+import org.geogebra.common.kernel.geos.groups.Group;
 import org.geogebra.common.main.AppConfig;
 import org.geogebra.common.main.settings.config.AppConfigGraphing;
 import org.geogebra.common.main.settings.config.AppConfigNotes;
+import org.geogebra.test.annotation.Issue;
 import org.junit.Test;
 
 public class ModeDeleteTest extends BaseEuclidianControllerTest {
@@ -41,6 +63,49 @@ public class ModeDeleteTest extends BaseEuclidianControllerTest {
 						+ "4.2560E0,-2.6464E0,4.2240E0,-3.0656E0,4.1280E0,-3.5232E0,"
 						+ "4.0000E0,-4.0000E0,?,?]",
 				getDefinition());
+	}
+
+	@Test
+	@Issue("MOW-1791")
+	public void eraseWholeStrokeTest() {
+		getApp().setUndoActive(true);
+		setMode(EuclidianConstants.MODE_ERASER);
+		add("stroke = PenStroke((2,-4),(2,-2),(4,-2),(4,-4))");
+		eraseWholeStroke();
+		assertArrayEquals(new String[0], getApp().getGgbApi().getAllObjectNames());
+		getKernel().undo();
+
+		assertEquals("PenStroke[2.0000E0,-4.0000E0,1.8720E0,-3.5232E0,1.7760E0,-3.0656E0,"
+						+ "1.7440E0,-2.6464E0,1.8080E0,-2.2848E0,2.0000E0,-2.0000E0,2.3360E0,"
+						+ "-1.8080E0,2.7680E0,-1.7120E0,3.2320E0,-1.7120E0,3.6640E0,-1.8080E0,"
+						+ "4.0000E0,-2.0000E0,4.1920E0,-2.2848E0,4.2560E0,-2.6464E0,4.2240E0,"
+						+ "-3.0656E0,4.1280E0,-3.5232E0,4.0000E0,-4.0000E0,?,?]",
+				getDefinition());
+	}
+
+	@Test
+	@Issue("MOW-1791")
+	public void eraseStrokeGrouped() {
+		getApp().setUndoActive(true);
+		getApp().setConfig(new AppConfigNotes());
+		setMode(EuclidianConstants.MODE_ERASER);
+		GeoElement geo1 = add("stroke = PenStroke((2,-4),(2,-2),(4,-2),(4,-4))");
+		GeoElement geo2 = add("stroke2 = PenStroke((12,-4),(12,-2),(14,-2),(14,-4))");
+		getApp().getKernel().getConstruction().createGroupFromSelected(
+				new ArrayList<>(List.of(geo1, geo2)));
+		eraseWholeStroke();
+		assertArrayEquals(new String[0], getApp().getGgbApi().getAllObjectNames());
+		getKernel().undo();
+		assertEquals(2, getApp().getGgbApi().getAllObjectNames().length);
+	}
+
+	private void eraseWholeStroke() {
+		dragStart(90, 210);
+		dragInside(90, 210, 100, 100);
+		dragInside(100, 100, 150, 80);
+		dragInside(150, 80, 200, 100);
+		dragInside(200, 100, 210, 210);
+		dragEnd(210, 210);
 	}
 
 	@Test
@@ -131,11 +196,15 @@ public class ModeDeleteTest extends BaseEuclidianControllerTest {
 
 	private void dragLinear(int x1, int y1, int x2, int y2) {
 		dragStart(x1, y1);
+		dragInside(x1, y1, x2, y2);
+		dragEnd(x2, y2);
+	}
+
+	private void dragInside(int x1, int y1, int x2, int y2) {
 		int steps = 20;
 		for (int i = 0; i < 20; i++) {
 			drag(x1 + (i * (x2 - x1)) / steps, y1 + (i * (y2 - y1)) / steps);
 		}
-		dragEnd(x2, y2);
 	}
 
 	@Test

@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.web.full.gui.view.algebra;
 
 import java.util.HashMap;
@@ -7,15 +23,14 @@ import org.geogebra.common.plugin.Event;
 import org.geogebra.common.plugin.EventType;
 import org.geogebra.common.util.AsyncOperation;
 import org.geogebra.common.util.StringUtil;
+import org.geogebra.editor.share.event.MathFieldListener;
+import org.geogebra.editor.share.input.KeyboardInputAdapter;
+import org.geogebra.editor.web.MathFieldW;
 import org.geogebra.web.full.gui.inputfield.AutoCompletePopup;
 import org.geogebra.web.html5.gui.util.CancelEventTimer;
 import org.gwtproject.core.client.Scheduler;
 import org.gwtproject.event.dom.client.BlurEvent;
 import org.gwtproject.event.dom.client.BlurHandler;
-
-import com.himamis.retex.editor.share.event.MathFieldListener;
-import com.himamis.retex.editor.share.input.KeyboardInputAdapter;
-import com.himamis.retex.editor.web.MathFieldW;
 
 /**
  * @author Laszlo
@@ -27,6 +42,7 @@ public class LatexTreeItemController extends RadioTreeItemController
 	private AutoCompletePopup autocomplete;
 	private RetexKeyboardListener retexListener;
 	private final EvaluateInput evalInput;
+	private String lastInput = "";
 
 	/**
 	 * @param item
@@ -45,6 +61,15 @@ public class LatexTreeItemController extends RadioTreeItemController
 		} else {
 			super.startEdit(ctrl);
 		}
+		storeInitialInput();
+	}
+
+	/**
+	 * Stores the initial input that should be restored upon pressing Escape.
+	 * Make sure to call this method upon edit start.
+	 */
+	void storeInitialInput() {
+		lastInput = item.getText();
 	}
 
 	@Override
@@ -68,18 +93,13 @@ public class LatexTreeItemController extends RadioTreeItemController
 		});
 	}
 
-	private void keepFocusInApp() {
-		if (item.geo != null) {
-			app.getAccessibilityManager().focusGeo(item.geo);
-		} else {
-			app.getActiveEuclidianView().requestFocus();
-		}
-	}
-
 	@Override
 	public void onEnter(final boolean keepFocus) {
 		if (isEditing()) {
 			dispatchEditEvent(EventType.EDITOR_STOP);
+		}
+		if (!item.isLastRadioTreeItem()) {
+			app.hideKeyboard();
 		}
 		if (item.isInputTreeItem() && item.isEmpty()) {
 			item.styleEditor();
@@ -239,18 +259,10 @@ public class LatexTreeItemController extends RadioTreeItemController
 	public boolean onEscape() {
 		if (autocomplete != null && autocomplete.isSuggesting()) {
 			autocomplete.hide();
-			return true;
+		} else {
+			item.setText(lastInput);
 		}
-		if (item.geo != null || StringUtil.empty(item.getText())) {
-			boolean isAlgebraViewFocused = app.isAlgebraViewFocused();
-			onBlur(null);
-			keepFocusInApp();
-			if (isAlgebraViewFocused) {
-				setAlgebraViewAsFocusedPanel();
-			}
-			return true;
-		}
-		return false;
+		return true;
 	}
 
 	@Override

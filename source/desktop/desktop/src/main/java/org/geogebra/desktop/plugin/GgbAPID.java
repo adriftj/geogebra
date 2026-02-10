@@ -1,32 +1,37 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ * 
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ * 
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.desktop.plugin;
 
 import java.awt.Toolkit;
 import java.awt.geom.Rectangle2D;
-import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.security.AccessController;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.security.PrivilegedAction;
-import java.util.Iterator;
 import java.util.function.Consumer;
 
-import javax.imageio.ImageIO;
-import javax.imageio.ImageWriter;
-import javax.imageio.stream.ImageOutputStream;
 import javax.swing.JOptionPane;
 
 import org.geogebra.common.GeoGebraConstants;
 import org.geogebra.common.awt.GBufferedImage;
 import org.geogebra.common.euclidian.EuclidianView;
 import org.geogebra.common.jre.plugin.GgbAPIJre;
-import org.geogebra.common.jre.util.Base64;
 import org.geogebra.common.main.App.ExportType;
 import org.geogebra.common.main.Localization;
 import org.geogebra.common.plugin.JsObjectWrapper;
@@ -41,39 +46,11 @@ import org.geogebra.desktop.io.MyImageIO;
 import org.geogebra.desktop.main.AppD;
 import org.geogebra.desktop.util.UtilD;
 
-/*
- GeoGebra - Dynamic Mathematics for Everyone
- http://www.geogebra.org
-
- This file is part of GeoGebra.
-
- This program is free software; you can redistribute it and/or modify it
- under the terms of the GNU General Public License as published by
- the Free Software Foundation.
-
- */
-
 /**
- * <h3>GgbAPI - API for PlugLets</h3>
- * 
- * <pre>
- *    The Api the plugin program can use.
- * </pre>
- * <ul>
- * <li>GgbAPI(Application) //Application owns it
- * <li>getApplication()
- * <li>getKernel()
- * <li>getConstruction()
- * <li>getAlgebraProcessor()
- * <li>getPluginManager()
- * <li>evalCommand(String)
- * <li>and the rest of the methods from the Applet JavaScript/Java interface
- * <li>...
- * </ul>
+ * Desktop implementation of {@link org.geogebra.common.plugin.GgbAPI}.
  * 
  * @author H-P Ulven
  */
-
 public class GgbAPID extends GgbAPIJre {
 
 	/**
@@ -157,22 +134,6 @@ public class GgbAPID extends GgbAPIJre {
 				.endsWith(FileExtensions.GEOGEBRA_TOOL.toString()));
 	}
 
-	private static volatile MessageDigest messageDigestMD5 = null;
-
-	/**
-	 * @return reference to MD5 algorithm
-	 * @throws NoSuchAlgorithmException
-	 *             if algorithm is not supported
-	 */
-	public static MessageDigest getMessageDigestMD5()
-			throws NoSuchAlgorithmException {
-		if (messageDigestMD5 == null) {
-			messageDigestMD5 = MessageDigest.getInstance("MD5");
-		}
-
-		return messageDigestMD5;
-	}
-
 	/*
 	 * saves a PNG file signed applets only
 	 */
@@ -187,44 +148,33 @@ public class GgbAPID extends GgbAPIJre {
 		try {
 			file1 = new File(filename);
 		} catch (Throwable t) {
-			t.printStackTrace();
+			Log.debug(t);
 		}
 		if (file1 == null) {
 			return false;
 		}
 		final File file = file1;
-		return (Boolean) AccessController
-				.doPrivileged((PrivilegedAction<Object>) () -> {
+		try {
+			// draw graphics view into image
+			GBufferedImage img = getApplication()
+					.getActiveEuclidianView()
+					.getExportImage(exportScale, transparent,
+							ExportType.PNG);
 
-					try {
-						// draw graphics view into image
-						GBufferedImage img = ((AppD) getApplication())
-								.getActiveEuclidianView()
-								.getExportImage(exportScale, transparent,
-										ExportType.PNG);
+			if (greyscale) {
+				((GBufferedImageD) img).convertToGrayscale();
+			}
 
-						if (greyscale) {
-							((GBufferedImageD) img).convertToGrayscale();
-						}
+			// write image to file
+			MyImageIO.write(
+					GBufferedImageD.getAwtBufferedImage(img),
+					"png", (float) DPI, file);
 
-						// write image to file
-						MyImageIO.write(
-								GBufferedImageD.getAwtBufferedImage(img),
-								"png", (float) DPI, file);
-
-						return true;
-					} catch (Exception ex) {
-						ex.printStackTrace();
-						Log.debug(ex.toString());
-						return false;
-					} catch (Error ex) {
-						ex.printStackTrace();
-						Log.debug(ex.toString());
-						return false;
-					}
-
-				});
-
+			return true;
+		} catch (IOException | RuntimeException | Error ex) {
+			Log.debug(ex);
+			return false;
+		}
 	}
 
 	@Override
@@ -253,40 +203,7 @@ public class GgbAPID extends GgbAPIJre {
 			double exportScale, EuclidianView ev) {
 		GBufferedImage img = ((EuclidianViewInterfaceD) ev)
 				.getExportImage(exportScale, transparent, ExportType.PNG);
-		return base64encode(GBufferedImageD.getAwtBufferedImage(img), DPI);
-	}
-
-	/**
-	 * @param img
-	 *            image
-	 * @return encoded image
-	 */
-	public static String base64encode(BufferedImage img, double DPI) {
-		if (img == null) {
-			return null;
-		}
-		try {
-			Iterator<ImageWriter> it = ImageIO
-					.getImageWritersByFormatName("png");
-			ImageWriter writer = it.next();
-			ByteArrayOutputStream baos = new ByteArrayOutputStream();
-
-			ImageOutputStream ios = ImageIO.createImageOutputStream(baos);
-
-			writer.setOutput(ios);
-
-			MyImageIO.writeImage(writer, img, DPI);
-
-			String ret = Base64.encodeToString(baos.toByteArray(), false);
-
-			baos.close();
-			ios.close();
-
-			return ret;
-		} catch (IOException e) {
-			Log.debug(e);
-			return null;
-		}
+		return GBufferedImageD.base64encode(GBufferedImageD.getAwtBufferedImage(img), DPI);
 	}
 
 	@Override
@@ -342,8 +259,7 @@ public class GgbAPID extends GgbAPIJre {
 		
 		try {
 			// read file back as String
-			callback.accept(new String(Files.readAllBytes(Paths.get(filename)),
-					StandardCharsets.UTF_8));
+			callback.accept(Files.readString(Paths.get(filename)));
 		} catch (IOException e) {
 			Log.error("problem reading " + filename);
 		}
@@ -369,8 +285,7 @@ public class GgbAPID extends GgbAPIJre {
 
 		try {
 			// read file back as String
-			callback.accept(new String(Files.readAllBytes(Paths.get(filename)),
-					StandardCharsets.UTF_8));
+			callback.accept(Files.readString(Paths.get(filename)));
 		} catch (IOException e) {
 			Log.error("problem reading " + filename);
 		}

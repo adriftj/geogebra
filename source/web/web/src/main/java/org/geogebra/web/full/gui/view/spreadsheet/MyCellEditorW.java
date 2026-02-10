@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.web.full.gui.view.spreadsheet;
 
 import org.geogebra.common.gui.view.spreadsheet.RelativeCopy;
@@ -8,6 +24,8 @@ import org.geogebra.common.kernel.geos.GeoElementSpreadsheet;
 import org.geogebra.common.kernel.kernelND.GeoElementND;
 import org.geogebra.common.plugin.EventType;
 import org.geogebra.common.util.debug.Log;
+import org.geogebra.editor.share.util.AltKeys;
+import org.geogebra.editor.web.MathFieldW;
 import org.geogebra.web.html5.event.KeyEventsHandler;
 import org.geogebra.web.html5.gui.inputfield.AutoCompleteTextFieldW;
 import org.geogebra.web.html5.main.AppW;
@@ -17,9 +35,6 @@ import org.gwtproject.event.dom.client.KeyDownEvent;
 import org.gwtproject.event.dom.client.KeyPressEvent;
 import org.gwtproject.event.dom.client.KeyUpEvent;
 import org.gwtproject.user.client.ui.SimplePanel;
-
-import com.himamis.retex.editor.share.util.AltKeys;
-import com.himamis.retex.editor.web.MathFieldW;
 
 /**
  * Default cell editor for the spreadsheet, extends

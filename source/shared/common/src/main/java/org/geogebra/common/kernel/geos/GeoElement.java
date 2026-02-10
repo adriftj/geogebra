@@ -1,25 +1,23 @@
 /*
-GeoGebra - Dynamic Mathematics for Everyone
-http://www.geogebra.org
-
-This file is part of GeoGebra.
-
-This program is free software; you can redistribute it and/or modify it
-under the terms of the GNU General Public License as published by
-the Free Software Foundation.
-
- */
-
-/*
- * GeoElement.java
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
  *
- * Created on 30. August 2001, 17:10
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
  */
 
 package org.geogebra.common.kernel.geos;
 
-import static com.himamis.retex.editor.share.input.Character.isLetter;
 import static org.geogebra.common.kernel.ConstructionDefaults.DEFAULT_LINE;
+import static org.geogebra.editor.share.input.Character.isLetter;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -43,12 +41,13 @@ import org.geogebra.common.euclidian.EuclidianViewInterfaceSlim;
 import org.geogebra.common.euclidian.draw.CanvasDrawable;
 import org.geogebra.common.factories.LaTeXFactory;
 import org.geogebra.common.gui.view.algebra.AlgebraView.SortMode;
-import org.geogebra.common.gui.view.algebra.filter.AlgebraOutputFilter;
+import org.geogebra.common.io.XMLStringBuilder;
 import org.geogebra.common.kernel.AnimationManager;
 import org.geogebra.common.kernel.AutoColor;
 import org.geogebra.common.kernel.CircularDefinitionException;
 import org.geogebra.common.kernel.Construction;
 import org.geogebra.common.kernel.ConstructionDefaults;
+import org.geogebra.common.kernel.FixedPathRegionAlgo;
 import org.geogebra.common.kernel.GTemplate;
 import org.geogebra.common.kernel.GraphAlgo;
 import org.geogebra.common.kernel.Kernel;
@@ -117,10 +116,10 @@ import org.geogebra.common.util.StringUtil;
 import org.geogebra.common.util.debug.GeoGebraProfiler;
 import org.geogebra.common.util.debug.Log;
 import org.geogebra.common.util.lang.Language;
+import org.geogebra.editor.share.util.Greek;
+import org.geogebra.editor.share.util.Unicode;
 
 import com.google.j2objc.annotations.Weak;
-import com.himamis.retex.editor.share.util.Greek;
-import com.himamis.retex.editor.share.util.Unicode;
 
 /**
  * 
@@ -284,7 +283,7 @@ public abstract class GeoElement extends ConstructionElement implements GeoEleme
 
 	private boolean canBeRemovedAsInput = true;
 
-	private ExpressionNode definition;
+	protected @CheckForNull ExpressionNode definition;
 
 	private int defaultGeoType = -1;
 
@@ -319,8 +318,6 @@ public abstract class GeoElement extends ConstructionElement implements GeoEleme
 	private boolean descriptionNeedsUpdateInAV;
 
 	private GeoText dynamicCaption;
-
-	private AlgebraOutputFilter algebraOutputFilter;
 
 	private Group parentGroup;
 
@@ -369,7 +366,6 @@ public abstract class GeoElement extends ConstructionElement implements GeoEleme
 	private void initWith(@Nonnull App app) {
 		appConfig = app.getConfig();
 		graphicsadapter = app.newGeoElementGraphicsAdapter();
-        algebraOutputFilter = app.getAlgebraOutputFilter();
 		EuclidianViewInterfaceSlim ev  = app.getActiveEuclidianView();
 		if (ev != null && app.getActiveEuclidianView().getViewID() != App.VIEW_EUCLIDIAN) {
 			initWith(ev);
@@ -1910,6 +1906,27 @@ public abstract class GeoElement extends ConstructionElement implements GeoEleme
 	}
 
 	/**
+	 * Determines whether this is inherently moveable, regardless of its locked/fixed state.
+	 * <p>
+	 * This method does <b>not</b> check whether the point is currently locked/fixed.
+	 * To check if a point can be moved right now (considering the {@link #fixed} flag),
+	 * use {@link #isMoveable()} or {@link GeoPoint#isPointChangeable(GeoElement)}.
+	 * @return {@code true} if this point has a moveable position by its geometric nature,
+	 * {@code false} otherwise
+	 */
+	protected boolean isInherentlyMoveable() {
+		// if we drag a AlgoDynamicCoordinates, we want its point to be dragged
+		AlgoElement algo = getParentAlgorithm();
+
+		// make sure Point[circle, param] is not moveable
+		if (algo instanceof FixedPathRegionAlgo) {
+			return ((FixedPathRegionAlgo) algo).isChangeable(this);
+		}
+
+		return isIndependent() || isPointOnPath() || isPointInRegion();
+	}
+
+	/**
 	 * Returns whether this object may be redefined
 	 * 
 	 * @return whether this object may be redefined
@@ -2685,6 +2702,9 @@ public abstract class GeoElement extends ConstructionElement implements GeoEleme
 		}
 		cons.putLabel(this); // add new table entry
 		cons.getLayerManager().setRenameRunning(false);
+		if (app.isWhiteboardActive()) {
+			cons.getLayerManager().updateOrdering(this);
+		}
 		algebraStringsNeedUpdate();
 		updateSpreadsheetCoordinates();
 
@@ -4386,14 +4406,14 @@ public abstract class GeoElement extends ConstructionElement implements GeoEleme
 	 * @return XML of this geo as string
 	 */
 	public String getXML() {
-		final StringBuilder sb = new StringBuilder();
+		final XMLStringBuilder sb = new XMLStringBuilder();
 		getXML(false, sb);
 		return sb.toString();
 	}
 
 	@Override
 	public String getStyleXML() {
-		final StringBuilder sb = new StringBuilder();
+		final XMLStringBuilder sb = new XMLStringBuilder();
 		getElementOpenTagXML(sb);
 		getStyleXML(sb);
 		getElementCloseTagXML(sb);
@@ -4401,53 +4421,49 @@ public abstract class GeoElement extends ConstructionElement implements GeoEleme
 	}
 
 	@Override
-	public void getXML(boolean getListenersToo, final StringBuilder sb) {
+	public void getXML(boolean getListenersToo, final XMLStringBuilder sb) {
 		if (isSpotlight()) {
 			return;
 		}
 		getExpressionXML(sb);
 		getElementOpenTagXML(sb);
-		getXMLtags(sb);
+		getXMLTags(sb);
 		if (getListenersToo) {
 			getListenerTagsXML(sb);
 		}
 		getElementCloseTagXML(sb);
 	}
 
-	protected void getExpressionXML(StringBuilder sb) {
+	protected void getExpressionXML(XMLStringBuilder sb) {
 		if (isIndependent() && definition != null && getDefaultGeoType() < 0) {
-			sb.append("<expression label=\"");
-			StringUtil.encodeXML(sb, label);
-			sb.append("\" exp=\"");
-			getDefinitionXML(sb);
-			// expression
-			sb.append("\"");
+			sb.startTag("expression", 0)
+					.attr("label", label)
+					.attr("exp", getDefinitionXML());
 
 			// add type (e.g. for plane/line)
 			if (isGeoPoint()) {
-				sb.append(" type=\"point\"");
+				sb.attrRaw("type", "point");
 			} else if (isGeoVector()) {
-				sb.append(" type=\"vector\"");
+				sb.attrRaw("type", "vector");
 			} else if (isGeoLine()) {
-				sb.append(" type=\"line\"");
+				sb.attrRaw("type", "line");
 			} else if (isGeoPlane()) {
-				sb.append(" type=\"plane\"");
+				sb.attrRaw("type", "plane");
 			} else if (isGeoConic()) {
-				sb.append(" type=\"conic\"");
+				sb.attrRaw("type", "conic");
 			} else if (isGeoQuadric()) {
-				sb.append(" type=\"quadric\"");
+				sb.attrRaw("type", "quadric");
 			} else if (isGeoImplicitCurve()) {
-				sb.append(" type=\"implicitpoly\"");
+				sb.attrRaw("type", "implicitpoly");
 			} else if (isGeoImplicitSurface()) {
-				sb.append(" type=\"implicitsurface\"");
+				sb.attrRaw("type", "implicitsurface");
 			}
-			sb.append("/>\n");
+			sb.endTag();
 		}
 	}
 
-	protected void getDefinitionXML(StringBuilder sb) {
-		StringUtil.encodeXML(sb,
-				definition.toString(StringTemplate.xmlTemplate));
+	protected String getDefinitionXML() {
+		return definition == null ? "" : definition.toString(StringTemplate.xmlTemplate);
 	}
 
 	/**
@@ -4456,7 +4472,7 @@ public abstract class GeoElement extends ConstructionElement implements GeoEleme
 	 * @param sb
 	 *            string builder
 	 */
-	protected void getListenerTagsXML(StringBuilder sb) {
+	protected void getListenerTagsXML(XMLStringBuilder sb) {
 		// we might be calling this from event dispatcher
 		// make sure we don't initialize ScriptManager here
 		if (app.hasScriptManager()) {
@@ -4470,14 +4486,13 @@ public abstract class GeoElement extends ConstructionElement implements GeoEleme
 		}
 	}
 
-	private void getListenerTagXML(StringBuilder sb,
+	private void getListenerTagXML(XMLStringBuilder sb,
 			HashMap<GeoElement, JsReference> map, String type) {
 		if (map != null) {
 			JsReference objectListener = map.get(this);
 			if (objectListener != null) {
-				sb.append("\t<listener type=\"").append(type).append("\" val=\"");
-				sb.append(objectListener.getText());
-				sb.append("\"/>\n");
+				sb.startTag("listener").attrRaw("type", type)
+						.attrRaw("val", objectListener.getText()).endTag();
 			}
 		}
 	}
@@ -4489,18 +4504,15 @@ public abstract class GeoElement extends ConstructionElement implements GeoEleme
 	 * @param sb
 	 *            string builder
 	 */
-	protected void getElementOpenTagXML(final StringBuilder sb) {
+	protected void getElementOpenTagXML(final XMLStringBuilder sb) {
 		final String type = getXMLtypeString();
-		sb.append("<element");
-		sb.append(" type=\"");
-		sb.append(type);
-		sb.append("\" label=\"");
-		StringUtil.encodeXML(sb, label);
+		sb.startOpeningTag("element", 0);
+		sb.attr("type", type);
+		sb.attr("label", label);
 		if (defaultGeoType >= 0) {
-			sb.append("\" default=\"");
-			sb.append(defaultGeoType);
+			sb.attr("default", defaultGeoType);
 		}
-		sb.append("\">\n");
+		sb.endTag();
 	}
 
 	/**
@@ -4509,8 +4521,8 @@ public abstract class GeoElement extends ConstructionElement implements GeoEleme
 	 * @param sb
 	 *            string builder
 	 */
-	protected void getElementCloseTagXML(final StringBuilder sb) {
-		sb.append("</element>\n");
+	protected void getElementCloseTagXML(final XMLStringBuilder sb) {
+		sb.closeTag("element");
 	}
 
 	/**
@@ -4519,7 +4531,7 @@ public abstract class GeoElement extends ConstructionElement implements GeoEleme
 	 * @param sb
 	 *            string builder
 	 */
-	public void getScriptTags(final StringBuilder sb) {
+	public void getScriptTags(final XMLStringBuilder sb) {
 		if (scripts == null) {
 			return;
 		}
@@ -4529,14 +4541,12 @@ public abstract class GeoElement extends ConstructionElement implements GeoEleme
 		getScriptTag(EventType.EDITOR_KEY_TYPED, "onChange", sb);
 	}
 
-	private void getScriptTag(EventType eventType, String val, StringBuilder sb) {
+	private void getScriptTag(EventType eventType, String val, XMLStringBuilder sb) {
 		Script clickScript = scripts[eventType.ordinal()];
 		if (clickScript != null) {
-			sb.append("\t<");
-			sb.append(clickScript.getXMLName());
-			sb.append(" ").append(val).append("=\"");
-			StringUtil.encodeXML(sb, clickScript.getInternalText());
-			sb.append("\"/>\n");
+			sb.startTag(clickScript.getXMLName());
+			sb.attr(val, clickScript.getInternalText());
+			sb.endTag();
 		}
 	}
 
@@ -4546,15 +4556,12 @@ public abstract class GeoElement extends ConstructionElement implements GeoEleme
 	 * @param sb
 	 *            string builder
 	 */
-	final public void getCaptionXML(StringBuilder sb) {
+	final public void getCaptionXML(XMLStringBuilder sb) {
 		getXMLDynCaptionTag(sb);
 		// caption text
 		if ((caption != null) && (caption.length() > 0)
 				&& !caption.equals(label)) {
-
-			sb.append("\t<caption val=\"");
-			StringUtil.encodeXML(sb, caption);
-			sb.append("\"/>\n");
+			sb.startTag("caption").attr("val", caption).endTag();
 		}
 	}
 
@@ -4564,21 +4571,19 @@ public abstract class GeoElement extends ConstructionElement implements GeoEleme
 	 * @param sb
 	 *            string builder
 	 */
-	protected final void getAuxiliaryXML(final StringBuilder sb) {
+	protected final void getAuxiliaryXML(final XMLStringBuilder sb) {
 		if (!isAuxiliaryObjectByDefault()) {
 			if (auxiliaryObject.needsSaveToXML()) {
-				sb.append("\t<auxiliary val=\"");
-				sb.append(auxiliaryObject.isOn());
-				sb.append("\"/>\n");
+				sb.startTag("auxiliary").attr("val", auxiliaryObject.isOn()).endTag();
 			} else if (getMetasLength() > 0 && !auxiliaryObject.isOn()) {
 				// force save "not auxiliary" for e.g. segments created by
 				// polygon algo
-				sb.append("\t<auxiliary val=\"false\"/>\n");
+				sb.startTag("auxiliary").attr("val", false).endTag();
 			}
 		} else if (!auxiliaryObject.isOn()) {
 				// needed for eg GeoTexts (in Algebra View but Auxiliary by
 				// default from ggb 4.0)
-			sb.append("\t<auxiliary val=\"false\"/>\n");
+			sb.startTag("auxiliary").attr("val", false).endTag();
 		}
 	}
 
@@ -4588,7 +4593,7 @@ public abstract class GeoElement extends ConstructionElement implements GeoEleme
 	 * @param sb
 	 *            string builder
 	 */
-	protected void getXMLvisualTags(final StringBuilder sb) {
+	protected void getXMLvisualTags(final XMLStringBuilder sb) {
 		XMLBuilder.getXMLvisualTags(this, sb, true);
 	}
 
@@ -4596,85 +4601,62 @@ public abstract class GeoElement extends ConstructionElement implements GeoEleme
 	 * @param sb
 	 *            string builder
 	 */
-	protected void appendObjectColorXML(StringBuilder sb) {
-		sb.append("\t<objColor");
+	protected void appendObjectColorXML(XMLStringBuilder sb) {
+		sb.startTag("objColor");
 		XMLBuilder.appendRGB(sb, objColor);
-		sb.append(" alpha=\"");
 		// changed from alphavalue (don't want alpha="-1.0" in XML)
 		// see GeoList
-		sb.append(getAlphaValue());
-		sb.append("\"");
+		sb.attr("alpha", getAlphaValue());
 		StringTemplate tpl = StringTemplate.xmlTemplate;
 		if ((colFunction != null) && kernel.getSaveScriptsToXML()) {
-			sb.append(" dynamicr=\"");
-			StringUtil.encodeXML(sb, colFunction.get(0).getLabel(tpl));
-			sb.append('\"');
-			sb.append(" dynamicg=\"");
-			StringUtil.encodeXML(sb, colFunction.get(1).getLabel(tpl));
-			sb.append('\"');
-			sb.append(" dynamicb=\"");
-			StringUtil.encodeXML(sb, colFunction.get(2).getLabel(tpl));
-			sb.append('\"');
+			sb.attr("dynamicr", colFunction.get(0).getLabel(tpl));
+			sb.attr("dynamicg", colFunction.get(1).getLabel(tpl));
+			sb.attr("dynamicb", colFunction.get(2).getLabel(tpl));
 			if (colFunction.size() == 4) {
-				sb.append(" dynamica=\"");
-				StringUtil.encodeXML(sb, colFunction.get(3).getLabel(tpl));
-				sb.append('\"');
+				sb.attr("dynamica", colFunction.get(3).getLabel(tpl));
 			}
-			sb.append(" colorSpace=\"");
-			sb.append(colorSpace);
-			sb.append('\"');
+			sb.attr("colorSpace", colorSpace);
 		}
 
 		if (isHatchingEnabled()) {
-			sb.append(" fillType=\"");
-			sb.append(fillType.ordinal());
-			sb.append("\" hatchAngle=\"");
-			sb.append(hatchingAngle);
-			sb.append("\" hatchDistance=\"");
-			sb.append(hatchingDistance);
-			sb.append("\"");
+			sb.attr("fillType", fillType.ordinal());
+			sb.attr("hatchAngle", hatchingAngle);
+			sb.attr("hatchDistance", hatchingDistance);
 		} else if (fillType == FillType.IMAGE) {
-			sb.append(" image=\"");
-			sb.append(graphicsadapter.getImageFileName());
-			sb.append('\"');
+			sb.attr("image", graphicsadapter.getImageFileName());
 		}
 		if (fillType == FillType.SYMBOLS) {
-			sb.append(" fillSymbol=\"");
-			sb.append(fillSymbol);
-			sb.append('\"');
+			sb.attr("fillSymbol", fillSymbol);
 		}
 		if (inverseFill) {
-			sb.append(" inverseFill=\"true\"");
+			sb.attr("inverseFill", true);
 		}
-		sb.append("/>\n");
+		sb.endTag();
 	}
 
 	/**
 	 * @param sb
 	 *            string builder
 	 */
-	protected void getXMLanimationTags(final StringBuilder sb) {
+	protected void getXMLanimationTags(final XMLStringBuilder sb) {
 		StringTemplate tpl = StringTemplate.xmlTemplate;
 		// animation step width
 		if (isPointerChangeable()) {
-			sb.append("\t<animation");
+			sb.startTag("animation");
 			if (!isGeoNumeric() || !((GeoNumeric) this).isAutoStep()) {
 				final String animStep = animationIncrement == null ? "1"
 						: getAnimationStepObject().getLabel(tpl);
-				sb.append(" step=\"");
-				StringUtil.encodeXML(sb, animStep);
-				sb.append("\"");
+				sb.attr("step", animStep);
 			}
-			final String animSpeed = animationSpeedObj == null ? "1"
-					: getAnimationSpeedObject().getLabel(tpl);
-			sb.append(" speed=\"");
-			StringUtil.encodeXML(sb, animSpeed);
-			sb.append("\"");
-			sb.append(" type=\"").append(animationType).append("\"");
-			sb.append(" playing=\"");
-			sb.append(isAnimating());
-			sb.append("\"");
-			sb.append("/>\n");
+			if (animationSpeedObj != null) {
+				final String animationSpeed = getAnimationSpeedObject().getLabel(tpl);
+				if (!animationSpeed.equals("1")) {
+					sb.attr("speed", animationSpeed);
+				}
+			}
+			sb.attr("type", animationType);
+			sb.attr("playing", isAnimating());
+			sb.endTag();
 		}
 	}
 
@@ -4684,11 +4666,10 @@ public abstract class GeoElement extends ConstructionElement implements GeoEleme
 	 * @param sb
 	 *            string builder
 	 */
-	protected void getXMLDynCaptionTag(final StringBuilder sb) {
+	protected void getXMLDynCaptionTag(final XMLStringBuilder sb) {
 		if (dynamicCaption != null && dynamicCaption.getLabelSimple() != null) {
-			sb.append("\t<dynamicCaption val=\"");
-			sb.append(dynamicCaption.getLabelSimple());
-			sb.append("\"/>\n");
+			sb.startTag("dynamicCaption")
+					.attr("val", dynamicCaption.getLabelSimple()).endTag();
 		}
 	}
 
@@ -4698,14 +4679,14 @@ public abstract class GeoElement extends ConstructionElement implements GeoEleme
 	 * @param sb
 	 *            string builder
 	 */
-	protected void getXMLfixedTag(final StringBuilder sb) {
+	protected void getXMLfixedTag(final XMLStringBuilder sb) {
 		// is object fixed
 		if (fixed && isFixable()) {
-			sb.append("\t<fixed val=\"true\"/>\n");
+			sb.startTag("fixed").attr("val", true).endTag();
 		}
 		// is selection allowed
 		if (!selectionAllowed) {
-			sb.append("\t<selectionAllowed val=\"false\"/>\n");
+			sb.startTag("selectionAllowed").attr("val", false).endTag();
 		}
 	}
 
@@ -4715,11 +4696,11 @@ public abstract class GeoElement extends ConstructionElement implements GeoEleme
 	 * @param sb
 	 *            string builder
 	 */
-	protected void getXMLtags(final StringBuilder sb) {
+	protected void getXMLTags(final XMLStringBuilder sb) {
 		getStyleXML(sb);
 	}
 
-	protected void getStyleXML(StringBuilder sb) {
+	protected void getStyleXML(XMLStringBuilder sb) {
 		getXMLvisualTags(sb);
 		getXMLanimationTags(sb);
 		getXMLfixedTag(sb);
@@ -4731,9 +4712,9 @@ public abstract class GeoElement extends ConstructionElement implements GeoEleme
 		getCaptionXML(sb);
 	}
 
-	protected void getExtraTagsXML(StringBuilder sb) {
+	protected void getExtraTagsXML(XMLStringBuilder sb) {
 		if (this instanceof ChartStyleGeo) {
-			((ChartStyleGeo) this).getStyle().barXml(sb,
+			((ChartStyleGeo) this).getStyle().barXML(sb,
 					((ChartStyleGeo) this).getIntervals());
 		}
 	}
@@ -4743,34 +4724,24 @@ public abstract class GeoElement extends ConstructionElement implements GeoEleme
 	 * 
 	 * @param sb
 	 *            string builder
-	 * @see #getXMLtags(StringBuilder) of GeoConic, GeoLine and GeoVector
+	 * @see #getXMLTags(XMLStringBuilder) of GeoConic, GeoLine and GeoVector
 	 */
-	protected void getLineStyleXML(final StringBuilder sb) {
+	protected void getLineStyleXML(final XMLStringBuilder sb) {
 		if (isGeoPoint()) {
 			return;
 		}
 
-		sb.append("\t<lineStyle");
-		sb.append(" thickness=\"");
-		sb.append(lineThickness);
-		sb.append("\"");
-		sb.append(" type=\"");
-		sb.append(lineType);
-		sb.append("\"");
-		sb.append(" typeHidden=\"");
-		sb.append(lineTypeHidden);
-		sb.append("\"");
+		sb.startTag("lineStyle");
+		sb.attr("thickness", lineThickness);
+		sb.attr("type", lineType);
+		sb.attr("typeHidden", lineTypeHidden);
 		if (hasLineOpacity() && getLineOpacity() < 255) {
-			sb.append(" opacity=\"");
-			sb.append(lineOpacity);
-			sb.append("\"");
+			sb.attr("opacity", lineOpacity);
 		}
 		if (isDrawArrows()) {
-			sb.append(" drawArrow=\"");
-			sb.append("true");
-			sb.append("\"");
+			sb.attr("drawArrow", true);
 		}
-		sb.append("/>\n");
+		sb.endTag();
 	}
 
 	/**
@@ -4778,13 +4749,11 @@ public abstract class GeoElement extends ConstructionElement implements GeoEleme
 	 * 
 	 * @param sb
 	 *            string builder
-	 * @see #getXMLtags(StringBuilder) of GeoConic, GeoLine and GeoVector
+	 * @see #getXMLTags(XMLStringBuilder) of GeoConic, GeoLine and GeoVector
 	 */
-	protected void getBreakpointXML(final StringBuilder sb) {
+	protected void getBreakpointXML(final XMLStringBuilder sb) {
 		if (isConsProtBreakpoint) {
-			sb.append("\t<breakpoint val=\"");
-			sb.append(isConsProtBreakpoint);
-			sb.append("\"/>\n");
+			sb.startTag("breakpoint").attr("val", isConsProtBreakpoint).endTag();
 		}
 	}
 
@@ -4794,12 +4763,11 @@ public abstract class GeoElement extends ConstructionElement implements GeoEleme
 	 * @param sb
 	 *            string builder for XML
 	 */
-	void getShowObjectConditionXML(StringBuilder sb) {
+	void getShowObjectConditionXML(XMLStringBuilder sb) {
 		if (condShowObject != null && kernel.getSaveScriptsToXML()) {
-			sb.append("\t<condition showObject=\"");
-			StringUtil.encodeXML(sb,
-					condShowObject.getLabel(StringTemplate.xmlTemplate));
-			sb.append("\"/>\n");
+			sb.startTag("condition")
+					.attr("showObject", condShowObject.getLabel(StringTemplate.xmlTemplate))
+					.endTag();
 		}
 	}
 
@@ -6702,7 +6670,7 @@ public abstract class GeoElement extends ConstructionElement implements GeoEleme
 
 	@Override
 	public DescriptionMode getDescriptionMode() {
-		if (!algebraOutputFilter.isAllowed(this)) {
+		if (!app.getAlgebraOutputFilter().isAllowed(this)) {
 			return DescriptionMode.DEFINITION;
 		}
 		String def0 = getDefinition(StringTemplate.defaultTemplate);
@@ -7100,7 +7068,7 @@ public abstract class GeoElement extends ConstructionElement implements GeoEleme
 
 	@Override
 	public boolean isAllowedToShowValue() {
-		return algebraOutputFilter.isAllowed(this);
+		return app.getAlgebraOutputFilter().isAllowed(this);
 	}
 
 	@Override

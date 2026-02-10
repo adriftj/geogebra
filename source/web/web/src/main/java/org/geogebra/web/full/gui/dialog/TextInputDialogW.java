@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.web.full.gui.dialog;
 
 import org.geogebra.common.euclidian.EuclidianConstants;
@@ -49,7 +65,7 @@ public class TextInputDialogW extends ComponentDialog implements TextInputDialog
 	 */
 	public TextInputDialogW(AppW app2, String title, GeoText editGeo,
             GeoPointND startPoint, boolean rw, boolean isTextMode) {
-		super(app2, new DialogData(title), false, false);
+		super(app2, new DialogData(title), false, true);
 		this.startPoint = startPoint;
 		this.rw = rw;
 		this.isTextMode = isTextMode;
@@ -79,9 +95,11 @@ public class TextInputDialogW extends ComponentDialog implements TextInputDialog
 		closeIOSKeyboard();
 		String inputText = editor.getText();
 		new TextInputHandler().processInput(inputText, new TextInputErrorHandler(app), ok -> {
-			setVisible(!ok);
 			if (ok) {
 				resetMode();
+				hide();
+			} else {
+				focus();
 			}
 		});
 	}

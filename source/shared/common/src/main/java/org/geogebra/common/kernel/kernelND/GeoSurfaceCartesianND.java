@@ -1,6 +1,23 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.kernel.kernelND;
 
 import org.apache.commons.math3.util.Cloner;
+import org.geogebra.common.io.XMLStringBuilder;
 import org.geogebra.common.kernel.Construction;
 import org.geogebra.common.kernel.StringTemplate;
 import org.geogebra.common.kernel.algos.AlgoMacro;
@@ -24,7 +41,6 @@ import org.geogebra.common.kernel.matrix.Coords;
 import org.geogebra.common.plugin.Operation;
 import org.geogebra.common.util.DoubleUtil;
 import org.geogebra.common.util.ExtendedBoolean;
-import org.geogebra.common.util.StringUtil;
 
 /**
  * Abstract class for cartesian curves in any dimension
@@ -240,7 +256,7 @@ public abstract class GeoSurfaceCartesianND extends GeoElement
 	 * returns all class-specific xml tags for getXML
 	 */
 	@Override
-	protected void getStyleXML(StringBuilder sb) {
+	protected void getStyleXML(XMLStringBuilder sb) {
 		super.getStyleXML(sb);
 		// line thickness and type
 		getLineStyleXML(sb);
@@ -252,14 +268,13 @@ public abstract class GeoSurfaceCartesianND extends GeoElement
 	}
 
 	@Override
-	protected void getExpressionXML(StringBuilder sb) {
+	protected void getExpressionXML(XMLStringBuilder sb) {
 		if (isIndependent() && getDefinition() == null && !isDefined && complexVariable != null) {
-			sb.append("<expression label=\"");
-			StringUtil.encodeXML(sb, label);
-			sb.append("\" exp=\"");
-			StringUtil.encodeXML(sb, getAssignmentLHS(StringTemplate.xmlTemplate));
-			sb.append(" = ?");
-			sb.append("\" type=\"surfacecartesian\"/>\n");
+			sb.startTag("expression", 0);
+			sb.attr("label", label);
+			sb.attr("exp", getAssignmentLHS(StringTemplate.xmlTemplate) + " = ?");
+			sb.attr("type", "surfacecartesian");
+			sb.endTag();
 		} else {
 			super.getExpressionXML(sb);
 		}

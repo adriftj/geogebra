@@ -1,13 +1,29 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.euclidian;
 
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
+import org.geogebra.common.awt.AwtFactory;
 import org.geogebra.common.awt.GColor;
 import org.geogebra.common.awt.GDimension;
 import org.geogebra.common.awt.GFont;
-import org.geogebra.common.factories.AwtFactory;
 import org.geogebra.common.kernel.kernelND.GeoElementND;
 import org.geogebra.common.main.App;
 import org.geogebra.common.main.GeoGebraColorConstants;
@@ -16,6 +32,7 @@ import org.geogebra.common.util.StringUtil;
 import org.geogebra.common.util.debug.Log;
 
 import com.himamis.retex.renderer.share.TeXConstants;
+import com.himamis.retex.renderer.share.TeXFont;
 import com.himamis.retex.renderer.share.TeXFormula;
 import com.himamis.retex.renderer.share.TeXIcon;
 import com.himamis.retex.renderer.share.platform.graphics.Color;
@@ -124,7 +141,7 @@ public abstract class DrawEquation implements DrawEquationI {
 		int height = -1;
 		// int depth = 0;
 
-		int style = font.getLaTeXStyle(serif);
+		int style = getLaTeXStyle(font, serif);
 
 		// if we're exporting, we want to draw it full resolution
 		if (app.isExporting() || !useCache) {
@@ -311,7 +328,7 @@ public abstract class DrawEquation implements DrawEquationI {
 
 		checkFirstCall();
 		GColor fgColor = GColor.BLACK;
-		int style = font.getLaTeXStyle(serif);
+		int style = getLaTeXStyle(font, serif);
 
 		TeXFormula formula;
 		TeXIcon icon;
@@ -353,6 +370,25 @@ public abstract class DrawEquation implements DrawEquationI {
 
 		return AwtFactory.getPrototype().newDimension(icon.getIconWidth(),
 				icon.getIconHeight());
+	}
 
+	/**
+	 * @param serif
+	 *            whether this is serif font
+	 * @return style as required by JLaTeXMath
+	 */
+	public int getLaTeXStyle(GFont font, boolean serif) {
+		int style = 0;
+		if (font.isBold()) {
+			style = style | TeXFont.BOLD;
+		}
+		if (font.isItalic()) {
+			style = style | TeXFont.ITALIC;
+		}
+		if (!serif) {
+			style = style | TeXFont.SANSSERIF;
+		}
+
+		return style;
 	}
 }

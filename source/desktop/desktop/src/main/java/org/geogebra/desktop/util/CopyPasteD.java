@@ -1,13 +1,17 @@
 /*
-GeoGebra - Dynamic Mathematics for Everyone
-http://www.geogebra.org
-
-This file is part of GeoGebra.
-
-This program is free software; you can redistribute it and/or modify it
-under the terms of the GNU General Public License as published by
-the Free Software Foundation.
-
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ * 
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ * 
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
  */
 
 package org.geogebra.desktop.util;
@@ -24,6 +28,7 @@ import javax.annotation.Nonnull;
 
 import org.geogebra.common.euclidian.EuclidianConstants;
 import org.geogebra.common.euclidian.EuclidianViewInterfaceCommon;
+import org.geogebra.common.io.XMLStringBuilder;
 import org.geogebra.common.kernel.Construction;
 import org.geogebra.common.kernel.Kernel;
 import org.geogebra.common.kernel.Macro;
@@ -345,11 +350,12 @@ public class CopyPasteD extends CopyPaste {
 
 			// loop through Construction to keep the good order of
 			// ConstructionElements
+			XMLStringBuilder xmlBuilder = new XMLStringBuilder(copiedXML);
 			Construction cons = app.getKernel().getConstruction();
 			for (int i = 0; i < cons.steps(); ++i) {
 				ce = cons.getConstructionElement(i);
 				if (geoslocal.contains(ce)) {
-					ce.getXML(false, copiedXML);
+					ce.getXML(false, xmlBuilder);
 				}
 			}
 		} catch (Exception e) {
@@ -376,10 +382,11 @@ public class CopyPasteD extends CopyPaste {
 				// loop through Construction to keep the good order of
 				// ConstructionElements
 				Construction cons = app.getKernel().getConstruction();
+				XMLStringBuilder xmlBuilder = new XMLStringBuilder(copiedXMLforSameWindow);
 				for (int i = 0; i < cons.steps(); ++i) {
 					ce = cons.getConstructionElement(i);
 					if (geoslocalsw.contains(ce)) {
-						ce.getXML(false, copiedXMLforSameWindow);
+						ce.getXML(false, xmlBuilder);
 					}
 				}
 			} catch (Exception e) {

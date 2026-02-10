@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.web.html5.main;
 
 import java.util.ArrayList;
@@ -20,8 +36,6 @@ import org.geogebra.web.resources.StyleInjector;
 import com.google.gwt.core.client.GWT;
 
 import elemental2.core.Global;
-import elemental2.core.JsArray;
-import elemental2.core.JsObject;
 import jsinterop.base.Js;
 import jsinterop.base.JsPropertyMap;
 
@@ -167,15 +181,6 @@ public final class LocalizationW extends Localization {
 	}
 
 	@Override
-	public String getError(String key) {
-		if (key == null) {
-			return "";
-		}
-
-		return getPropertyWithFallback(languageTag, key, key, "error");
-	}
-
-	@Override
 	public String getSymbol(int key) {
 		return getPropertyWithFallback(languageTag, "S_" + key, null, "symbols");
 	}
@@ -183,41 +188,6 @@ public final class LocalizationW extends Localization {
 	@Override
 	public String getSymbolTooltip(int key) {
 		return getPropertyWithFallback(languageTag, "T_" + key, null, "symbols");
-	}
-
-	@Override
-	public String reverseGetColor(String locColor) {
-		String str = StringUtil.removeSpaces(StringUtil.toLowerCaseUS(locColor));
-		JsPropertyMap<JsPropertyMap<String>> dict = GeoGebraGlobal.__GGB__keysVar.get(languageTag);
-		if (dict == null || !dict.has("colors")) {
-			return str;
-		}
-		JsArray<String> keys = JsObject.keys(dict.get("colors"));
-		for (int i = 0; i < keys.length; i++) {
-			String key = keys.getAt(i);
-			if (key != null
-					&& str.equals(StringUtil.removeSpaces(StringUtil
-					.toLowerCaseUS(this.getColor(key))))) {
-				return key;
-			}
-		}
-		return str;
-	}
-
-	@Override
-	public String getColor(String key) {
-
-		if (key == null) {
-			return "";
-		}
-
-		if ((key.length() == 5)
-				&& StringUtil.toLowerCaseUS(key).startsWith("gray")) {
-
-			return StringUtil.getGrayString(key.charAt(4), this);
-		}
-
-		return getPropertyWithFallback(languageTag, key, key, "colors");
 	}
 
 	/**

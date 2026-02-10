@@ -1,8 +1,24 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ * 
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ * 
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.kernel.commands;
 
-import static com.himamis.retex.editor.share.util.Unicode.DEGREE_STRING;
 import static org.geogebra.common.BaseUnitTest.hasValue;
 import static org.geogebra.common.BaseUnitTest.isDefined;
+import static org.geogebra.editor.share.util.Unicode.DEGREE_STRING;
 import static org.geogebra.test.TestStringUtil.unicode;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -34,16 +50,15 @@ import org.geogebra.common.kernel.kernelND.SurfaceEvaluable;
 import org.geogebra.common.main.App;
 import org.geogebra.common.main.GeoGebraColorConstants;
 import org.geogebra.common.plugin.GeoClass;
-import org.geogebra.common.util.ImageManager;
+import org.geogebra.common.util.ImageManagerCommon;
 import org.geogebra.common.util.StringUtil;
+import org.geogebra.editor.share.util.Unicode;
 import org.geogebra.test.commands.AlgebraTestHelper;
 import org.hamcrest.core.StringContains;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-
-import com.himamis.retex.editor.share.util.Unicode;
 
 public class CommandsTestCommon extends BaseCommandTest {
 
@@ -3487,7 +3502,7 @@ public class CommandsTestCommon extends BaseCommandTest {
 
 	@Test
 	public void cmdSetImage() {
-		app.setImageManager(Mockito.mock(ImageManager.class));
+		app.setImageManager(Mockito.mock(ImageManagerCommon.class));
 		t("c:x^2+y^2=1", "x^(2) + y^(2) = 1");
 		t("pic=ToolImage(2)");
 		t("SetImage(c, pic)");

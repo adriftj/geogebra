@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ * 
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ * 
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.desktop.spreadsheet;
 
 import java.awt.Color;
@@ -53,13 +69,13 @@ import org.geogebra.common.util.SyntaxAdapterImpl;
 import org.geogebra.common.util.debug.Log;
 import org.geogebra.common.util.shape.Point;
 import org.geogebra.common.util.shape.Rectangle;
+import org.geogebra.desktop.awt.AwtFactoryD;
 import org.geogebra.desktop.awt.GGraphics2DD;
 import org.geogebra.desktop.euclidian.CursorMap;
-import org.geogebra.desktop.factories.AwtFactoryD;
 import org.geogebra.desktop.gui.spreadsheet.AwtReTeXGraphicsBridgeD;
+import org.geogebra.editor.desktop.MathFieldD;
+import org.geogebra.editor.share.editor.MathFieldInternal;
 
-import com.himamis.retex.editor.desktop.MathFieldD;
-import com.himamis.retex.editor.share.editor.MathFieldInternal;
 import com.himamis.retex.renderer.desktop.FactoryProviderDesktop;
 
 public class SpreadsheetDemo {
@@ -73,19 +89,19 @@ public class SpreadsheetDemo {
 			Dimension preferredSize = new Dimension(800, 600);
 			frame.setPreferredSize(preferredSize);
 			AppCommon appCommon = new AppCommon(new LocalizationCommon(3), new AwtFactoryD());
-			KernelTabularDataAdapter tabularDataAdapter = new KernelTabularDataAdapter(appCommon);
-			Spreadsheet spreadsheet = new Spreadsheet(tabularDataAdapter,
-					new GeoElementCellRendererFactory(new AwtReTeXGraphicsBridgeD()), null);
-			new SpreadsheetSettingsAdapter(spreadsheet, appCommon).registerListeners();
-
+			appCommon.forceSpreadsheetEnabled = true;
+			Spreadsheet spreadsheet = appCommon.getSpreadsheet();
+			if (spreadsheet == null) {
+				return;
+			}
 			FactoryProviderDesktop.setInstance(new FactoryProviderDesktop());
+
 			spreadsheet.setWidthForColumns(60, 0, 10);
 			spreadsheet.setHeightForRows(20, 0, 10);
 
 			spreadsheet.setWidthForColumns(90, 2, 4);
 			spreadsheet.setHeightForRows(40, 3, 5);
 			SpreadsheetPanel spreadsheetPanel = new SpreadsheetPanel(spreadsheet, appCommon, frame);
-			appCommon.getKernel().attach(tabularDataAdapter);
 			/*appCommon.getGgbApi().evalCommand(String.join("\n", "C4=7", "C5=8",
 					"A1=4", "B2=true", "B3=Button()", "B4=sqrt(x)"));*/
 			appCommon.setXML(readDemoFile(), true);

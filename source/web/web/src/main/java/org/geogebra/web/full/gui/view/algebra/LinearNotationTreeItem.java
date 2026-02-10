@@ -1,9 +1,26 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.web.full.gui.view.algebra;
 
 import org.geogebra.common.gui.AccessibilityGroup;
 import org.geogebra.common.kernel.Kernel;
 import org.geogebra.common.kernel.StringTemplate;
 import org.geogebra.common.kernel.geos.GeoElement;
+import org.geogebra.editor.share.util.GWTKeycodes;
 import org.geogebra.web.full.gui.inputbar.AlgebraInputW;
 import org.geogebra.web.html5.gui.inputfield.AutoCompleteTextFieldW;
 import org.geogebra.web.html5.gui.util.AriaHelper;
@@ -12,8 +29,6 @@ import org.gwtproject.core.client.Scheduler;
 import org.gwtproject.event.dom.client.KeyDownEvent;
 import org.gwtproject.event.dom.client.KeyDownHandler;
 import org.gwtproject.user.client.ui.Widget;
-
-import com.himamis.retex.editor.share.util.GWTKeycodes;
 
 public class LinearNotationTreeItem extends RadioTreeItem implements KeyDownHandler {
 
@@ -34,7 +49,7 @@ public class LinearNotationTreeItem extends RadioTreeItem implements KeyDownHand
 	}
 
 	private void createTextField() {
-		textField = new AutoCompleteTextFieldW(app);
+		textField = new AutoCompleteTextFieldW(0, app, false, null);
 		textField.setAutoComplete(false);
 		textField.setAutoCloseParentheses(false);
 		updateInputText();
@@ -46,7 +61,7 @@ public class LinearNotationTreeItem extends RadioTreeItem implements KeyDownHand
 
 	private void setDefaultAriaLabel() {
 		AriaHelper.setLabel(textField.getTextField(),
-				app.getLocalization().getMenu(geo != null ? "Definition" : "EnterExpression"));
+				geo != null ? null : app.getLocalization().getMenu("EnterExpression"));
 	}
 
 	private void updateInputText() {
@@ -139,6 +154,7 @@ public class LinearNotationTreeItem extends RadioTreeItem implements KeyDownHand
 		updatePreview();
 		adjustStyleBar();
 		setFocus(true);
+		getController().storeInitialInput();
 		return true;
 	}
 
@@ -197,6 +213,7 @@ public class LinearNotationTreeItem extends RadioTreeItem implements KeyDownHand
 	public void setText(String text) {
 		textField.setText(text);
 		setDefaultAriaLabel();
+		updatePreview();
 	}
 
 	@Override
@@ -236,6 +253,10 @@ public class LinearNotationTreeItem extends RadioTreeItem implements KeyDownHand
 			return;
 		} else if (event.getNativeKeyCode() == GWTKeycodes.KEY_TAB) {
 			getController().onTab(event.getNativeEvent().getShiftKey());
+			event.preventDefault();
+			return;
+		} else if (event.getNativeKeyCode() == GWTKeycodes.KEY_ESCAPE) {
+			getController().onEscape();
 			event.preventDefault();
 			return;
 		}

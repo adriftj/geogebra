@@ -1,12 +1,28 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ * 
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ * 
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+ 
 package org.geogebra.common.io;
 
 import org.geogebra.common.AppCommonFactory;
 import org.geogebra.common.jre.headless.AppCommon;
+import org.geogebra.editor.share.util.JavaKeyCodes;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.himamis.retex.editor.share.util.JavaKeyCodes;
 import com.himamis.retex.renderer.share.platform.FactoryProvider;
 
 public class EditorPointTest {
@@ -219,21 +235,21 @@ public class EditorPointTest {
 		checker.type("1/2")
 			.typeKey(JavaKeyCodes.VK_BACK_SPACE)
 				.typeKey(JavaKeyCodes.VK_UP)
-			.checkRaw("MathSequence[FnFRAC[MathSequence[1], MathSequence[]]]");
+			.checkRaw("SequenceNode[FnFRAC[SequenceNode[1], SequenceNode[]]]");
 	}
 
 	@Test
 	public void testDeleteEntireFraction() {
 		checker.type("1/2")
 			.repeatKey(JavaKeyCodes.VK_BACK_SPACE, 4)
-			.checkRaw("MathSequence[]");
+			.checkRaw("SequenceNode[]");
 	}
 
 	@Test
 	public void testDeleteFromFractionBrackets() {
 		checker.type("1/(2)")
 			.repeatKey(JavaKeyCodes.VK_BACK_SPACE, 6)
-			.checkRaw("MathSequence[]");
+			.checkRaw("SequenceNode[]");
 	}
 
 	@Test
@@ -249,7 +265,7 @@ public class EditorPointTest {
 		checker.type("a b(")
 				.left(3)
 				.typeKey(JavaKeyCodes.VK_BACK_SPACE)
-				.checkRaw("MathSequence[FnAPPLY[MathSequence[a, b], MathSequence[]]]");
+				.checkRaw("SequenceNode[FnAPPLY[SequenceNode[a, b], SequenceNode[]]]");
 
 	}
 

@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.web.full.gui.view.spreadsheet;
 
 import org.geogebra.common.awt.GPoint;
@@ -8,6 +24,8 @@ import org.geogebra.common.main.SpreadsheetTableModelSimple;
 import org.geogebra.common.plugin.EventType;
 import org.geogebra.common.plugin.GeoClass;
 import org.geogebra.common.spreadsheet.core.SpreadsheetCoords;
+import org.geogebra.editor.share.util.AltKeys;
+import org.geogebra.editor.share.util.GWTKeycodes;
 import org.geogebra.web.html5.main.AppW;
 import org.geogebra.web.html5.main.GlobalKeyDispatcherW;
 import org.geogebra.web.html5.util.CopyPasteW;
@@ -19,9 +37,6 @@ import org.gwtproject.event.dom.client.KeyPressEvent;
 import org.gwtproject.event.dom.client.KeyPressHandler;
 import org.gwtproject.event.dom.client.KeyUpEvent;
 import org.gwtproject.event.dom.client.KeyUpHandler;
-
-import com.himamis.retex.editor.share.util.AltKeys;
-import com.himamis.retex.editor.share.util.GWTKeycodes;
 
 /**
  * Key event handler for spreadsheet

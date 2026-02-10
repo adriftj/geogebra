@@ -1,8 +1,30 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.web.test;
 
 import java.util.Collection;
 
+import org.geogebra.editor.web.ClickAdapterW;
+import org.geogebra.editor.web.MathFieldW;
 import org.geogebra.regexp.client.NativeRegExp;
+import org.geogebra.web.awt.GGraphics2DW;
+import org.geogebra.web.awt.JLMContext2D;
+import org.geogebra.web.awt.JLMContextHelper;
+import org.geogebra.web.full.util.StickyTable;
 import org.geogebra.web.geogebra3D.web.euclidian3D.openGL.RendererImplShadersW;
 import org.geogebra.web.geogebra3D.web.euclidian3D.openGL.RendererWithImplW;
 import org.geogebra.web.html5.Browser;
@@ -20,6 +42,7 @@ import org.geogebra.web.resources.StyleInjector;
 import org.geogebra.web.richtext.impl.CarotaEditor;
 import org.gwtproject.canvas.client.Canvas;
 import org.gwtproject.core.client.impl.SchedulerImpl;
+import org.gwtproject.dom.client.Element;
 import org.gwtproject.dom.client.SelectElement;
 import org.gwtproject.dom.client.TextAreaElement;
 import org.gwtproject.event.dom.client.DomEvent;
@@ -38,7 +61,6 @@ import org.gwtproject.user.client.ui.DockLayoutPanel;
 import org.gwtproject.user.client.ui.DockPanel;
 import org.gwtproject.user.client.ui.FocusPanel;
 import org.gwtproject.user.client.ui.HTMLTable;
-import org.gwtproject.user.client.ui.HorizontalPanel;
 import org.gwtproject.user.client.ui.Image;
 import org.gwtproject.user.client.ui.LayoutPanel;
 import org.gwtproject.user.client.ui.ResizeComposite;
@@ -48,21 +70,16 @@ import org.gwtproject.user.client.ui.SimplePanel;
 import org.gwtproject.user.client.ui.SplitLayoutPanel;
 import org.gwtproject.user.client.ui.StackPanel;
 import org.gwtproject.user.client.ui.UIObject;
-import org.gwtproject.user.client.ui.VerticalPanel;
 import org.gwtproject.user.client.ui.impl.FocusImpl;
 import org.junit.runner.notification.RunNotifier;
 import org.junit.runners.model.InitializationError;
 
 import com.google.gwtmockito.GwtMockitoTestRunner;
 import com.google.gwtmockito.impl.StubGenerator;
-import com.himamis.retex.editor.web.ClickAdapterW;
-import com.himamis.retex.editor.web.MathFieldW;
 import com.himamis.retex.renderer.web.font.opentype.Opentype;
 import com.himamis.retex.renderer.web.graphics.Graphics2DW;
 import com.himamis.retex.renderer.web.graphics.GraphicsFactoryGWT;
 import com.himamis.retex.renderer.web.graphics.ImageW;
-import com.himamis.retex.renderer.web.graphics.JLMContext2d;
-import com.himamis.retex.renderer.web.graphics.JLMContextHelper;
 
 import elemental2.core.JsDate;
 import elemental2.core.Uint8Array;
@@ -96,7 +113,9 @@ public class GgbMockitoTestRunner extends GwtMockitoTestRunner {
         StubGenerator.replaceMethodWithMock(Canvas.class, "createIfSupported",
                 Canvas.class);
         StubGenerator.replaceMethodWithMock(JLMContextHelper.class, "as",
-                JLMContext2d.class);
+                JLMContext2D.class);
+        StubGenerator.replaceMethodWithMock(GGraphics2DW.class, "preventContextMenu",
+                Void.class);
         StubGenerator.replaceMethodWithMock(Graphics2DW.class, "initFontParser",
                 Void.class);
         StubGenerator.replaceMethodWithMock(GraphicsFactoryGWT.class, "createImage",
@@ -150,6 +169,8 @@ public class GgbMockitoTestRunner extends GwtMockitoTestRunner {
         StubGenerator.replaceMethodWithMock(FocusUtil.class, "focusNoScroll", Void.class);
         StubGenerator.replaceMethodWithMock(CopyPasteW.class, "clipboardSupports", Void.class);
         StubGenerator.replaceMethodWithMock(Opentype.class, "loadFont", Void.class);
+        StubGenerator.replaceMethodWithMock(StickyTable.class, "getCell", Element.class);
+        StubGenerator.replaceMethodWithMock(MathFieldW.class, "getHiddenTextArea", Element.class);
     }
 
     @Override
@@ -168,14 +189,12 @@ public class GgbMockitoTestRunner extends GwtMockitoTestRunner {
         classes.add(DockLayoutPanel.class);
         classes.add(DockPanel.class);
         classes.add(FocusPanel.class);
-        classes.add(HorizontalPanel.class);
         classes.add(LayoutPanel.class);
         classes.add(ResizeLayoutPanel.class);
         classes.add(SimpleLayoutPanel.class);
         classes.add(SimplePanel.class);
         classes.add(SplitLayoutPanel.class);
         classes.add(StackPanel.class);
-        classes.add(VerticalPanel.class);
         classes.add(TextAreaElement.class);
         classes.add(DOMImplStandardBase.class);
         classes.add(DOMImplStandard.class);
@@ -184,6 +203,8 @@ public class GgbMockitoTestRunner extends GwtMockitoTestRunner {
         classes.add(FocusImpl.class);
         classes.add(JsDate.class);
         classes.add(CellBasedWidgetImplStandard.class);
+        classes.add(StickyTable.class);
+        classes.add(MathFieldW.class);
         return classes;
     }
 

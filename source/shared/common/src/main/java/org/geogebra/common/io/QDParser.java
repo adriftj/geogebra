@@ -1,15 +1,4 @@
-/* 
- GeoGebra - Dynamic Mathematics for Everyone
- http://www.geogebra.org
-
- This file is part of GeoGebra.
-
- This program is free software; you can redistribute it and/or modify it 
- under the terms of the GNU General Public License as published by 
- the Free Software Foundation.
- 
- */
-
+// vendored
 /*
  * Quick and dirty XML parser. Java Tip 128
  * http://www.javaworld.com/javaworld/javatips/jw-javatip128.html
@@ -160,8 +149,7 @@ public class QDParser {
 
 			// we are processing a closing tag: e.g. </foo>
 			case CLOSE_TAG:
-				switch (c) {
-				case '>':
+				if (c == '>') {
 					mode = popMode(stack);
 					tagName = sb.toString();
 					sb.setLength(0);
@@ -170,8 +158,7 @@ public class QDParser {
 						mode = DONE;
 					}
 					doc.endElement(tagName);
-					break;
-				default:
+				} else {
 					sb.append((char) c);
 				}
 				break;

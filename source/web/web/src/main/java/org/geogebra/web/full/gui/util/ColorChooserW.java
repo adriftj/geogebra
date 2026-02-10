@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.web.full.gui.util;
 
 import java.util.ArrayList;
@@ -12,13 +28,15 @@ import org.geogebra.common.main.Localization;
 import org.geogebra.common.util.StringUtil;
 import org.geogebra.common.util.debug.Log;
 import org.geogebra.ggbjdk.java.awt.geom.Dimension;
+import org.geogebra.web.awt.GFontW;
+import org.geogebra.web.awt.JLMContext2D;
+import org.geogebra.web.awt.JLMContextHelper;
 import org.geogebra.web.full.css.MaterialDesignResources;
 import org.geogebra.web.full.gui.components.radiobutton.RadioButtonData;
 import org.geogebra.web.full.gui.components.radiobutton.RadioButtonPanel;
 import org.geogebra.web.full.gui.dialog.CustomColorDialog;
 import org.geogebra.web.full.gui.dialog.CustomColorDialog.ICustomColor;
 import org.geogebra.web.full.gui.images.AppResources;
-import org.geogebra.web.html5.awt.GFontW;
 import org.geogebra.web.html5.gui.util.Dom;
 import org.geogebra.web.html5.gui.util.Slider;
 import org.geogebra.web.html5.gui.util.SliderInputHandler;
@@ -28,9 +46,6 @@ import org.gwtproject.canvas.client.Canvas;
 import org.gwtproject.user.client.ui.FlowPanel;
 import org.gwtproject.user.client.ui.Label;
 import org.gwtproject.user.client.ui.SimplePanel;
-
-import com.himamis.retex.renderer.web.graphics.JLMContext2d;
-import com.himamis.retex.renderer.web.graphics.JLMContextHelper;
 
 import elemental2.dom.HTMLImageElement;
 import jsinterop.base.Js;
@@ -51,7 +66,7 @@ public class ColorChooserW extends FlowPanel implements ICustomColor {
 	public static final double BORDER_WIDTH = 2;
 	public static final double PREVIEW_BORDER_WIDTH = 14;
 	Canvas canvas;
-	JLMContext2d ctx;
+	JLMContext2D ctx;
 	Dimension colorIconSize;
 	int padding;
 	List<ColorTable> tables;
@@ -376,7 +391,7 @@ public class ColorChooserW extends FlowPanel implements ICustomColor {
 	private class PreviewPanel extends FlowPanel {
 		private Label titleLabel;
 		Canvas previewCanvas;
-		private JLMContext2d previewCtx;
+		private JLMContext2D previewCtx;
 		private Label rgb;
 
 		public PreviewPanel() {

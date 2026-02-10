@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.main.settings;
 
 import static org.geogebra.common.main.GeoGebraColorConstants.NEUTRAL_500;
@@ -5,12 +21,13 @@ import static org.geogebra.common.main.GeoGebraColorConstants.NEUTRAL_500;
 import java.util.Arrays;
 import java.util.Objects;
 
+import org.geogebra.common.awt.AwtFactory;
 import org.geogebra.common.awt.GColor;
 import org.geogebra.common.awt.GDimension;
 import org.geogebra.common.awt.GFont;
 import org.geogebra.common.euclidian.EuclidianView;
 import org.geogebra.common.euclidian.background.BackgroundType;
-import org.geogebra.common.factories.AwtFactory;
+import org.geogebra.common.io.XMLStringBuilder;
 import org.geogebra.common.kernel.ConstructionDefaults;
 import org.geogebra.common.kernel.Kernel;
 import org.geogebra.common.kernel.StringTemplate;
@@ -22,9 +39,9 @@ import org.geogebra.common.plugin.EuclidianStyleConstants;
 import org.geogebra.common.util.DoubleUtil;
 import org.geogebra.common.util.ExtendedBoolean;
 import org.geogebra.common.util.StringUtil;
+import org.geogebra.editor.share.util.Unicode;
 
 import com.google.j2objc.annotations.Weak;
-import com.himamis.retex.editor.share.util.Unicode;
 
 /**
  * Settings for an euclidian view. To which view these settings are associated
@@ -1172,57 +1189,42 @@ public class EuclidianSettings extends AbstractSettings {
 	 * @param sbxml
 	 *            xml builder
 	 */
-	public void addAxisXML(int i, StringBuilder sbxml) {
-		sbxml.append("\t<axis id=\"");
-		sbxml.append(i);
-		sbxml.append("\" show=\"");
-		sbxml.append(getShowAxis(i));
-		sbxml.append("\" label=\"");
-		if (axesLabels[i] != null) {
-			StringUtil.encodeXML(sbxml, axisLabelForXML(i));
-		}
-		sbxml.append("\" unitLabel=\"");
-		if (axesUnitLabels[i] != null) {
-			StringUtil.encodeXML(sbxml, axesUnitLabels[i]);
-		}
-		sbxml.append("\" tickStyle=\"");
-		sbxml.append(axesTickStyles[i]);
-		sbxml.append("\" showNumbers=\"");
-		sbxml.append(showAxesNumbers[i]);
+	public void addAxisXML(int i, XMLStringBuilder sbxml) {
+		sbxml.startTag("axis");
+		sbxml.attr("id", i);
+		sbxml.attr("show", getShowAxis(i));
+		sbxml.attr("label", axesLabels[i] != null ? axisLabelForXML(i) : "");
+		sbxml.attr("unitLabel", axesUnitLabels[i] != null ? axesUnitLabels[i] : "");
+		sbxml.attr("tickStyle", axesTickStyles[i]);
+		sbxml.attr("showNumbers", showAxesNumbers[i]);
 
 		// the tick distance should only be saved if
 		// it isn't calculated automatically
 		if (!automaticAxesNumberingDistances[i]
 				&& axisNumberingDistances[i] != null) {
-			sbxml.append("\" tickDistance=\"");
-			sbxml.append(axisNumberingDistances[i].getDouble());
-			sbxml.append("\" tickExpression=\"");
-			sbxml.append(axisNumberingDistances[i]
+			sbxml.attr("tickDistance", axisNumberingDistances[i].getDouble());
+			sbxml.attr("tickExpression", axisNumberingDistances[i]
 					.getLabel(StringTemplate.xmlTemplate));
 		}
 
 		// axis crossing values
 		if (drawBorderAxes[i]) {
-			sbxml.append("\" axisCrossEdge=\"");
-			sbxml.append(true);
+			sbxml.attr("axisCrossEdge", true);
 		} else if (!DoubleUtil.isZero(axisCross[i]) && !drawBorderAxes[i]) {
-			sbxml.append("\" axisCross=\"");
-			sbxml.append(axisCross[i]);
+			sbxml.attr("axisCross", axisCross[i]);
 		}
 
 		// positive direction only flags
 		if (positiveAxes[i]) {
-			sbxml.append("\" positiveAxis=\"");
-			sbxml.append(positiveAxes[i]);
+			sbxml.attr("positiveAxis", true);
 		}
 
 		// selection allowed flags
 		if (!selectionAllowed[i]) {
-			sbxml.append("\" selectionAllowed=\"");
-			sbxml.append(selectionAllowed[i]);
+			sbxml.attr("selectionAllowed", false);
 		}
 
-		sbxml.append("\"/>\n");
+		sbxml.endTag();
 	}
 
 	/**

@@ -1,13 +1,17 @@
-/* 
-GeoGebra - Dynamic Mathematics for Everyone
-http://www.geogebra.org
-
-This file is part of GeoGebra.
-
-This program is free software; you can redistribute it and/or modify it 
-under the terms of the GNU General Public License as published by 
-the Free Software Foundation.
-
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
  */
 
 package org.geogebra.common.kernel;
@@ -20,6 +24,7 @@ import java.util.TreeSet;
 
 import org.geogebra.common.GeoGebraConstants;
 import org.geogebra.common.io.XMLParseException;
+import org.geogebra.common.io.XMLStringBuilder;
 import org.geogebra.common.kernel.algos.AlgoElement;
 import org.geogebra.common.kernel.algos.AlgoMacroInterface;
 import org.geogebra.common.kernel.algos.ConstructionElement;
@@ -28,7 +33,6 @@ import org.geogebra.common.kernel.geos.GeoVector;
 import org.geogebra.common.kernel.geos.TestGeo;
 import org.geogebra.common.kernel.kernelND.GeoPointND;
 import org.geogebra.common.main.MyError;
-import org.geogebra.common.util.StringUtil;
 import org.geogebra.common.util.debug.Log;
 
 /**
@@ -48,7 +52,7 @@ public class Macro {
 
 	private Kernel macroKernel;
 	private Construction macroCons; // macro construction
-	private StringBuilder macroConsXML;
+	private XMLStringBuilder macroConsXML;
 	private GeoElement[] macroInput;
 	private GeoElement[] macroOutput; // input and output objects
 	private String[] macroInputLabels;
@@ -165,7 +169,7 @@ public class Macro {
 			String[] outputLabels) {
 		this.macroCons = macroCons1;
 		this.macroKernel = macroCons.getKernel();
-		this.macroConsXML = new StringBuilder();
+		this.macroConsXML = new XMLStringBuilder();
 		macroCons.getConstructionXML(macroConsXML, false);
 		this.macroInputLabels = inputLabels;
 		this.macroOutputLabels = outputLabels;
@@ -454,16 +458,17 @@ public class Macro {
 	 *            elements involved in macro (input, internal, output)
 	 * @return XML string of macro construction
 	 */
-	public static StringBuilder buildMacroXML(Kernel kernel,
+	public static XMLStringBuilder buildMacroXML(Kernel kernel,
 			Set<ConstructionElement> macroConsElements) {
 
 		// get the XML for all macro construction elements
-		StringBuilder macroConsXML = new StringBuilder(500);
-		macroConsXML.append("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n");
-		macroConsXML.append("<geogebra format=\"")
-				.append(GeoGebraConstants.XML_FILE_FORMAT).append("\">\n");
-		macroConsXML
-				.append("<construction author=\"\" title=\"\" date=\"\">\n");
+		XMLStringBuilder macroConsXML = new XMLStringBuilder(new StringBuilder(500));
+		macroConsXML.appendXMLHeader();
+		macroConsXML.startOpeningTag("geogebra", 0)
+				.attrRaw("format", GeoGebraConstants.XML_FILE_FORMAT).endTag();
+		macroConsXML.startOpeningTag("construction", 0)
+				.attr("author", "").attr("title", "")
+				.attr("date", "").endTag();
 
 		Iterator<ConstructionElement> it = macroConsElements.iterator();
 		while (it.hasNext()) {
@@ -477,8 +482,8 @@ public class Macro {
 			}
 		}
 
-		macroConsXML.append("</construction>\n");
-		macroConsXML.append("</geogebra>");
+		macroConsXML.closeTag("construction");
+		macroConsXML.closeTag("geogebra");
 
 		return macroConsXML;
 	}
@@ -728,58 +733,43 @@ public class Macro {
 	 * @param sb
 	 *            StringBuilder for adding the macro representation
 	 */
-	public void getXML(StringBuilder sb) {
-		sb.append("<macro cmdName=\"");
-		StringUtil.encodeXML(sb, cmdName);
-		sb.append("\" toolName=\"");
-		StringUtil.encodeXML(sb, toolName);
-		sb.append("\" toolHelp=\"");
-		StringUtil.encodeXML(sb, toolHelp);
-		sb.append("\" iconFile=\"");
-		StringUtil.encodeXML(sb, iconFileName);
-		sb.append("\" showInToolBar=\"");
-		sb.append(showInToolBar);
-		sb.append("\" copyCaptions=\"");
-		sb.append(copyCaptions);
+	public void getXML(XMLStringBuilder sb) {
+		sb.startOpeningTag("macro", 0)
+				.attr("cmdName", cmdName)
+				.attr("toolName", toolName)
+				.attr("toolHelp", toolHelp)
+				.attr("iconFile", iconFileName)
+				.attr("showInToolBar", showInToolBar)
+				.attr("copyCaptions", copyCaptions);
 		if (viewId != null) {
-			sb.append("\" viewId=\"");
-			sb.append(viewId);
+			sb.attr("viewId", viewId);
 		}
-
-		sb.append("\">\n");
+		sb.endTag();
 
 		// add input labels
-		sb.append("<macroInput");
+		sb.startTag("macroInput");
 		for (int i = 0; i < macroInputLabels.length; i++) {
 			// attribute name is input no.
-			sb.append(" a");
-			sb.append(i);
-			sb.append("=\"");
-			StringUtil.encodeXML(sb, macroInputLabels[i]);
-			sb.append("\"");
+			sb.attr("a" + i, macroInputLabels[i]);
 		}
-		sb.append("/>\n");
+		sb.endTag();
 
 		// add output labels
-		sb.append("<macroOutput");
+		sb.startTag("macroOutput");
 		for (int i = 0; i < macroOutputLabels.length; i++) {
 			// attribute name is output no.
-			sb.append(" a");
-			sb.append(i);
-			sb.append("=\"");
-			StringUtil.encodeXML(sb, macroOutputLabels[i]);
-			sb.append("\"");
+			sb.attr("a" + i, macroOutputLabels[i]);
 		}
-		sb.append("/>\n");
+		sb.endTag();
 
 		// macro construction XML
-		if (macroConsXML != null && macroConsXML.length() > 0) {
-			sb.append(macroConsXML.toString());
+		if (macroConsXML != null && !macroConsXML.isEmpty()) {
+			sb.append(macroConsXML);
 		} else {
 			macroCons.getConstructionXML(sb, false);
 		}
 
-		sb.append("</macro>\n");
+		sb.closeTag("macro");
 
 	}
 

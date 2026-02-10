@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.main;
 
 import java.util.ArrayList;
@@ -5,6 +21,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.TreeSet;
 
+import org.geogebra.common.awt.AwtFactory;
 import org.geogebra.common.awt.GColor;
 import org.geogebra.common.awt.GPoint;
 import org.geogebra.common.awt.GRectangle2D;
@@ -15,7 +32,6 @@ import org.geogebra.common.euclidian.EuclidianViewInterfaceCommon;
 import org.geogebra.common.euclidian.draw.DrawInputBox;
 import org.geogebra.common.euclidian.draw.dropdown.DrawDropDownList;
 import org.geogebra.common.euclidian3D.EuclidianView3DInterface;
-import org.geogebra.common.factories.AwtFactory;
 import org.geogebra.common.io.layout.Perspective;
 import org.geogebra.common.kernel.ConstructionDefaults;
 import org.geogebra.common.kernel.Kernel;
@@ -42,9 +58,9 @@ import org.geogebra.common.plugin.EuclidianStyleConstants;
 import org.geogebra.common.util.DoubleUtil;
 import org.geogebra.common.util.MyMath;
 import org.geogebra.common.util.debug.Log;
+import org.geogebra.editor.share.util.KeyCodes;
 
 import com.google.j2objc.annotations.Weak;
-import com.himamis.retex.editor.share.util.KeyCodes;
 
 /**
  * Handles keyboard events. This class only dispatches
@@ -1488,11 +1504,7 @@ public abstract class GlobalKeyDispatcher {
 		if (changeVal != 0) {
 
 			// exactly 2 or 3 sliders selected
-			boolean multipleSliders = geos.size() > 1
-					&& geos.get(0).isGeoNumeric()
-					&& geos.get(1).isGeoNumeric()
-					&& (geos.size() == 2 || (geos.size() == 3
-							&& geos.get(2).isGeoNumeric()));
+			boolean multipleSliders = hasMultipleSlidersSelected(geos);
 
 			for (int i = geos.size() - 1; i >= 0; i--) {
 				GeoElement geo = geos.get(i);
@@ -1516,6 +1528,26 @@ public abstract class GlobalKeyDispatcher {
 				&& app.getGuiManager().getSpreadsheetView().hasFocus();
 	}
 
+	/**
+	 * @param geos List of GeoElements
+	 * @return Whether there are exactly 2 or 3 sliders
+	 * (or GeoNumerics whose value can be changed using arrow / plus / minus / ... keys) selected.
+	 */
+	private boolean hasMultipleSlidersSelected(List<GeoElement> geos) {
+		return geos.size() > 1 && geos.size() < 4
+				&& geos.stream().allMatch(this::canChangeValueUsingKeys);
+	}
+
+	/**
+	 * @param geo GeoElement
+	 * @return Whether the value of this element can be changed using arrow keys or
+	 * the plus / minus / ... key.
+	 */
+	private boolean canChangeValueUsingKeys(GeoElement geo) {
+		return geo.isGeoNumeric()
+				&& (geo.isSimple() || ((GeoNumeric) geo).isAVSliderOrCheckboxVisible());
+	}
+
 	private void readMovedPoints(List<GeoElement> geos) {
 		for (GeoElement geo: geos) {
 			if (geo.isPointerChangeable() && geo.isPointOnPath()) {
@@ -1529,8 +1561,7 @@ public abstract class GlobalKeyDispatcher {
 		if (geo.isPointerChangeable()) {
 
 			// update number
-			if (geo.isGeoNumeric()
-					&& activeSlider) {
+			if (activeSlider && canChangeValueUsingKeys(geo)) {
 				changeSliderValue((GeoNumeric) geo, changeVal);
 				hasUnsavedGeoChanges = true;
 			}

@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.web.full.gui.applet;
 
 import java.util.ArrayList;
@@ -375,6 +391,7 @@ public class GeoGebraFrameFull
 		if (animated) {
 			keyboard.afterShown(callback);
 		} else {
+			keyboard.finishAnimation();
 			callback.run();
 		}
 	}
@@ -578,7 +595,9 @@ public class GeoGebraFrameFull
 					}
 					setKeyboardShowing(true);
 					app.invokeLater(() -> {
+						// check keyboardShowing since this is async
 						if (getApp().isWhiteboardActive()
+								|| !isKeyboardShowing()
 								|| (app.getAppletParameters().preventFocus()
 								&& app.isUnbundled())) {
 							return;
@@ -651,7 +670,7 @@ public class GeoGebraFrameFull
 
 		getKeyboardManager().setOnScreenKeyboardTextField(ml);
 
-		if (ml != null) {
+		if (ml != null && !app.hasPopup()) {
 			ml.setFocus(true);
 			ml.ensureEditing();
 		}
@@ -992,5 +1011,12 @@ public class GeoGebraFrameFull
 				getWidget(i).removeFromParent();
 			}
 		}
+	}
+
+	/**
+	 * @return height of Notes top bar (0 if not attached)
+	 */
+	public int getNotesTopBarHeight() {
+		return notesLayout == null ? 0 : notesLayout.getTopBarHeight();
 	}
 }

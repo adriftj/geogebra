@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ * 
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ * 
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.kernel.commands;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
@@ -8,7 +24,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -41,14 +56,13 @@ import org.geogebra.common.kernel.kernelND.GeoElementND;
 import org.geogebra.common.main.error.ErrorHandler;
 import org.geogebra.common.main.error.ErrorHelper;
 import org.geogebra.common.util.debug.Analytics;
+import org.geogebra.editor.share.util.Unicode;
 import org.geogebra.test.TestErrorHandler;
 import org.geogebra.test.annotation.Issue;
 import org.hamcrest.CoreMatchers;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-
-import com.himamis.retex.editor.share.util.Unicode;
 
 public class AlgebraProcessorTests extends BaseUnitTest {
 
@@ -155,7 +169,9 @@ public class AlgebraProcessorTests extends BaseUnitTest {
 		GeoElementSetup paintEquationsRed = geoElement -> {
 			if (isEquation(geoElement)) {
 				geoElement.setObjColor(GColor.RED);
+				return true;
 			}
+			return false;
 		};
 		getAlgebraProcessor().addGeoElementSetup(paintEquationsRed);
 
@@ -180,6 +196,31 @@ public class AlgebraProcessorTests extends BaseUnitTest {
 				new EvalInfo(true), false, null,
 				TestErrorHandler.INSTANCE);
 		assertThat(lookup("A"), hasValue("(1, 3)"));
+	}
+
+	@Test
+	@Issue("APPS-1289")
+	public void redefineWithFunctionOfZ() {
+		GeoElement function = add("f(z)=z");
+		getAlgebraProcessor().changeGeoElementNoExceptionHandling(function, "f(z)=z+1",
+				new EvalInfo(true), false, null,
+				TestErrorHandler.INSTANCE);
+		assertThat(lookup("f"), hasValue("z + 1"));
+	}
+
+	@Test
+	@Issue("APPS-1289")
+	public void redefineWithFunctionOfX() {
+			GeoElement
+		function = add("g(x)=x");
+		getAlgebraProcessor().changeGeoElementNoExceptionHandling(function, "z+1",
+				new EvalInfo(true), false, null,
+				TestErrorHandler.INSTANCE);
+		assertThat(lookup("g"), hasValue("?"));
+		getAlgebraProcessor().changeGeoElementNoExceptionHandling(function, "g(z)=z+1",
+				new EvalInfo(true), false, null,
+				TestErrorHandler.INSTANCE);
+		assertThat(lookup("g"), hasValue("z + 1"));
 	}
 
 	@Test

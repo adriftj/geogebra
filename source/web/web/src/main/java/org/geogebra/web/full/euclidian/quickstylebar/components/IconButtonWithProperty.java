@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.web.full.euclidian.quickstylebar.components;
 
 import static org.geogebra.web.full.euclidian.quickstylebar.QuickStyleBar.POPUP_MENU_DISTANCE;
@@ -10,31 +26,30 @@ import org.geogebra.common.properties.IconsEnumeratedProperty;
 import org.geogebra.common.properties.Property;
 import org.geogebra.common.properties.PropertySupplier;
 import org.geogebra.common.properties.RangeProperty;
-import org.geogebra.common.properties.impl.collections.ColorPropertyCollection;
-import org.geogebra.common.properties.impl.collections.FlagListPropertyCollection;
-import org.geogebra.common.properties.impl.collections.NamedEnumeratedPropertyCollection;
-import org.geogebra.common.properties.impl.collections.RangePropertyCollection;
-import org.geogebra.common.properties.impl.collections.StringPropertyCollection;
+import org.geogebra.common.properties.impl.facade.ColorPropertyListFacade;
+import org.geogebra.common.properties.impl.facade.FlagListPropertyListFacade;
+import org.geogebra.common.properties.impl.facade.NamedEnumeratedPropertyListFacade;
+import org.geogebra.common.properties.impl.facade.RangePropertyListFacade;
+import org.geogebra.common.properties.impl.facade.StringPropertyListFacade;
 import org.geogebra.common.properties.impl.objects.BorderColorProperty;
 import org.geogebra.common.properties.impl.objects.BorderThicknessProperty;
 import org.geogebra.common.properties.impl.objects.CellBorderThicknessProperty;
 import org.geogebra.common.properties.impl.objects.NotesThicknessProperty;
 import org.geogebra.common.properties.impl.objects.TextBackgroundColorProperty;
-import org.geogebra.web.full.css.MaterialDesignResources;
 import org.geogebra.web.full.euclidian.LabelSettingsPanel;
 import org.geogebra.web.full.euclidian.LabelValuePanel;
-import org.geogebra.web.full.euclidian.quickstylebar.PropertiesIconAdapter;
 import org.geogebra.web.full.euclidian.quickstylebar.PropertyWidgetAdapter;
 import org.geogebra.web.full.gui.toolbar.mow.popupcomponents.ColorChooserPanel;
 import org.geogebra.web.full.gui.toolbar.mow.toolbox.components.IconButton;
 import org.geogebra.web.full.javax.swing.GPopupMenuW;
+import org.geogebra.web.full.main.AppWFull;
 import org.geogebra.web.html5.gui.GPopupPanel;
 import org.geogebra.web.html5.gui.util.AriaHelper;
 import org.geogebra.web.html5.gui.util.Dom;
-import org.geogebra.web.html5.gui.view.ImageIconSpec;
+import org.geogebra.web.html5.gui.view.IconSpec;
 import org.geogebra.web.html5.gui.view.button.StandardButton;
 import org.geogebra.web.html5.main.AppW;
-import org.geogebra.web.resources.SVGResource;
+import org.geogebra.web.html5.main.general.GeneralIcon;
 import org.gwtproject.user.client.ui.FlowPanel;
 
 public class IconButtonWithProperty extends IconButton {
@@ -42,7 +57,6 @@ public class IconButtonWithProperty extends IconButton {
 	private final List<GeoElement> geos;
 	private GPopupPanel propertyPopup;
 	private SliderWithProperty lineThicknessSlider;
-	private LabelValuePanel labelPanel;
 	private final PropertyWidgetAdapter widgetAdapter;
 	private PopupColorHandler popupHandler;
 
@@ -56,9 +70,9 @@ public class IconButtonWithProperty extends IconButton {
 	 * @param closePopupOnAction - weather should close popup after clicking on popup element
 	 * @param properties - array of applicable properties
 	 */
-	public IconButtonWithProperty(AppW appW, String className, SVGResource icon, String ariaLabel,
+	public IconButtonWithProperty(AppW appW, String className, IconSpec icon, String ariaLabel,
 			List<GeoElement> geos, boolean closePopupOnAction, PropertySupplier... properties) {
-		super(appW, new ImageIconSpec(icon), ariaLabel, ariaLabel, () -> {}, null);
+		super(appW, icon, ariaLabel, ariaLabel, () -> {}, null);
 		this.appW = appW;
 		this.geos = geos;
 		widgetAdapter = new PropertyWidgetAdapter(appW, closePopupOnAction);
@@ -107,25 +121,26 @@ public class IconButtonWithProperty extends IconButton {
 						if (lineThicknessSlider != null) {
 							lineThicknessSlider.setLineType(index);
 						}
-						setIcon(PropertiesIconAdapter.getIcon(((IconsEnumeratedProperty<?>)
-								property).getValueIcons()[index]));
+						setIcon(((AppWFull) appW).getPropertiesIconResource().getImageResource(
+								((IconsEnumeratedProperty<?>) property).getValueIcons()[index]));
 					});
 			parent.add(enumeratedPropertyButtonPanel);
 		}
 
-		if (property instanceof NamedEnumeratedPropertyCollection) {
+		if (property instanceof NamedEnumeratedPropertyListFacade) {
 			GPopupMenuW fontSizeMenu = widgetAdapter.getMenuWidget(
-					(NamedEnumeratedPropertyCollection<?, ?>) property);
+					(NamedEnumeratedPropertyListFacade<?, ?>) property);
 			parent.add(fontSizeMenu.getPopupMenu());
 		}
 
-		if (property instanceof ColorPropertyCollection<?>) {
-			ColorPropertyCollection<?> colorProperty = (ColorPropertyCollection<?>) property;
+		if (property instanceof ColorPropertyListFacade<?>) {
+			ColorPropertyListFacade<?> colorProperty =
+					(ColorPropertyListFacade<?>) property;
 			ColorChooserPanel colorPanel = new ColorChooserPanel(appW,
 					colorProperty.getValues(), color -> {
 				if (popupHandler != null) {
-					ColorPropertyCollection<?> updatedProperty =
-							(ColorPropertyCollection<?>) propertySupplier.updateAndGet();
+					ColorPropertyListFacade<?> updatedProperty =
+							(ColorPropertyListFacade<?>) propertySupplier.updateAndGet();
 					popupHandler.fireActionPerformed(updatedProperty, color);
 				}
 			});
@@ -136,8 +151,9 @@ public class IconButtonWithProperty extends IconButton {
 			parent.add(colorPanel);
 
 			if (colorProperty.getFirstProperty() instanceof TextBackgroundColorProperty) {
-				StandardButton noColorButton = new StandardButton(MaterialDesignResources.INSTANCE
-						.no_color(), appW.getLocalization().getMenu("noColor"), 24);
+				StandardButton noColorButton = new StandardButton(
+						appW.getGeneralIconResource().getImageResource(GeneralIcon.NO_COLOR),
+						appW.getLocalization().getMenu("noColor"), 24, 24);
 				noColorButton.addStyleName("noColBtn");
 				noColorButton.addFastClickHandler(source -> {
 					if (popupHandler != null) {
@@ -147,8 +163,8 @@ public class IconButtonWithProperty extends IconButton {
 				parent.add(noColorButton);
 			}
 		}
-		if (property instanceof RangePropertyCollection<?>) {
-			RangePropertyCollection<?> rangeProperty = (RangePropertyCollection<?>) property;
+		if (property instanceof RangePropertyListFacade<?>) {
+			RangePropertyListFacade<?> rangeProperty = (RangePropertyListFacade<?>) property;
 			RangeProperty<?> firstProperty = rangeProperty.getFirstProperty();
 			if (firstProperty instanceof NotesThicknessProperty) {
 				lineThicknessSlider = widgetAdapter.getSliderWidget(rangeProperty,
@@ -166,14 +182,14 @@ public class IconButtonWithProperty extends IconButton {
 			}
 		}
 
-		if (property instanceof StringPropertyCollection<?>) {
-			labelPanel = new LabelValuePanel(appW, (StringPropertyCollection<?>) property, geos);
+		if (property instanceof StringPropertyListFacade<?>) {
+			LabelValuePanel labelPanel =
+					new LabelValuePanel(appW, (StringPropertyListFacade<?>) property, geos);
 			propertyPopup.addCloseHandler(labelPanel);
 			parent.add(labelPanel);
 		}
 
-		if (property instanceof FlagListPropertyCollection<?>) {
-			FlagListPropertyCollection<?> valuedProperty = (FlagListPropertyCollection<?>) property;
+		if (property instanceof FlagListPropertyListFacade<?> valuedProperty) {
 			LabelSettingsPanel labelStylePanel = widgetAdapter.getLabelPanel(valuedProperty);
 			parent.add(labelStylePanel);
 		}

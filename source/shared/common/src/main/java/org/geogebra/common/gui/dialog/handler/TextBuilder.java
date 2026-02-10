@@ -1,7 +1,24 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.gui.dialog.handler;
 
 import org.geogebra.common.awt.GFont;
 import org.geogebra.common.euclidian.EuclidianViewInterfaceCommon;
+import org.geogebra.common.gui.dialog.options.model.TextOptionsModel;
 import org.geogebra.common.kernel.commands.EvalInfo;
 import org.geogebra.common.kernel.geos.GeoText;
 import org.geogebra.common.kernel.kernelND.GeoElementND;
@@ -15,9 +32,22 @@ public class TextBuilder {
 	private final App app;
 	private final GeoPointND startPoint;
 	private final boolean rw;
-	private final boolean isLaTeX;
+	private boolean isLaTeX;
 	private boolean isSerif;
 	private int fontStyle = GFont.PLAIN;
+	private TextStyle textStyle;
+
+	/**
+	 * @param app application
+	 * @param startPoint pos
+	 * @param rw whether to use rw coordinates
+	 */
+	public TextBuilder(App app, GeoPointND startPoint, boolean rw, TextStyle textStyle) {
+		this.app = app;
+		this.startPoint = startPoint;
+		this.rw = rw;
+		this.textStyle = textStyle;
+	}
 
 	/**
 	 * @param app application
@@ -123,12 +153,25 @@ public class TextBuilder {
 		return ret -> {
 			if (ret != null && ret[0] instanceof GeoText) {
 				GeoText t = (GeoText) ret[0];
-				t.setLaTeX(isLaTeX, true);
-				t.setFontStyle(fontStyle);
-				t.setSerifFont(isSerif);
-				// make sure for new LaTeX texts we get nice "x"s
-				if (isLaTeX) {
-					t.setSerifFont(true);
+				if (textStyle != null) {
+					t.setLaTeX(textStyle.isLatex(), true);
+					t.setFontStyle(TextOptionsModel.getFontStyle(textStyle.isBold(),
+							textStyle.isItalic()));
+					t.setSerifFont(textStyle.isSerif());
+					t.setBackgroundColor(textStyle.getBgColor());
+					t.setObjColor(textStyle.getFontColor());
+					// make sure for new LaTeX texts we get nice "x"s
+					if (textStyle.isLatex()) {
+						t.setSerifFont(true);
+					}
+				} else {
+					t.setLaTeX(isLaTeX, true);
+					t.setFontStyle(fontStyle);
+					t.setSerifFont(isSerif);
+					// make sure for new LaTeX texts we get nice "x"s
+					if (isLaTeX) {
+						t.setSerifFont(true);
+					}
 				}
 				positionText(t);
 				app.storeUndoInfo();
@@ -138,6 +181,5 @@ public class TextBuilder {
 			callback.callback(false);
 		};
 	}
-
 }
 

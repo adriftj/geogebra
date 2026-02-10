@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.web.full.gui.view.spreadsheet;
 
 import java.util.Map;
@@ -5,6 +21,7 @@ import java.util.Map;
 import org.geogebra.common.awt.GPoint;
 import org.geogebra.common.gui.SetLabels;
 import org.geogebra.common.gui.view.spreadsheet.SpreadsheetViewInterface;
+import org.geogebra.common.io.XMLStringBuilder;
 import org.geogebra.common.kernel.Kernel;
 import org.geogebra.common.kernel.ModeSetter;
 import org.geogebra.common.kernel.geos.GProperty;
@@ -376,69 +393,34 @@ public class SpreadsheetViewW implements SpreadsheetViewInterface,
 	/**
 	 * returns settings in XML format
 	 */
-	public void getXML(StringBuilder sb, boolean asPreference) {
-		sb.append("<spreadsheetView>\n");
+	public void getXML(XMLStringBuilder sb, boolean asPreference) {
+		sb.startOpeningTag("spreadsheetView", 0).endTag();
 
 		int width = spreadsheetWrapper.getOffsetWidth(); // getPreferredSize().width;
 		int height = spreadsheetWrapper.getOffsetHeight(); // getPreferredSize().height;
 
-		sb.append("\t<size ");
-		sb.append(" width=\"");
-		sb.append(width);
-		sb.append("\"");
-		sb.append(" height=\"");
-		sb.append(height);
-		sb.append("\"");
-		sb.append("/>\n");
+		sb.startTag("size");
+		sb.attr("width", width);
+		sb.attr("height", height);
+		sb.endTag();
 
-		sb.append("\t<prefCellSize ");
-		sb.append(" width=\"");
-		sb.append(table.preferredColumnWidth());
-		sb.append("\"");
-		sb.append(" height=\"");
-		sb.append(table.minimumRowHeight
-		// FIXME: temporarily, otherwise:
-		// table.getRowHeight()
-		);
-		sb.append("\"");
-		sb.append("/>\n");
+		sb.startTag("prefCellSize");
+		sb.attr("width", table.preferredColumnWidth());
+		sb.attr("height", table.minimumRowHeight);
+		sb.endTag();
 
 		if (!asPreference) {
 
 			settings().getWidthsAndHeightsXML(sb);
 
 			// initial selection
-			sb.append("\t<selection ");
-
-			sb.append(" hScroll=\"");
-			sb.append(0
-			// FIXME: might not be the same for Desktop and Web
-			// getHorizontalScrollPosition()
-			// spreadsheet.getHorizontalScrollBar().getValue()
-			);
-			sb.append("\"");
-
-			sb.append(" vScroll=\"");
-			sb.append(0
-			// FIXME: might not be the same for Desktop and Web
-			// getVerticalScrollPosition()
-			// spreadsheet.getVerticalScrollBar().getValue()
-			);
-			sb.append("\"");
-
-			sb.append(" column=\"");
-			sb.append(table.anchorSelectionColumn
-			// getColumnModel().getSelectionModel().getAnchorSelectionIndex()
-			);
-			sb.append("\"");
-
-			sb.append(" row=\"");
-			sb.append(table.anchorSelectionRow
-			// table.getSelectionModel().getAnchorSelectionIndex()
-			);
-			sb.append("\"");
-
-			sb.append("/>\n");
+			sb.startTag("selection ");
+			// FIXME: check consistency between Desktop and Web
+			sb.attr("hScroll", 0);
+			sb.attr("vScroll", 0);
+			sb.attr("column", table.anchorSelectionColumn);
+			sb.attr("row", table.anchorSelectionRow);
+			sb.endTag();
 		}
 
 		settings().getLayoutXML(sb);
@@ -448,7 +430,7 @@ public class SpreadsheetViewW implements SpreadsheetViewInterface,
 			table.getCellFormatHandler().getXML(sb);
 		}
 
-		sb.append("</spreadsheetView>\n");
+		sb.closeTag("spreadsheetView");
 	}
 
 	// ===============================================================

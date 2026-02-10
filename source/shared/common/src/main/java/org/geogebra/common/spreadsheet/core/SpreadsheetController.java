@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.spreadsheet.core;
 
 import java.util.ArrayList;
@@ -13,6 +29,7 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import org.geogebra.common.gui.view.spreadsheet.DataImport;
+import org.geogebra.common.kernel.statistics.Statistic;
 import org.geogebra.common.spreadsheet.style.CellFormat;
 import org.geogebra.common.spreadsheet.style.SpreadsheetStyling;
 import org.geogebra.common.util.MouseCursor;
@@ -21,12 +38,11 @@ import org.geogebra.common.util.StringUtil;
 import org.geogebra.common.util.shape.Point;
 import org.geogebra.common.util.shape.Rectangle;
 import org.geogebra.common.util.shape.Size;
-
-import com.himamis.retex.editor.share.editor.MathFieldInternal;
-import com.himamis.retex.editor.share.event.KeyEvent;
-import com.himamis.retex.editor.share.input.KeyboardInputAdapter;
-import com.himamis.retex.editor.share.model.MathCharacter;
-import com.himamis.retex.editor.share.util.JavaKeyCodes;
+import org.geogebra.editor.share.editor.MathFieldInternal;
+import org.geogebra.editor.share.event.KeyEvent;
+import org.geogebra.editor.share.input.KeyboardInputAdapter;
+import org.geogebra.editor.share.tree.CharacterNode;
+import org.geogebra.editor.share.util.JavaKeyCodes;
 
 /**
  * A container for tabular data, with support for selecting and editing the data.
@@ -98,9 +114,10 @@ public final class SpreadsheetController {
 	/**
 	 * @param constructionDelegate {@link SpreadsheetConstructionDelegate}
 	 */
-	public void setSpreadsheetConstructionDelegate(@CheckForNull SpreadsheetConstructionDelegate
+	void setSpreadsheetConstructionDelegate(@CheckForNull SpreadsheetConstructionDelegate
 			constructionDelegate) {
 		this.constructionDelegate = constructionDelegate;
+		this.contextMenuBuilder.setSpreadsheetConstructionDelegate(constructionDelegate);
 	}
 
 	/**
@@ -370,6 +387,15 @@ public final class SpreadsheetController {
 		return layout;
 	}
 
+	/**
+	 * Called when the spreadsheet view becomes visible.
+	 */
+	public void handleOnViewAppear() {
+		if (selectionController.getLastSelection() == null) {
+			selectionController.selectCell(0, 0, false, false);
+		}
+	}
+
 	// Selection
 
 	/**
@@ -615,7 +641,7 @@ public final class SpreadsheetController {
 			return null;
 		}
 		ArrayList<String> characterSequences = new ArrayList<>();
-		Predicate<MathCharacter> include = w -> w.isCharacter() || ":".equals(w.getUnicodeString());
+		Predicate<CharacterNode> include = w -> w.isCharacter() || ":".equals(w.getUnicodeString());
 		mathField.collectCharacterSequences(include, characterSequences);
 		ArrayList<SpreadsheetReference> cellRanges = new ArrayList<>();
 		for (String characterSequence : characterSequences) {
@@ -1286,45 +1312,43 @@ public final class SpreadsheetController {
 	}
 
 	// Calculations
-
-	void calculate(SpreadsheetCommand command) {
+	
+	void calculate1VarStatistics(Statistic statistic) {
 		Selection last = getLastSelection();
 		TabularRange range = last == null ? null : last.getRange();
-
 		if (range == null) {
 			return;
 		}
-
 		if (range.isSingleCell()) {
-			processCalculate(command, -1, -1, -1, -1, range.getMinRow(), range.getMinColumn(),
+			processCalculate(statistic, -1, -1, -1, -1, range.getMinRow(), range.getMinColumn(),
 					true);
 		} else if (range.isEntireColumn()) {
-			processCalculate(command, 0, range.getMinColumn(), getLayout().numberOfRows() - 2,
+			processCalculate(statistic, 0, range.getMinColumn(), getLayout().numberOfRows() - 2,
 					range.getMaxColumn(), getLayout().numberOfRows() - 1,
 					range.getMaxColumn(), false);
 		} else if (range.isEntireRow()) {
-			processCalculate(command, range.getMinRow(), 0, range.getMaxRow(),
+			processCalculate(statistic, range.getMinRow(), 0, range.getMaxRow(),
 					getLayout().numberOfColumns() - 2, range.getMaxRow(),
 					getLayout().numberOfColumns() - 1, false);
 		} else if (range.isPartialColumn()) {
-			processCalculate(command, range.getMinRow(), range.getMinColumn(),
+			processCalculate(statistic, range.getMinRow(), range.getMinColumn(),
 					range.getMaxRow(), range.getMaxColumn(), range.getMaxRow() + 1,
 					range.getMaxColumn(), false);
 		} else if (range.isPartialRow()) {
-			processCalculate(command, range.getMinRow(), range.getMinColumn(),
+			processCalculate(statistic, range.getMinRow(), range.getMinColumn(),
 					range.getMaxRow(), range.getMaxColumn(), range.getMaxRow(),
 					range.getMaxColumn() + 1, false);
 		} else {
 			// multiple part of columns and rows
-			processCalculate(command, range.getMinRow(), range.getMinColumn(),
+			processCalculate(statistic, range.getMinRow(), range.getMinColumn(),
 					range.getMaxRow(), range.getMaxColumn(), range.getMaxRow() + 1,
 					range.getMaxColumn(), false);
 		}
 	}
 
-	private void processCalculate(SpreadsheetCommand command, int fromRow, int fromCol, int toRow,
+	private void processCalculate(Statistic statistic, int fromRow, int fromCol, int toRow,
 			int toCol, int destRow, int destCol, boolean showEditor) {
-		String curCommand = getCalculateString(command, fromRow, fromCol, toRow, toCol);
+		String curCommand = getCalculateString(statistic, fromRow, fromCol, toRow, toCol);
 		tabularData.getCellProcessor().process(curCommand, destRow, destCol);
 		updateSelectionAndScroll(destRow, destCol);
 		if (showEditor) {
@@ -1343,11 +1367,11 @@ public final class SpreadsheetController {
 		}
 	}
 
-	private String getCalculateString(SpreadsheetCommand command, int fromRow, int fromCol,
+	private String getCalculateString(Statistic statistic, int fromRow, int fromCol,
 			int toRow, int toCol) {
 		StringBuilder sb = new StringBuilder();
 		sb.append("=");
-		sb.append(command.getCommand());
+		sb.append(statistic.getCommandName());
 		sb.append("(");
 		if (fromRow > -1 && fromCol > -1 && toRow > -1 && toCol > -1) {
 			sb.append(tabularData.getCellName(fromRow, fromCol)).append(":")
@@ -1361,31 +1385,32 @@ public final class SpreadsheetController {
 	// Charts
 
 	void createChart(ContextMenuItem.Identifier chartType) {
-		Selection last = getLastSelection();
-		TabularRange range = last == null ? null : last.getRange();
-
-		if (range == null) {
-			return;
-		}
-
 		switch (chartType) {
 		case PIE_CHART:
-			createPieChart(range);
+			Selection last = getLastSelection();
+			if (last != null) {
+				TabularRange range = last.getRange();
+				createPieChart(range);
+			}
 			break;
 		case BAR_CHART:
 		case HISTOGRAM:
-			List<TabularRange> ranges = getLastRanges();
-			createChartWithTwoParameters(ranges, chartType);
+			createChartWithTwoParameters(getSelectionRanges(), chartType);
 			break;
 		case LINE_CHART:
-			createLineChart(getLastRanges());
+			createLineChart(getSelectionRanges());
+			break;
+		case BOX_PLOT:
+			createBoxPlot(getSelectionRanges());
 			break;
 		default:
+			break;
 		}
 	}
 
-	private List<TabularRange> getLastRanges() {
-		return selectionController.getSelections().map(Selection::getRange)
+	private List<TabularRange> getSelectionRanges() {
+		return selectionController.getSelections()
+				.map(Selection::getRange)
 				.collect(Collectors.toList());
 	}
 
@@ -1393,7 +1418,6 @@ public final class SpreadsheetController {
 		if (constructionDelegate == null || controlsDelegate == null) {
 			return;
 		}
-
 		if (range.isEntireColumn() || range.isPartialColumn() && !range.isPartialRow()
 				&& !range.isEntireRow()) {
 			constructionDelegate.createPieChart(tabularData, range);
@@ -1408,9 +1432,7 @@ public final class SpreadsheetController {
 		if (constructionDelegate == null || controlsDelegate == null) {
 			return;
 		}
-
 		ChartError chartError = ChartError.validateForTwoColumns(ranges);
-
 		if (chartError == ChartError.NONE) {
 			switch (chartType) {
 			case BAR_CHART:
@@ -1430,7 +1452,6 @@ public final class SpreadsheetController {
 		if (constructionDelegate == null || controlsDelegate == null) {
 			return;
 		}
-
 		ChartError chartError = ChartError.validateForMoreColumns(ranges);
 		if (chartError == ChartError.NONE) {
 			if (ranges.size() == 1) {
@@ -1441,6 +1462,18 @@ public final class SpreadsheetController {
 		} else {
 			controlsDelegate.showSnackbar(chartError.getErrorKey());
 		}
+	}
+
+	private void createBoxPlot(List<TabularRange> ranges) {
+		if (constructionDelegate == null || controlsDelegate == null) {
+			return;
+		}
+		ChartError chartError = ChartError.validateRangesForBoxPlot(ranges);
+		if (chartError != ChartError.NONE) {
+			controlsDelegate.showSnackbar(chartError.getErrorKey());
+			return;
+		}
+		constructionDelegate.createBoxPlot(tabularData, ranges);
 	}
 
 	// Autocomplete
@@ -1501,6 +1534,8 @@ public final class SpreadsheetController {
 			return List.of();
 		}
 	}
+
+	// Editor
 
 	private final class Editor {
 		private final @Nonnull SpreadsheetCellEditor cellEditor;
@@ -1588,27 +1623,32 @@ public final class SpreadsheetController {
 		}
 
 		void updateReference(String reference) {
-			Predicate<MathCharacter> predicate =
+			Predicate<CharacterNode> predicate =
 					w -> w.isCharacter() || ":".equals(w.getUnicodeString());
 			String[] parts = reference.split(":");
 			String startCell = parts[0].trim();
 			String endCell = parts.length > 1 ? parts[1].trim() : startCell;
-			String currentWord = cellEditor.getMathField()
+
+			MathFieldInternal mfi = cellEditor.getMathField();
+			String currentWord = mfi
 					.getCharactersLeftOfCursorMatching(predicate);
+			KeyboardInputAdapter.ensureTrailingCommaAsOperator(mfi.getEditorState(), currentWord);
 			boolean spaceNeeded = !currentWord.isEmpty();
+
 			if (currentWord.endsWith(":" + endCell)
 					|| currentWord.startsWith(startCell + ":")
 					|| currentWord.equals(endCell) || currentWord.equals(startCell)) {
-				cellEditor.getMathField().deleteCurrentCharSequence(
-						predicate);
+				mfi.deleteCurrentCharSequence(predicate);
 				spaceNeeded = false;
 			}
+
 			type(spaceNeeded ? " " + reference : reference);
 		}
 
 		private @CheckForNull String getCurrentCellRangeCandidate() {
-			Predicate<MathCharacter> predicate =
-					w -> w.isCharacter() || ":".equals(w.getUnicodeString());
+			Predicate<CharacterNode> predicate =
+					w -> (w.isCharacter() && !",".equals(w.getUnicodeString()))
+							|| ":".equals(w.getUnicodeString());
 			String candidate = cellEditor.getMathField()
 					.getCharactersAroundCursorMatching(predicate);
 			return candidate == null || candidate.isEmpty() ? null : candidate;

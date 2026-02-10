@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.main;
 
 import java.util.ArrayList;
@@ -17,6 +33,7 @@ import javax.annotation.Nonnull;
 import org.geogebra.common.GeoGebraConstants;
 import org.geogebra.common.GeoGebraConstants.Platform;
 import org.geogebra.common.SuiteSubApp;
+import org.geogebra.common.awt.AwtFactory;
 import org.geogebra.common.awt.GBufferedImage;
 import org.geogebra.common.awt.GColor;
 import org.geogebra.common.awt.GDimension;
@@ -42,7 +59,6 @@ import org.geogebra.common.exam.ExamType;
 import org.geogebra.common.exam.restrictions.ExamFeatureRestriction;
 import org.geogebra.common.exam.restrictions.ExamRestrictable;
 import org.geogebra.common.export.pstricks.GeoGebraExport;
-import org.geogebra.common.factories.AwtFactory;
 import org.geogebra.common.geogebra3D.euclidian3D.printer3D.Format;
 import org.geogebra.common.gui.AccessibilityManagerInterface;
 import org.geogebra.common.gui.AccessibilityManagerNoGui;
@@ -66,6 +82,7 @@ import org.geogebra.common.gui.view.algebra.filter.ProtectiveAlgebraOutputFilter
 import org.geogebra.common.gui.view.properties.PropertiesView;
 import org.geogebra.common.gui.view.table.regression.RegressionSpecificationBuilder;
 import org.geogebra.common.io.MyXMLio;
+import org.geogebra.common.io.XMLStringBuilder;
 import org.geogebra.common.io.file.ByteArrayZipFile;
 import org.geogebra.common.io.file.ZipFile;
 import org.geogebra.common.io.layout.Perspective;
@@ -136,6 +153,10 @@ import org.geogebra.common.plugin.ScriptType;
 import org.geogebra.common.plugin.script.GgbScript;
 import org.geogebra.common.plugin.script.Script;
 import org.geogebra.common.spreadsheet.core.Spreadsheet;
+import org.geogebra.common.spreadsheet.kernel.DefaultSpreadsheetConstructionDelegate;
+import org.geogebra.common.spreadsheet.kernel.GeoElementCellRendererFactory;
+import org.geogebra.common.spreadsheet.kernel.KernelTabularDataAdapter;
+import org.geogebra.common.spreadsheet.settings.SpreadsheetSettingsAdapter;
 import org.geogebra.common.util.AsyncOperation;
 import org.geogebra.common.util.CopyPaste;
 import org.geogebra.common.util.DoubleUtil;
@@ -146,9 +167,8 @@ import org.geogebra.common.util.SyntaxAdapterImpl;
 import org.geogebra.common.util.ToStringConverter;
 import org.geogebra.common.util.debug.Log;
 import org.geogebra.common.util.profiler.FpsProfiler;
-
-import com.himamis.retex.editor.share.editor.EditorFeatures;
-import com.himamis.retex.editor.share.util.Unicode;
+import org.geogebra.editor.share.editor.EditorFeatures;
+import org.geogebra.editor.share.util.Unicode;
 
 /**
  * Represents an application window, gives access to views and system stuff
@@ -436,6 +456,8 @@ public abstract class App implements UpdateSelection, AppInterface, EuclidianHos
 
 	private boolean areCommands3DEnabled = true;
 	private boolean spreadsheetRestricted;
+	private Spreadsheet spreadsheet;
+	private SpreadsheetSettingsAdapter spreadsheetSettingsAdapter;
 	protected AccessibilityManagerInterface accessibilityManager;
 	private SettingsUpdater settingsUpdater;
 	private FontCreator fontCreator;
@@ -1202,10 +1224,10 @@ public abstract class App implements UpdateSelection, AppInterface, EuclidianHos
 	/**
 	 * @param ge
 	 *            geo
-	 * @return trace-related XML elements
+	 * @param sb builder to which trace-related XML elements are added
 	 */
-	final public String getTraceXML(GeoElement ge) {
-		return getTraceManager().getTraceXML(ge);
+	final public void getTraceXML(GeoElement ge, XMLStringBuilder sb) {
+		getTraceManager().getTraceXML(ge, sb);
 	}
 
 	/**
@@ -1320,7 +1342,7 @@ public abstract class App implements UpdateSelection, AppInterface, EuclidianHos
 	 * @param sb
 	 *            string builder
 	 */
-	public void getKeyboardXML(StringBuilder sb) {
+	public void getKeyboardXML(XMLStringBuilder sb) {
 		// desktop only
 	}
 
@@ -1627,7 +1649,7 @@ public abstract class App implements UpdateSelection, AppInterface, EuclidianHos
 		String header = allXml.substring(0, allXml.indexOf("<construction"));
 		String footer = allXml.substring(allXml.indexOf("</construction>"));
 		StringBuilder sb = new StringBuilder();
-		editMacro.getXML(sb);
+		editMacro.getXML(new XMLStringBuilder(sb));
 		String macroXml = sb.toString();
 		String newXml = header
 				+ macroXml.substring(macroXml.indexOf("<construction"),
@@ -1820,15 +1842,14 @@ public abstract class App implements UpdateSelection, AppInterface, EuclidianHos
 	}
 
 	/**
+	 * Append  XML for user interface (EVs, spreadsheet, kernel settings) to a builder.
 	 * @param asPreference
 	 *            true if we need this for prefs XML
-	 * @return XML for user interface (EVs, spreadsheet, kernel settings)
+	 * @param sb XML string builder
 	 */
-	public String getCompleteUserInterfaceXML(boolean asPreference) {
-		StringBuilder sb = new StringBuilder();
-
+	public void getCompleteUserInterfaceXML(boolean asPreference, XMLStringBuilder sb) {
 		// save gui tag settings
-		sb.append(getGuiXML(asPreference));
+		getGuiXML(asPreference, sb);
 
 		// save euclidianView settings
 		getEuclidianView1().getXML(sb, asPreference);
@@ -1852,11 +1873,9 @@ public abstract class App implements UpdateSelection, AppInterface, EuclidianHos
 		kernel.getKernelXML(sb, asPreference);
 		getSettings().getTable().getXML(sb);
 		getScriptingXML(sb, asPreference);
-
-		return sb.toString();
 	}
 
-	protected void getViewsXML(StringBuilder sb, boolean asPreference) {
+	protected void getViewsXML(XMLStringBuilder sb, boolean asPreference) {
 		// save spreadsheet settings
 		getSettings().getSpreadsheet().getXML(sb, asPreference);
 		if (getGuiManager() != null) {
@@ -1864,16 +1883,13 @@ public abstract class App implements UpdateSelection, AppInterface, EuclidianHos
 		}
 	}
 
-	private void getScriptingXML(StringBuilder sb, boolean asPreference) {
-		sb.append("<scripting blocked=\"");
-		sb.append(isBlockUpdateScripts());
-
+	private void getScriptingXML(XMLStringBuilder sb, boolean asPreference) {
+		sb.startTag("scripting", 0);
+		sb.attr("blocked", isBlockUpdateScripts());
 		if (!asPreference) {
-			sb.append("\" disabled=\"");
-			sb.append(isScriptingDisabled());
+			sb.attr("disabled", isScriptingDisabled());
 		}
-
-		sb.append("\"/>\n");
+		sb.endTag();
 	}
 
 	/**
@@ -2565,41 +2581,29 @@ public abstract class App implements UpdateSelection, AppInterface, EuclidianHos
 	 *            whether this is for preferences file
 	 * @return gui settings in XML format
 	 */
-	public String getGuiXML(boolean asPreference) {
-		StringBuilder sb = new StringBuilder();
-		sb.append("<gui>\n");
+	public String getGuiXML(boolean asPreference, XMLStringBuilder sb) {
+		sb.startOpeningTag("gui", 0).endTag();
 
 		getWindowLayoutXML(sb, asPreference);
 
-		sb.append("\t<font ");
-		sb.append(" size=\"");
-		sb.append(getFontSize());
-		sb.append("\"/>\n");
+		sb.startTag("font").attr("size", getFontSize()).endTag();
 
 		if (asPreference) {
 			int guiFontSize = settings.getFontSettings().getGuiFontSize();
-			sb.append("\t<menuFont ");
-			sb.append(" size=\"");
-			sb.append(guiFontSize);
-			sb.append("\"/>\n");
+			sb.startTag("menuFont").attr("size", guiFontSize).endTag();
 
-			sb.append("\t<tooltipSettings ");
+			sb.startTag("tooltipSettings");
 			if (getLocalization().getTooltipLanguageString() != null) {
-				sb.append(" language=\"");
-				sb.append(getLocalization().getTooltipLanguageString());
-				sb.append("\"");
+				sb.attrRaw("language", getLocalization().getTooltipLanguageString());
 			}
-			sb.append(" timeout=\"");
-			sb.append(getTooltipTimeout());
-			sb.append("\"");
-
-			sb.append("/>\n");
+			sb.attr("timeout", getTooltipTimeout());
+			sb.endTag();
 		}
 		if (getGuiManager() != null) {
 			getGuiManager().getExtraViewsXML(sb);
 		}
 
-		sb.append("</gui>\n");
+		sb.closeTag("gui");
 
 		return sb.toString();
 	}
@@ -2616,30 +2620,26 @@ public abstract class App implements UpdateSelection, AppInterface, EuclidianHos
 	 * @param asPreference
 	 *            whether this is for preferences
 	 */
-	protected void getWindowLayoutXML(StringBuilder sb, boolean asPreference) {
-		sb.append("\t<window width=\"");
-
-		sb.append(getWindowWidth());
-
-		sb.append("\" height=\"");
-
-		sb.append(getWindowHeight());
-
-		sb.append("\" />\n");
+	protected void getWindowLayoutXML(XMLStringBuilder sb, boolean asPreference) {
+		sb.startTag("window")
+				.attr("width", getWindowWidth())
+				.attr("height", getWindowHeight())
+				.endTag();
 
 		getLayoutXML(sb, asPreference);
 
 		// labeling style
 		// default changed so we need to always save this now
 		// if (labelingStyle != ConstructionDefaults.LABEL_VISIBLE_AUTOMATIC) {
-		sb.append("\t<labelingStyle ");
-		sb.append(" val=\"");
-		sb.append(getLabelingStyle());
-		sb.append("\"/>\n");
+		sb.startTag("labelingStyle").attr("val", getLabelingStyle()).endTag();
 	}
 
-	protected abstract void getLayoutXML(StringBuilder sb,
-			boolean asPreference);
+	protected void getLayoutXML(XMLStringBuilder sb,
+			boolean asPreference) {
+		if (getGuiManager() != null) {
+			getGuiManager().getLayout().getXml(sb, asPreference);
+		}
+	}
 
 	/**
 	 * @return selection listener
@@ -2947,8 +2947,9 @@ public abstract class App implements UpdateSelection, AppInterface, EuclidianHos
 			min = tmp;
 		}
 
-		return random.nextInt(max - min + 1) + min;
-
+		int bound = max - min + 1;
+		// if bound < 0 we have an overflow, guaranteeing -min + 1 >= 1, so min <= 0 is safe to add
+		return random.nextInt(bound <= 0 ? Integer.MAX_VALUE : bound) + min;
 	}
 
 	/**
@@ -3326,15 +3327,16 @@ public abstract class App implements UpdateSelection, AppInterface, EuclidianHos
 	/**
 	 * Add space separated list of view IDs that are showing navigation bar
 	 *
-	 * @param sb
+	 * @return
 	 *            XML builder
 	 */
-	public void getConsProtNavigationIds(StringBuilder sb) {
+	public StringBuilder getConsProtNavigationIds() {
+		StringBuilder sb = new StringBuilder();
 		if (showConsProtNavigation == null) {
 			if (showView(App.VIEW_CONSTRUCTION_PROTOCOL)) {
 				sb.append(App.VIEW_CONSTRUCTION_PROTOCOL);
 			}
-			return;
+			return sb;
 		}
 		boolean alreadyOne = false;
 		for (Entry<Integer, Boolean> entry : showConsProtNavigation
@@ -3349,6 +3351,7 @@ public abstract class App implements UpdateSelection, AppInterface, EuclidianHos
 				sb.append(id);
 			}
 		}
+		return sb;
 	}
 
 	/**
@@ -3450,7 +3453,7 @@ public abstract class App implements UpdateSelection, AppInterface, EuclidianHos
 	 */
 	public void setShowConstructionProtocolNavigation(boolean flag) {
 		dispatchEvent(
-				new Event(EventType.SHOW_NAVIGATION_BAR, null, flag + ""));
+				new Event(EventType.SHOW_NAVIGATION_BAR, null, String.valueOf(flag)));
 		if (!flag) {
 			setHideConstructionProtocolNavigation();
 		} else {
@@ -4100,15 +4103,43 @@ public abstract class App implements UpdateSelection, AppInterface, EuclidianHos
 	}
 
 	/**
+	 * @return the app-owned spreadsheet instance. Returns {@code null} if the app doesn't have
+	 * a spreadsheet view at all (via {@link AppConfig}), or if the spreadsheet is temporarily
+	 * disabled during an exam (via {@link ExamFeatureRestriction#SPREADSHEET}).
+	 */
+	public @CheckForNull Spreadsheet getSpreadsheet() {
+		if (!isSpreadsheetEnabled()) {
+			return null;
+		}
+		if (spreadsheet == null) {
+			Kernel kernel = getKernel();
+			KernelTabularDataAdapter tabularData = new KernelTabularDataAdapter(this);
+			kernel.notifyAddAll(tabularData);
+			kernel.attach(tabularData);
+			spreadsheet = new Spreadsheet(tabularData,
+					getGeoElementCellRendererFactory(),
+					new DefaultSpreadsheetConstructionDelegate(kernel.getAlgebraProcessor()),
+					getUndoManager());
+			spreadsheetSettingsAdapter = new SpreadsheetSettingsAdapter(spreadsheet, this);
+			spreadsheetSettingsAdapter.registerListeners();
+		}
+		return spreadsheet;
+	}
+
+	protected @Nonnull GeoElementCellRendererFactory getGeoElementCellRendererFactory() {
+		return new GeoElementCellRendererFactory(gGraphics2D -> null);
+	}
+
+	/**
 	 * Returns the application's {@link InitialViewState}, creating it if necessary.
 	 *
 	 * <p>
 	 * In the default implementation, all views are always available.
-	 * This suits all platforms that with no view‐restriction policies.
+	 * This suits all platforms that with no view-restriction policies.
 	 * </p>
 	 *
 	 * <p>
-	 * Platforms that need to enforce initial‐view restrictions (web)
+	 * Platforms that need to enforce initial-view restrictions (web)
 	 * should override this method to return a specialized
 	 * {@link InitialViewState} implementation.
 	 * </p>
@@ -5161,6 +5192,7 @@ public abstract class App implements UpdateSelection, AppInterface, EuclidianHos
 			getEditorFeatures().setMixedNumbersEnabled(false);
 		}
 		spreadsheetRestricted = featureRestrictions.contains(ExamFeatureRestriction.SPREADSHEET);
+		regressionSpecificationBuilder.applyRestrictions(featureRestrictions, examType);
 	}
 
 	@Override
@@ -5184,6 +5216,7 @@ public abstract class App implements UpdateSelection, AppInterface, EuclidianHos
 		if (featureRestrictions.contains(ExamFeatureRestriction.SPREADSHEET)) {
 			spreadsheetRestricted = false;
 		}
+		regressionSpecificationBuilder.removeRestrictions(featureRestrictions, examType);
 		resetCommandDict();
 	}
 

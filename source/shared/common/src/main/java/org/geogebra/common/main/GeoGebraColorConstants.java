@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.main;
 
 import java.util.HashMap;
@@ -167,6 +183,7 @@ public class GeoGebraColorConstants {
 	public static final GColor NEUTRAL_500 = rgb(0xB4B3BA);
 	public static final GColor NEUTRAL_600 = rgb(0x85848A);
 	public static final GColor NEUTRAL_700 = rgb(0x6E6D73);
+	public static final GColor NEUTRAL_800 = rgb(0x2F2F33);
 	public static final GColor NEUTRAL_900 = rgb(0x1C1C1F);
 
 	public static final GColor PURPLE_100 = rgb(0xF3F0FF);

@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.spreadsheet.kernel;
 
 import java.util.List;
@@ -135,6 +151,72 @@ public final class ChartBuilder {
 		return getChartCommandWithTwoListParameter("LineGraph", data,
 				range.getFromRow(), range.getFromColumn(),
 				range.getToRow(), toColumn);
+	}
+
+	/**
+	 * Builds a BoxPlot command.
+	 * @param data The spreadsheet data.
+	 * @param ranges The range(s) in {@code data}. Only ranges that have passed validation via
+	 * {@link org.geogebra.common.spreadsheet.core.ChartError#validateRangesForBoxPlot(List)}
+	 * must be passed, otherwise the resulting command may be garbage.
+	 * @return The BoxPlot command
+	 */
+	public static @Nonnull String getBoxPlotCommand(@Nonnull TabularData<?> data,
+			@Nonnull List<TabularRange> ranges) {
+		TabularRange rawDataRange = ranges.get(0);
+		TabularRange frequenciesRange = null;
+		if (ranges.size() > 1) {
+			frequenciesRange = ranges.get(1);
+		} else {
+			// check if the first range is 2xN or Nx2 rectangular
+			if (rawDataRange.getHeight() == 2 && rawDataRange.getWidth() > 2) {
+				// 2 rows x N columns
+				TabularRange newRawDataRange = new TabularRange(
+						rawDataRange.getFromRow(),
+						rawDataRange.getFromColumn(),
+						rawDataRange.getFromRow(),
+						rawDataRange.getToColumn());
+				frequenciesRange = new TabularRange(
+						rawDataRange.getToRow(),
+						rawDataRange.getFromColumn(),
+						rawDataRange.getToRow(),
+						rawDataRange.getToColumn());
+				rawDataRange = newRawDataRange;
+			} else if (rawDataRange.getWidth() == 2 && rawDataRange.getHeight() > 2) {
+				// N rows x 2 columns
+				TabularRange newRawDataRange = new TabularRange(
+						rawDataRange.getFromRow(),
+						rawDataRange.getFromColumn(),
+						rawDataRange.getToRow(),
+						rawDataRange.getFromColumn());
+				frequenciesRange = new TabularRange(
+						rawDataRange.getFromRow(),
+						rawDataRange.getToColumn(),
+						rawDataRange.getToRow(),
+						rawDataRange.getToColumn());
+				rawDataRange = newRawDataRange;
+			}
+		}
+		StringBuilder sb = new StringBuilder();
+		// BoxPlot( <yOffset>, <yScale>, <List of Raw Data> )
+		sb.append("BoxPlot(0, 1, ");
+		sb.append(formatCellRange(rawDataRange, data));
+		if (frequenciesRange != null) {
+			// BoxPlot( <yOffset>, <yScale>, <List of Data>, <List of Frequencies>,
+			// <Boolean Outliers> )
+			sb.append(", ");
+			sb.append(formatCellRange(frequenciesRange, data));
+			sb.append(", false");
+		}
+		sb.append(")");
+		return sb.toString();
+	}
+
+	private static String formatCellRange(@Nonnull TabularRange range,
+			@Nonnull TabularData<?> data) {
+		return data.getCellName(range.getFromRow(), range.getFromColumn())
+				+ ":"
+				+ data.getCellName(range.getToRow(), range.getToColumn());
 	}
 }
 

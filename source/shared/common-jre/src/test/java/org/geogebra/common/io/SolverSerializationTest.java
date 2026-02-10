@@ -1,16 +1,32 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ * 
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ * 
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+ 
 package org.geogebra.common.io;
 
 import static org.junit.Assert.assertEquals;
 
+import org.geogebra.editor.share.catalog.TemplateCatalog;
+import org.geogebra.editor.share.io.latex.ParseException;
+import org.geogebra.editor.share.io.latex.Parser;
+import org.geogebra.editor.share.serializer.SolverSerializer;
+import org.geogebra.editor.share.tree.Formula;
+import org.geogebra.editor.share.util.Unicode;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.himamis.retex.editor.share.io.latex.ParseException;
-import com.himamis.retex.editor.share.io.latex.Parser;
-import com.himamis.retex.editor.share.meta.MetaModel;
-import com.himamis.retex.editor.share.model.MathFormula;
-import com.himamis.retex.editor.share.serializer.SolverSerializer;
-import com.himamis.retex.editor.share.util.Unicode;
 import com.himamis.retex.renderer.share.platform.FactoryProvider;
 
 public class SolverSerializationTest {
@@ -25,9 +41,9 @@ public class SolverSerializationTest {
 		}
 	}
 
-	private static MathFormula parseForEditor(String input) {
+	private static Formula parseForEditor(String input) {
 		try {
-			Parser parser = new Parser(new MetaModel());
+			Parser parser = new Parser(new TemplateCatalog());
 			return parser.parse(input);
 		} catch (ParseException e) {
 			throw new IllegalStateException(e);
@@ -35,7 +51,7 @@ public class SolverSerializationTest {
 	}
 
 	private static void parsesToSolverInput(String input, String serialized) {
-		MathFormula formula = parseForEditor(input);
+		Formula formula = parseForEditor(input);
 		SolverSerializer serializer = new SolverSerializer();
 		String result = serializer.serialize(formula);
 		assertEquals(serialized, result);

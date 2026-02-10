@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.io;
 
 import static org.geogebra.common.kernel.geos.GeoButton.DEFAULT_BUTTON_HEIGHT;
@@ -10,11 +26,11 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import org.geogebra.common.awt.AwtFactory;
 import org.geogebra.common.awt.GColor;
 import org.geogebra.common.awt.GFont;
 import org.geogebra.common.awt.GPoint2D;
 import org.geogebra.common.awt.GRectangle2D;
-import org.geogebra.common.factories.AwtFactory;
 import org.geogebra.common.kernel.Kernel;
 import org.geogebra.common.kernel.LinearEquationRepresentable;
 import org.geogebra.common.kernel.Locateable;
@@ -598,7 +614,7 @@ public class ConsElementXMLHandler {
 				animationStepList.add(geo, strStep);
 			}
 			String strSpeed = attrs.get("speed");
-			if (strSpeed != null) {
+			if (strSpeed != null && !strSpeed.equals("1")) {
 				// store speed expression to be processed later
 				animationSpeedList.add(geo, strSpeed);
 			}
@@ -2789,14 +2805,20 @@ public class ConsElementXMLHandler {
 			if (geo1 == null) {
 				geo1 = xmlHandler.kernel.lookupCasCellLabel(label);
 			}
-			if (geo1 == null) {
 
+			if (geo1 == null || xmlHandler.kernel.getConstruction().isConstantElement(geo1)) {
+				if (geo1 != null) {
+					// In case one of the constant elements need to be overwritten,
+					// make sure to get the localized label
+					// (issue with file loading after language change)
+					xmlHandler.kernel.getConstruction().getGeoTable().remove(
+							app.getLocalization().getMenu(geo1.getLabelSimple()));
+				}
 				// try to find an algo on which this label depends
 				// geo = cons.resolveLabelDependency(label,
 				// kernel.getClassType(type));
 				// if none, create new geo
-				geo1 = xmlHandler.kernel.createGeoElement(xmlHandler.cons,
-						type);
+				geo1 = xmlHandler.kernel.createGeoElement(xmlHandler.cons, type);
 				pendingLabel = label;
 
 				// independent GeoElements should be hidden by default
@@ -2813,8 +2835,7 @@ public class ConsElementXMLHandler {
 				// wrong default setting, act as if there were no default set
 				geo1 = xmlHandler.kernel.lookupLabel(label);
 				if (geo1 == null) {
-					geo1 = xmlHandler.kernel.createGeoElement(xmlHandler.cons,
-							type);
+					geo1 = xmlHandler.kernel.createGeoElement(xmlHandler.cons, type);
 					geo1.setLoadedLabel(label);
 					geo1.setEuclidianVisible(false);
 				}

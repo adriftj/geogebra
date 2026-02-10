@@ -1,15 +1,32 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.kernel.geos;
 
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
+import org.geogebra.common.awt.AwtFactory;
 import org.geogebra.common.awt.GRectangle;
 import org.geogebra.common.awt.GRectangle2D;
 import org.geogebra.common.euclidian.DrawableND;
 import org.geogebra.common.euclidian.EuclidianView;
-import org.geogebra.common.factories.AwtFactory;
 import org.geogebra.common.factories.FormatFactory;
+import org.geogebra.common.io.XMLStringBuilder;
 import org.geogebra.common.kernel.Construction;
 import org.geogebra.common.kernel.EquationSolver;
 import org.geogebra.common.kernel.Kernel;
@@ -339,10 +356,10 @@ public class GeoLocusStroke extends GeoLocus
 		}
 
 		ArrayList<GeoElement> result = new ArrayList<>();
-		if (inside.size() != 0) {
+		if (!inside.isEmpty()) {
 			result.add(partialStroke(inside));
 		}
-		if (outside.size() != 0) {
+		if (!outside.isEmpty()) {
 			result.add(partialStroke(outside));
 		}
 
@@ -424,7 +441,7 @@ public class GeoLocusStroke extends GeoLocus
 				}
 			} else if (inside) {
 				// going from inside to outside
-				if (intersections.size() == 0) {
+				if (intersections.isEmpty()) {
 					outside.add(currentPoint);
 				} else {
 					ensureTrailingNaN(outside);
@@ -432,7 +449,7 @@ public class GeoLocusStroke extends GeoLocus
 				}
 			} else if (nextInside) {
 				// going from outside to inside
-				if (intersections.size() == 0) {
+				if (intersections.isEmpty()) {
 					outside.add(nextPoint);
 				} else {
 					outside.add(intersections.get(0));
@@ -462,13 +479,17 @@ public class GeoLocusStroke extends GeoLocus
 		int parts = 5;
 		int i = 1;
 		double rwLength = app.getActiveEuclidianView().getInvXscale() * MAX_SEGMENT_LENGTH;
-		densePoints.add(getPoints().get(0));
-		while (i < getPoints().size()) {
-			MyPoint pt0 = getPoints().get(i - 1);
-			MyPoint pt1 = getPoints().get(i);
+		ArrayList<MyPoint> points = getPoints();
+
+		if (!points.isEmpty()) {
+			densePoints.add(points.get(0));
+		}
+		while (i < points.size()) {
+			MyPoint pt0 = points.get(i - 1);
+			MyPoint pt1 = points.get(i);
 			if (pt1.getSegmentType() == SegmentType.CONTROL) {
-				MyPoint pt2 = getPoints().get(i + 1);
-				MyPoint pt3 = getPoints().get(i + 2);
+				MyPoint pt2 = points.get(i + 1);
+				MyPoint pt3 = points.get(i + 2);
 				if (pt3.distance(pt0) > rwLength) {
 					double[] xCoeff = bezierCoeffs(pt0.x, pt1.x, pt2.x, pt3.x);
 					double[] yCoeff = bezierCoeffs(pt0.y, pt1.y, pt2.y, pt3.y);
@@ -495,7 +516,7 @@ public class GeoLocusStroke extends GeoLocus
 	}
 
 	private void ensureTrailingNaN(List<MyPoint> data) {
-		if (data.size() > 0 && data.get(data.size() - 1).isDefined()) {
+		if (!data.isEmpty() && data.get(data.size() - 1).isDefined()) {
 			data.add(new MyPoint(Double.NaN, Double.NaN));
 		}
 	}
@@ -655,7 +676,7 @@ public class GeoLocusStroke extends GeoLocus
 	 * @param data
 	 *            points
 	 */
-	public void appendPointArray(ArrayList<MyPoint> data) {
+	public void appendPointArray(List<MyPoint> data) {
 		doAppendPointArray(data);
 		ArrayList<MyPoint> densePoints = increaseDensity();
 		if (densePoints.size() > data.size()) {
@@ -664,7 +685,7 @@ public class GeoLocusStroke extends GeoLocus
 		}
 	}
 
-	private void doAppendPointArray(ArrayList<MyPoint> data) {
+	private void doAppendPointArray(List<MyPoint> data) {
 		resetXMLPointBuilder();
 		setDefined(true);
 
@@ -869,12 +890,10 @@ public class GeoLocusStroke extends GeoLocus
 	}
 
 	@Override
-	public void getStyleXML(StringBuilder sb) {
+	public void getStyleXML(XMLStringBuilder sb) {
 		super.getStyleXML(sb);
 		if (!StringUtil.empty(splitParentLabel)) {
-			sb.append("\t<parentLabel val=\"");
-			StringUtil.encodeXML(sb, splitParentLabel);
-			sb.append("\"/>\n");
+			sb.startTag("parentLabel").attr("val", splitParentLabel).endTag();
 		}
 	}
 
@@ -897,14 +916,13 @@ public class GeoLocusStroke extends GeoLocus
 	}
 
 	@Override
-	public void getXMLtags(StringBuilder builder) {
-		builder.append("<strokeCoords val=\"");
+	public void getXMLTags(XMLStringBuilder builder) {
 		if (xmlPoints == null) {
 			xmlPoints = new StringBuilder();
 			appendPoints(xmlPoints);
 		}
-		builder.append(xmlPoints).append("\" />\n");
-		super.getXMLtags(builder);
+		builder.startTag("strokeCoords").attrRaw("val", xmlPoints).endTag();
+		super.getXMLTags(builder);
 	}
 
 	/**

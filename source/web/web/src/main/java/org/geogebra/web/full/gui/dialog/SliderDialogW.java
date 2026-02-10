@@ -1,14 +1,18 @@
-/* 
-GeoGebra - Dynamic Mathematics for Everyone
-http://www.geogebra.org
-
-This file is part of GeoGebra.
-
-This program is free software; you can redistribute it and/or modify it 
-under the terms of the GNU General Public License as published by 
-the Free Software Foundation.
-
-*/
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
 
 package org.geogebra.web.full.gui.dialog;
 
@@ -23,6 +27,7 @@ import org.geogebra.common.kernel.geos.GeoNumeric;
 import org.geogebra.common.kernel.kernelND.GeoElementND;
 import org.geogebra.common.main.Localization;
 import org.geogebra.common.util.debug.Log;
+import org.geogebra.editor.share.util.Unicode;
 import org.geogebra.web.full.gui.components.radiobutton.RadioButtonData;
 import org.geogebra.web.full.gui.components.radiobutton.RadioButtonPanel;
 import org.geogebra.web.full.gui.properties.SliderPropertiesPanelW;
@@ -31,10 +36,8 @@ import org.geogebra.web.html5.gui.inputfield.AutoCompleteTextFieldW;
 import org.geogebra.web.html5.main.AppW;
 import org.geogebra.web.shared.components.dialog.ComponentDialog;
 import org.geogebra.web.shared.components.dialog.DialogData;
+import org.gwtproject.user.client.ui.FlowPanel;
 import org.gwtproject.user.client.ui.Label;
-import org.gwtproject.user.client.ui.VerticalPanel;
-
-import com.himamis.retex.editor.share.util.Unicode;
 
 /**
  * Web dialog for slider creation
@@ -111,11 +114,11 @@ public class SliderDialogW extends ComponentDialog implements HasKeyboardPopup {
 
 	private void buildContent() {
 		Localization loc = app.getLocalization();
-		VerticalPanel mainWidget = new VerticalPanel();
-		VerticalPanel contentWidget = new VerticalPanel();
+		FlowPanel mainWidget = new FlowPanel();
+		FlowPanel contentWidget = new FlowPanel();
 		mainWidget.add(contentWidget);
 
-		VerticalPanel nameWidget = new VerticalPanel();
+		FlowPanel nameWidget = new FlowPanel();
 		contentWidget.add(nameWidget);
 
 		RadioButtonData<Integer> numberData = new RadioButtonData<>("Numeric", NUMERIC);

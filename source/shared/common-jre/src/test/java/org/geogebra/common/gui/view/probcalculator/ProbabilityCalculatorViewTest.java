@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ * 
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ * 
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.gui.view.probcalculator;
 
 import static org.geogebra.common.gui.view.probcalculator.ProbabilityCalculatorView.PROB_INTERVAL;
@@ -10,62 +26,78 @@ import static org.geogebra.common.main.settings.ProbabilityCalculatorSettings.Di
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.core.Is.isA;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
 import java.util.List;
 
-import org.geogebra.common.BaseUnitTest;
+import org.geogebra.common.SuiteSubApp;
+import org.geogebra.common.io.XMLStringBuilder;
+import org.geogebra.common.io.XmlTestUtil;
+import org.geogebra.common.kernel.Kernel;
+import org.geogebra.common.kernel.StringTemplate;
 import org.geogebra.common.kernel.cas.AlgoIntegralDefinite;
 import org.geogebra.common.kernel.geos.GeoNumberValue;
 import org.geogebra.common.kernel.geos.GeoNumeric;
 import org.geogebra.common.main.settings.ProbabilityCalculatorSettings;
 import org.geogebra.common.main.settings.ProbabilityCalculatorSettings.Dist;
 import org.geogebra.common.properties.impl.distribution.ParameterProperty;
-import org.junit.Test;
+import org.geogebra.test.BaseAppTestSetup;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
-public class ProbabilityCalculatorViewTest extends BaseUnitTest {
+public class ProbabilityCalculatorViewTest extends BaseAppTestSetup {
 
 	private ProbabilityTableMock table;
+	private ProbabilityCalculatorView probCalc;
+
+	@BeforeEach
+	public void setup() {
+		setupApp(SuiteSubApp.GRAPHING);
+		getApp().setRounding("2");
+	}
 
 	@Test
 	public void validBounds() {
-		ProbabilityCalculatorView probCalc = new HeadlessProbabilityCalculatorView(getApp());
+		probCalc = new HeadlessProbabilityCalculatorView(getApp());
 		probCalc.settingsChanged(new ProbabilityCalculatorSettings());
 		probCalc.setLow(-5);
 		probCalc.setHigh(0);
 		probCalc.updateAll(false);
-		assertEquals(probCalc.getProbabilityText(probCalc.getProbability()), "0.5");
+		assertEquals("0.5", probCalc.getProbabilityText(probCalc.getProbability()));
 	}
 
 	@Test
 	public void invalidBounds() {
-		ProbabilityCalculatorView probCalc = new HeadlessProbabilityCalculatorView(getApp());
+		probCalc = new HeadlessProbabilityCalculatorView(getApp());
 		probCalc.settingsChanged(new ProbabilityCalculatorSettings());
 		probCalc.setLow(5);
 		probCalc.setHigh(0);
 		probCalc.updateAll(false);
-		assertEquals(probCalc.getProbabilityText(probCalc.getProbability()), "?");
+		assertEquals("?", probCalc.getProbabilityText(probCalc.getProbability()));
 	}
 
 	@Test
 	public void testExport() {
-		ProbabilityCalculatorView probCalc = new HeadlessProbabilityCalculatorView(getApp());
+		probCalc = new HeadlessProbabilityCalculatorView(getApp());
 		probCalc.settingsChanged(new ProbabilityCalculatorSettings());
 		probCalc.setLow(1);
 		probCalc.setHigh(2);
 		probCalc.setProbabilityMode(PROB_TWO_TAILED);
 		probCalc.exportGeosToEV(1);
-		assertThat(lookup("A"), hasValue("(1, 0)"));
-		assertThat(lookup("B"), hasValue("(2, 0)"));
+		assertEquals("(1, 0)", lookup("A").toValueString(StringTemplate.testTemplate));
+		assertEquals("(2, 0)", lookup("B").toValueString(StringTemplate.testTemplate));
 		assertThat(lookup("a").getParentAlgorithm(), isA(AlgoIntegralDefinite.class));
 		assertThat(lookup("b").getParentAlgorithm(), isA(AlgoIntegralDefinite.class));
 	}
 
 	@Test
 	public void noTypeCastForParameters() {
-		ProbabilityCalculatorView probCalc = new HeadlessProbabilityCalculatorView(getApp());
+		probCalc = new HeadlessProbabilityCalculatorView(getApp());
 		probCalc.setProbabilityCalculator(Dist.NORMAL, null, false);
 		ParameterProperty prop = new ParameterProperty(getLocalization(),
 				getKernel().getAlgebraProcessor(), probCalc, 0, "");
@@ -90,10 +122,24 @@ public class ProbabilityCalculatorViewTest extends BaseUnitTest {
 
 	}
 
+	@ParameterizedTest
+	@ValueSource(ints = {PROB_LEFT, PROB_RIGHT})
+	public void resultShouldBeFixedPoint(int probMode) {
+		probCalc = new HeadlessProbabilityCalculatorView(getApp());
+		probCalc.setProbabilityMode(probMode);
+		setParams(BINOMIAL, 20, .5);
+		for (int repetition = 0; repetition < 2; repetition++) {
+			probCalc.handleResultChange(0.1);
+			probCalc.updateAll(false);
+			assertEquals(0.13158798217773438, probCalc.getProbability(),
+					Kernel.STANDARD_PRECISION);
+		}
+	}
+
 	private void forEachProbabilityShouldBe(double result, List<Double> lows, List<Double> highs,
 			Dist dist, int mode) {
-		assertEquals("Lows and highs size differs, please check your test",
-				highs.size(), lows.size());
+		assertEquals(highs.size(), lows.size(),
+				"Lows and highs size differs, please check your test");
 		for (int i = 0; i < lows.size(); i++) {
 			discreteWithRealBoundsShouldBe(lows.get(i), highs.get(i), result,
 					dist, mode);
@@ -114,7 +160,7 @@ public class ProbabilityCalculatorViewTest extends BaseUnitTest {
 
 	private void discreteWithRealBoundsShouldBe(double low, double high, double result,
 			Dist dist, int probMode) {
-		ProbabilityCalculatorView probCalc =
+		probCalc =
 				createProbabilityCalculatorView(dist, probMode, low, high);
 		probCalc.updateOutput(true);
 		double probability = probMode == PROB_TWO_TAILED
@@ -125,12 +171,8 @@ public class ProbabilityCalculatorViewTest extends BaseUnitTest {
 
 	private ProbabilityCalculatorView createProbabilityCalculatorView(Dist dist, int probMode,
 			double low, double high) {
-		ProbabilityCalculatorView probCalc = new HeadlessProbabilityCalculatorView(getApp());
-		GeoNumberValue[] params = new GeoNumeric[]{
-				new GeoNumeric(getKernel().getConstruction(), 14),
-				new GeoNumeric(getKernel().getConstruction(), 0.6)};
-
-		probCalc.setProbabilityCalculator(dist, params, false);
+		probCalc = new HeadlessProbabilityCalculatorView(getApp());
+		setParams(dist, 14, 0.6);
 		probCalc.setProbabilityMode(probMode);
 		if (!Double.isNaN(low)) {
 			probCalc.setLow(low);
@@ -142,9 +184,17 @@ public class ProbabilityCalculatorViewTest extends BaseUnitTest {
 		return probCalc;
 	}
 
+	private void setParams(Dist dist, int p1, double p2) {
+		GeoNumberValue[] params = new GeoNumeric[]{
+				new GeoNumeric(getKernel().getConstruction(), p1),
+				new GeoNumeric(getKernel().getConstruction(), p2)};
+
+		probCalc.setProbabilityCalculator(dist, params, false);
+	}
+
 	@Test
 	public void testXAxisIntervalForDiscreteDistShouldBeOne() {
-		ProbabilityCalculatorView probCalc = new HeadlessProbabilityCalculatorView(getApp());
+		probCalc = new HeadlessProbabilityCalculatorView(getApp());
 		probCalc.plotSettings.xAxesInterval = 0.5;
 		for (Dist dist: Dist.values()) {
 			probCalc.setProbabilityCalculator(dist, null, false);
@@ -169,21 +219,65 @@ public class ProbabilityCalculatorViewTest extends BaseUnitTest {
 				.shouldBeHighlightedBetween(0, 6);
 	}
 
+	@Test
+	public void testStatisticsCalculatorXML() {
+		probCalc = new HeadlessProbabilityCalculatorView(getApp(),
+				new HeadlessStatisticsCalculator());
+	}
+
+	@AfterEach
+	public void checkXML() {
+		if (probCalc != null) {
+			XMLStringBuilder xs = new XMLStringBuilder();
+			probCalc.getXML(xs);
+			XmlTestUtil.checkXML("<geogebra><gui></gui>" + xs
+					+ "<kernel></kernel></geogebra>");
+		}
+	}
+
 	private ProbabilityCalculatorViewTest withProbabilityTable(Dist dist, int mode, double low,
 			double high) {
-		ProbabilityCalculatorView probCalc =
+		probCalc =
 				createProbabilityCalculatorView(dist, mode, low, high);
 		table = new ProbabilityTableMock(getApp(), probCalc);
 		return this;
 	}
 
 	private void shouldBeHighlightedBetween(int from, int to) {
-		assertTrue("Highlight rows is not (" + from + ", " + to + ") but "
-				+ table.highlightRange(), table.isRangeHighlighted(from, to));
+		assertTrue(table.isRangeHighlighted(from, to),
+				"Highlight rows is not (" + from + ", " + to + ") but "
+						+ table.highlightRange());
 	}
 
 	private void shouldBeHighlightedFrom(int from) {
-		assertTrue("Highlight rows is not from " + from + ", but "
-				+ table.highlightRange(), table.isHighlightedFrom(from));
+		assertTrue(table.isHighlightedFrom(from), "Highlight rows is not from " + from + ", but "
+				+ table.highlightRange());
+	}
+
+	private class HeadlessStatisticsCalculator extends StatisticsCalculator {
+
+		public HeadlessStatisticsCalculator() {
+			super(ProbabilityCalculatorViewTest.this.getApp());
+		}
+
+		@Override
+		protected void updateTailCheckboxes(String tail) {
+			// stub
+		}
+
+		@Override
+		protected void updateResultText(String tail) {
+			// stub
+		}
+
+		@Override
+		protected String getSelectedTail() {
+			return ">";
+		}
+
+		@Override
+		protected void resetCaret() {
+			// stub
+		}
 	}
 }

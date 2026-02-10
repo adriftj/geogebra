@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ * 
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ * 
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.desktop.gui.util;
 
 import java.awt.BasicStroke;
@@ -25,15 +41,15 @@ import org.geogebra.common.euclidian.draw.DrawText;
 import org.geogebra.common.kernel.geos.GeoText;
 import org.geogebra.common.plugin.EuclidianStyleConstants;
 import org.geogebra.common.util.debug.Log;
+import org.geogebra.desktop.awt.AwtFactoryD;
 import org.geogebra.desktop.awt.GColorD;
 import org.geogebra.desktop.awt.GFontD;
 import org.geogebra.desktop.awt.GGraphics2DD;
 import org.geogebra.desktop.awt.GRectangleD;
-import org.geogebra.desktop.factories.AwtFactoryD;
 import org.geogebra.desktop.main.AppD;
 import org.geogebra.desktop.util.ImageResourceD;
+import org.geogebra.editor.share.util.Unicode;
 
-import com.himamis.retex.editor.share.util.Unicode;
 import com.himamis.retex.renderer.desktop.graphics.ColorD;
 import com.himamis.retex.renderer.share.TeXConstants;
 import com.himamis.retex.renderer.share.TeXFormula;
@@ -544,7 +560,8 @@ public class GeoGebraIconD {
 		private Line2D.Double line3;
 		private Line2D.Double line4;
 		private GeneralPath gp = null;
-		private final BasicStroke borderStroke = AwtFactoryD.getDefaultStrokeAwt();
+		private final BasicStroke borderStroke = AwtFactoryD
+				.getAwtStroke(EuclidianStatic.getDefaultStroke());
 		private final BasicStroke[] crossStrokes = new BasicStroke[10];
 		private final int h;
 		private final int w;

@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ * 
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ * 
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.spreadsheet.core;
 
 import static org.geogebra.common.spreadsheet.core.ContextMenuItem.Identifier;
@@ -26,6 +42,7 @@ import org.geogebra.common.factories.FormatFactory;
 import org.geogebra.common.io.FactoryProviderCommon;
 import org.geogebra.common.jre.factory.FormatFactoryJre;
 import org.geogebra.common.jre.util.UtilFactoryJre;
+import org.geogebra.common.kernel.statistics.Statistic;
 import org.geogebra.common.main.PreviewFeature;
 import org.geogebra.common.spreadsheet.TestTabularData;
 import org.geogebra.common.spreadsheet.kernel.ChartBuilder;
@@ -33,6 +50,11 @@ import org.geogebra.common.spreadsheet.style.SpreadsheetStyling;
 import org.geogebra.common.util.shape.Point;
 import org.geogebra.common.util.shape.Rectangle;
 import org.geogebra.common.util.shape.Size;
+import org.geogebra.editor.share.controller.EditorState;
+import org.geogebra.editor.share.editor.MathFieldInternal;
+import org.geogebra.editor.share.event.KeyEvent;
+import org.geogebra.editor.share.tree.PlaceholderNode;
+import org.geogebra.editor.share.util.JavaKeyCodes;
 import org.geogebra.test.annotation.Issue;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -42,9 +64,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
-import com.himamis.retex.editor.share.editor.MathFieldInternal;
-import com.himamis.retex.editor.share.event.KeyEvent;
-import com.himamis.retex.editor.share.util.JavaKeyCodes;
 import com.himamis.retex.renderer.share.platform.FactoryProvider;
 
 public class SpreadsheetControllerTest implements SpreadsheetControlsDelegate,
@@ -69,16 +88,6 @@ public class SpreadsheetControllerTest implements SpreadsheetControlsDelegate,
         FactoryProvider.setInstance(new FactoryProviderCommon());
         // required by StringTemplate static initializer
         FormatFactory.setPrototypeIfNull(new FormatFactoryJre());
-    }
-
-    @BeforeAll
-    public static void enablePreviewFeatures() {
-        PreviewFeature.setPreviewFeaturesEnabled(true);
-    }
-
-    @AfterAll
-    public static void disablePreviewFeatures() {
-        PreviewFeature.setPreviewFeaturesEnabled(false);
     }
 
     @BeforeEach
@@ -568,7 +577,7 @@ public class SpreadsheetControllerTest implements SpreadsheetControlsDelegate,
         tabularData.setContent(1, 0, "2");
         tabularData.setContent(2, 0, "3");
         selectCells(from, 0, to, 0);
-        controller.calculate(SpreadsheetCommand.MEAN);
+        controller.calculate1VarStatistics(Statistic.MEAN);
 
         assertEquals("=mean(A1:A3)", tabularData.contentAt(3, 0));
     }
@@ -582,7 +591,7 @@ public class SpreadsheetControllerTest implements SpreadsheetControlsDelegate,
         tabularData.setContent(1, 1, "4");
         tabularData.setContent(2, 2, "5");
         selectCells(from, from, to, to);
-        controller.calculate(SpreadsheetCommand.SUM);
+        controller.calculate1VarStatistics(Statistic.SUM);
 
         assertNull(tabularData.contentAt(3, 0));
         assertNull(tabularData.contentAt(3, 1));
@@ -595,7 +604,7 @@ public class SpreadsheetControllerTest implements SpreadsheetControlsDelegate,
         tabularData.setContent(1, 0, "2");
         tabularData.setContent(2, 0, "3");
         selectCells(0, 0, tabularData.numberOfRows() - 2, 0);
-        controller.calculate(SpreadsheetCommand.SUM);
+        controller.calculate1VarStatistics(Statistic.SUM);
 
         assertEquals("=Sum(A1:A99)", tabularData.contentAt(tabularData.numberOfRows() - 1, 0));
     }
@@ -607,7 +616,7 @@ public class SpreadsheetControllerTest implements SpreadsheetControlsDelegate,
         tabularData.setContent(0, 1, "2");
         tabularData.setContent(0, 2, "3");
         selectCells(0, from, 0, to);
-        controller.calculate(SpreadsheetCommand.MEAN);
+        controller.calculate1VarStatistics(Statistic.MEAN);
 
         assertEquals("=mean(A1:C1)", tabularData.contentAt(0, 3));
     }
@@ -1066,18 +1075,18 @@ public class SpreadsheetControllerTest implements SpreadsheetControlsDelegate,
 
         // note: "<x>" denotes currentField.arguments[currentOffset]
 
-        // MathSequence[=, FnAPPLY[MathSequence[S, U, M], MathSequence[A, 1, :, A, 1, 0]]<>]
+        // SequenceNode[=, FnAPPLY[SequenceNode[S, U, M], SequenceNode[A, 1, :, A, 1, 0]]<>]
         assertNull(controller.getCurrentEditorCellReference());
 
         simulateKeyPressInCellEditor(JavaKeyCodes.VK_LEFT);
-        // MathSequence[A, 1, :, A, 1, 0<>]
+        // SequenceNode[A, 1, :, A, 1, 0<>]
         SpreadsheetReference range = new SpreadsheetReference(
                 new SpreadsheetCellReference(0, 0),
                 new SpreadsheetCellReference(9, 0));
         assertEquals(range, controller.getCurrentEditorCellReference());
 
         simulateKeyPressInCellEditor(JavaKeyCodes.VK_LEFT);
-        // MathSequence[A, 1, :, A, 1, <0>]
+        // SequenceNode[A, 1, :, A, 1, <0>]
         assertEquals(range, controller.getCurrentEditorCellReference());
 
         simulateKeyPressInCellEditor(JavaKeyCodes.VK_RIGHT);
@@ -1093,15 +1102,15 @@ public class SpreadsheetControllerTest implements SpreadsheetControlsDelegate,
         // note: "<x>" denotes currentField.arguments[currentOffset]
 
         simulateKeyPressInCellEditor(JavaKeyCodes.VK_HOME);
-        // MathSequence[<=>, FnAPPLY[MathSequence[S, U, M], MathSequence[A, 1, :, A, 1, 0]]]
+        // SequenceNode[<=>, FnAPPLY[SequenceNode[S, U, M], SequenceNode[A, 1, :, A, 1, 0]]]
         assertNull(controller.getCurrentEditorCellReference());
 
         simulateKeyPressInCellEditor(JavaKeyCodes.VK_RIGHT);
-        // MathSequence[=, <FnAPPLY[MathSequence[S, U, M], MathSequence[A, 1, :, A, 1, 0]]>]
+        // SequenceNode[=, <FnAPPLY[SequenceNode[S, U, M], SequenceNode[A, 1, :, A, 1, 0]]>]
         assertNull(controller.getCurrentEditorCellReference());
 
         simulateKeyPressInCellEditor(JavaKeyCodes.VK_RIGHT);
-        // MathSequence[<S>, U, M]
+        // SequenceNode[<S>, U, M]
         assertNull(controller.getCurrentEditorCellReference());
     }
 
@@ -1113,14 +1122,14 @@ public class SpreadsheetControllerTest implements SpreadsheetControlsDelegate,
         // note: "<x>" denotes currentField.arguments[currentOffset]
 
         simulateKeyPressInCellEditor(JavaKeyCodes.VK_HOME);
-        // MathSequence[<=>, FnAPPLY[MathSequence[S, U, M],
-        //   MathSequence[FnAPPLY[MathSequence[S, U, M], MathSequence[A, 1, :, A, 1, 0]], ,, B, 1]]]
+        // SequenceNode[<=>, FnAPPLY[SequenceNode[S, U, M],
+        //   SequenceNode[FnAPPLY[SequenceNode[S, U, M], SequenceNode[A, 1, :, A, 1, 0]], ,, B, 1]]]
         assertNull(controller.getCurrentEditorCellReference());
 
         for (int i = 0; i < 11; i++) {
             simulateKeyPressInCellEditor(JavaKeyCodes.VK_RIGHT);
         }
-        // MathSequence[<A>, 1, :, A, 1, 0]
+        // SequenceNode[<A>, 1, :, A, 1, 0]
         SpreadsheetReference range = new SpreadsheetReference(
                 new SpreadsheetCellReference(0, 0),
                 new SpreadsheetCellReference(9, 0));
@@ -1146,6 +1155,54 @@ public class SpreadsheetControllerTest implements SpreadsheetControlsDelegate,
         controller.insertColumnAt(1, true);
         assertEquals(GColor.GREEN, spreadsheetStyling.getBackgroundColor(2, 3, null));
     }
+
+    @ParameterizedTest
+    @CsvSource (delimiterString = ":", value = {
+            "mean:<List of x>:<List of y>",
+            "mean::"
+    })
+    void testCommandArgumentsSelection(String cmd, String placeholder1, String placeholder2) {
+        setViewport(new Rectangle(0, 500, 0, 500));
+        tabularData.setContent(0, 0, "1");
+        tabularData.setContent(1, 0, "2");
+        tabularData.setContent(2, 0, "3");
+        tabularData.setContent(0, 1, "4");
+        tabularData.setContent(1, 1, "5");
+        tabularData.setContent(2, 1, "6");
+        simulateCellMouseClick(3, 0, 2);
+        simulateKeyPressInCellEditor(JavaKeyCodes.VK_EQUALS);
+        if (placeholder1 != null) {
+            cellEditor.getMathField().insertString(cmd + "(");
+            PlaceholderNode node1 = new PlaceholderNode(placeholder1);
+            PlaceholderNode node2 = new PlaceholderNode(placeholder2);
+            EditorState editorState = cellEditor.getMathField().getEditorState();
+            editorState.addArgument(node1);
+            editorState.addArgument(node2);
+        } else {
+            cellEditor.getMathField().insertString(cmd + "(");
+        }
+
+        Point center = getCenter(0, 0);
+        controller.handlePointerDown(center.x, center.y, Modifiers.NONE);
+        center = getCenter(1, 0);
+        controller.handlePointerMove(center.x, center.y, Modifiers.NONE);
+        center = getCenter(2, 0);
+        controller.handlePointerUp(center.x, center.y, Modifiers.NONE);
+        simulateKeyPressInCellEditor(JavaKeyCodes.VK_COMMA);
+        center = getCenter(0, 1);
+        controller.handlePointerDown(center.x, center.y, Modifiers.NONE);
+        center = getCenter(1, 1);
+        controller.handlePointerMove(center.x, center.y, Modifiers.NONE);
+        center = getCenter(2, 1);
+        controller.handlePointerUp(center.x, center.y, Modifiers.NONE);
+        assertEquals("=mean(A1:A3,B1:B3)", cellEditor.getMathField().getText());
+    }
+
+	@Test
+	void testSelectingFirstCellWhenSpreadsheetAppears() {
+		controller.handleOnViewAppear();
+		assertEquals(new TabularRange(0, 0), controller.getLastSelection().getRange());
+	}
 
     // Helpers
 
@@ -1192,7 +1249,8 @@ public class SpreadsheetControllerTest implements SpreadsheetControlsDelegate,
         mathField.onKeyPressed(keyEvent);
         if ((keyCode >= JavaKeyCodes.VK_A && keyCode <= JavaKeyCodes.VK_Z)
             || (keyCode >= JavaKeyCodes.VK_0 && keyCode <= JavaKeyCodes.VK_9)
-            || keyCode == JavaKeyCodes.VK_EQUALS) {
+            || keyCode == JavaKeyCodes.VK_EQUALS
+            || keyCode == JavaKeyCodes.VK_COMMA) {
             mathField.onKeyTyped(keyEvent);
         }
         mathField.onKeyReleased(keyEvent);
@@ -1309,4 +1367,8 @@ public class SpreadsheetControllerTest implements SpreadsheetControlsDelegate,
         chartCommand = ChartBuilder.getLineGraphCommand(data, ranges);
     }
 
+    @Override
+    public void createBoxPlot(@Nonnull TabularData<?> data, @Nonnull List<TabularRange> ranges) {
+        chartCommand = ChartBuilder.getBoxPlotCommand(data, ranges);
+    }
 }

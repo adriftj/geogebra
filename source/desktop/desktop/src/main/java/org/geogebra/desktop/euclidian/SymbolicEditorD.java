@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ * 
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ * 
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.desktop.euclidian;
 
 import java.awt.event.FocusEvent;
@@ -22,10 +38,10 @@ import org.geogebra.desktop.awt.GColorD;
 import org.geogebra.desktop.awt.GGraphics2DD;
 import org.geogebra.desktop.awt.GRectangleD;
 import org.geogebra.desktop.gui.inputfield.AutoCompleteTextFieldD;
+import org.geogebra.editor.desktop.MathFieldD;
+import org.geogebra.editor.share.editor.MathFieldInternal;
+import org.geogebra.editor.share.serializer.ScreenReaderSerializer;
 
-import com.himamis.retex.editor.desktop.MathFieldD;
-import com.himamis.retex.editor.share.editor.MathFieldInternal;
-import com.himamis.retex.editor.share.serializer.ScreenReaderSerializer;
 import com.himamis.retex.renderer.share.TeXFont;
 
 public class SymbolicEditorD extends SymbolicEditor {
@@ -152,12 +168,6 @@ public class SymbolicEditorD extends SymbolicEditor {
 	}
 
 	@Override
-	public boolean onEscape() {
-		applyAndHide();
-		return false;
-	}
-
-	@Override
 	public boolean onTab(boolean shiftDown) {
 		applyChanges();
 		return true;
@@ -171,6 +181,6 @@ public class SymbolicEditorD extends SymbolicEditor {
 	@Override
 	public String getDescription() {
 		return ScreenReaderSerializer.fullDescription(
-				mathField.getInternal().getEditorState().getRootComponent(), null);
+				mathField.getInternal().getEditorState().getRootNode(), null);
 	}
 }

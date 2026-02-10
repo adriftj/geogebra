@@ -1,6 +1,23 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.move.ggtapi.requests;
 
 import org.geogebra.common.GeoGebraConstants;
+import org.geogebra.common.main.settings.config.AppConfigDefault;
 import org.geogebra.common.move.ggtapi.models.ClientInfo;
 import org.geogebra.common.move.ggtapi.models.Material;
 import org.geogebra.common.move.ggtapi.models.Material.MaterialType;
@@ -84,7 +101,7 @@ public class UploadRequest implements Request {
 	 */
 	UploadRequest(String newTitle, int id) {
 		this.consTitle = newTitle;
-		this.uniqueID = id + "";
+		this.uniqueID = String.valueOf(id);
 		this.type = "applet"; // TODO can this be ignored
 	}
 
@@ -200,17 +217,16 @@ public class UploadRequest implements Request {
 				settings.put("-stylebar", parent.getAllowStylebar());
 				settings.put("-zoombuttons", parent.getShowZoomButtons());
 			} else {
-				boolean isNotesOrAssign
-						= GeoGebraConstants.NOTES_APPCODE.equals(client.getAppName())
-						|| client.isAssign();
+				boolean showUI = AppConfigDefault.isUnbundledOrNotes(client.getAppName());
+				boolean isNotes = GeoGebraConstants.NOTES_APPCODE.equals(client.getAppName());
 				settings.put("-undoredo", true);
 				settings.put("-reseticon", false);
-				settings.put("-toolbar", isNotesOrAssign);
+				settings.put("-toolbar", showUI);
 				settings.put("-menubar", false);
-				settings.put("-inputbar", client.isAssign());
-				settings.put("-stylebar", isNotesOrAssign);
-				settings.put("-rightclick", isNotesOrAssign);
-				settings.put("-zoombuttons", isNotesOrAssign);
+				settings.put("-inputbar", showUI && !isNotes);
+				settings.put("-stylebar", showUI);
+				settings.put("-rightclick", showUI);
+				settings.put("-zoombuttons", showUI);
 			}
 			task.put("settings", settings);
 

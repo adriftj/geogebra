@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.kernel.geos;
 
 import static org.geogebra.common.GeoGebraConstants.CAS_APPCODE;
@@ -11,6 +27,7 @@ import java.util.Set;
 import org.geogebra.common.awt.GPoint2D;
 import org.geogebra.common.euclidian.EuclidianView;
 import org.geogebra.common.euclidian.EuclidianViewInterfaceCommon;
+import org.geogebra.common.io.XMLStringBuilder;
 import org.geogebra.common.kernel.Construction;
 import org.geogebra.common.kernel.kernelND.GeoElementND;
 import org.geogebra.common.plugin.GeoClass;
@@ -167,28 +184,22 @@ public class GeoEmbed extends GeoWidget {
 	}
 
 	@Override
-	public void getStyleXML(StringBuilder sb) {
+	public void getStyleXML(XMLStringBuilder sb) {
 		super.getStyleXML(sb);
-		sb.append("\t<embed id=\"");
-		sb.append(embedID);
-		sb.append("\" app=\"");
-		sb.append(appName);
+		sb.startTag("embed");
+		sb.attr("id", embedID);
+		sb.attr("app", appName);
 		getEmbedContentSource(sb);
-		sb.append("\"/>\n");
-		sb.append("\t<contentSize width=\"");
-		sb.append(contentWidth);
-		sb.append("\" height=\"");
-		sb.append(contentHeight);
-		sb.append("\"/>\n");
-		sb.append("\t<embedSettings");
+		sb.endTag();
+		sb.startTag("contentSize");
+		sb.attr("width", contentWidth);
+		sb.attr("height", contentHeight);
+		sb.endTag();
+		sb.startTag("embedSettings");
 		for (Map.Entry<String, String> entry : getSettings()) {
-			sb.append(' ')
-				.append(entry.getKey())
-				.append("=\"");
-				StringUtil.encodeXML(sb, entry.getValue());
-			sb.append('\"');
+			sb.attr(entry.getKey(), entry.getValue());
 		}
-		sb.append("/>\n");
+		sb.endTag();
 	}
 
 	/**
@@ -196,10 +207,9 @@ public class GeoEmbed extends GeoWidget {
 	 *
 	 * @param sb to append
 	 */
-	protected void getEmbedContentSource(StringBuilder sb) {
+	protected void getEmbedContentSource(XMLStringBuilder sb) {
 		if (!StringUtil.empty(url)) {
-			sb.append("\" url=\"");
-			StringUtil.encodeXML(sb, url);
+			sb.attr("url", url);
 		}
 	}
 

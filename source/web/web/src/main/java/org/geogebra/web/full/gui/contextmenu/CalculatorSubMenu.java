@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.web.full.gui.contextmenu;
 
 import static org.geogebra.common.GeoGebraConstants.BAYERN_GRAPHING_APPCODE;
@@ -13,7 +29,6 @@ import org.geogebra.common.euclidian.EmbedManager;
 import org.geogebra.common.exam.ExamType;
 import org.geogebra.common.exam.restrictions.ExamRestrictions;
 import org.geogebra.common.ownership.GlobalScope;
-import org.geogebra.web.full.css.MaterialDesignResources;
 import org.geogebra.web.full.gui.ContextMenuItemFactory;
 import org.geogebra.web.full.gui.dialog.AppDescription;
 import org.geogebra.web.full.gui.laf.BundleLookAndFeel;
@@ -21,11 +36,13 @@ import org.geogebra.web.html5.Browser;
 import org.geogebra.web.html5.gui.BaseWidgetFactory;
 import org.geogebra.web.html5.gui.menu.AriaMenuBar;
 import org.geogebra.web.html5.gui.menu.AriaMenuItem;
-import org.geogebra.web.html5.gui.util.NoDragImage;
+import org.geogebra.web.html5.gui.view.IconSpec;
+import org.geogebra.web.html5.gui.view.button.StandardButton;
 import org.geogebra.web.html5.main.AppW;
+import org.geogebra.web.html5.main.general.GeneralIcon;
 import org.gwtproject.core.client.Scheduler;
+import org.gwtproject.resources.client.ResourcePrototype;
 import org.gwtproject.user.client.ui.FlowPanel;
-import org.gwtproject.user.client.ui.Image;
 import org.gwtproject.user.client.ui.Label;
 
 public class CalculatorSubMenu extends AriaMenuBar {
@@ -89,10 +106,11 @@ public class CalculatorSubMenu extends AriaMenuBar {
 
 		if (!GlobalScope.examController.isExamActive()
 				&& !(app.getLAF() instanceof BundleLookAndFeel)) {
-			Image newTabImage = new NoDragImage(MaterialDesignResources
-					.INSTANCE.open_in_new_tab().getSafeUri().asString());
-			newTabImage.addClickHandler(event -> Browser.openWindow(url));
-			itemHolder.add(newTabImage);
+			IconSpec newTabIcon = app.getGeneralIconResource()
+					.getImageResource(GeneralIcon.NEW_TAB);
+			StandardButton newTabButton = new StandardButton(newTabIcon, "", 24, 24);
+			newTabButton.addFastClickHandler(event -> Browser.openWindow(url));
+			itemHolder.add(newTabButton);
 		}
 
 		AriaMenuItem ariaMenuItem = new AriaMenuItem(itemHolder, () -> {});
@@ -105,7 +123,7 @@ public class CalculatorSubMenu extends AriaMenuBar {
 			return;
 		}
 		AppDescription description = AppDescription.get(subApp);
-		addItem(factory.newAriaMenuItem(null,
+		addItem(factory.newAriaMenuItem((ResourcePrototype) null,
 				app.getLocalization().getMenu(description.getNameKey()),
 				() -> embedManager.addCalcWithPreselectedApp(appOrExamModeName,
 						subApp.appCode)));

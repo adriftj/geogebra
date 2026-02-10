@@ -1,13 +1,17 @@
-/* 
-GeoGebra - Dynamic Mathematics for Everyone
-http://www.geogebra.org
-
-This file is part of GeoGebra.
-
-This program is free software; you can redistribute it and/or modify it 
-under the terms of the GNU General Public License as published by 
-the Free Software Foundation.
-
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ * 
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ * 
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
  */
 
 package org.geogebra.desktop.main;
@@ -19,6 +23,7 @@ import java.awt.Component;
 import java.awt.ComponentOrientation;
 import java.awt.Container;
 import java.awt.Cursor;
+import java.awt.Dimension;
 import java.awt.EventQueue;
 import java.awt.FlowLayout;
 import java.awt.Font;
@@ -100,6 +105,7 @@ import javax.swing.WindowConstants;
 
 import org.geogebra.common.GeoGebraConstants;
 import org.geogebra.common.GeoGebraConstants.Platform;
+import org.geogebra.common.awt.AwtFactory;
 import org.geogebra.common.awt.GDimension;
 import org.geogebra.common.awt.GFont;
 import org.geogebra.common.awt.MyImage;
@@ -112,7 +118,6 @@ import org.geogebra.common.export.pstricks.GeoGebraExport;
 import org.geogebra.common.export.pstricks.GeoGebraToAsymptote;
 import org.geogebra.common.export.pstricks.GeoGebraToPgf;
 import org.geogebra.common.export.pstricks.GeoGebraToPstricks;
-import org.geogebra.common.factories.AwtFactory;
 import org.geogebra.common.factories.CASFactory;
 import org.geogebra.common.factories.Factory;
 import org.geogebra.common.factories.FormatFactory;
@@ -122,11 +127,11 @@ import org.geogebra.common.geogebra3D.io.OFFHandler;
 import org.geogebra.common.gui.toolbar.ToolBar;
 import org.geogebra.common.gui.view.algebra.AlgebraView;
 import org.geogebra.common.io.XMLParseException;
+import org.geogebra.common.io.XMLStringBuilder;
 import org.geogebra.common.io.layout.DockPanelData;
 import org.geogebra.common.io.layout.Perspective;
 import org.geogebra.common.javax.swing.GImageIcon;
 import org.geogebra.common.jre.factory.FormatFactoryJre;
-import org.geogebra.common.jre.gui.MyImageJre;
 import org.geogebra.common.jre.headless.AppDI;
 import org.geogebra.common.jre.kernel.commands.CommandDispatcher3DJre;
 import org.geogebra.common.jre.main.TemplateHelper;
@@ -166,6 +171,7 @@ import org.geogebra.common.util.debug.Log.LogDestination;
 import org.geogebra.common.util.lang.Language;
 import org.geogebra.desktop.CommandLineArguments;
 import org.geogebra.desktop.GeoGebra;
+import org.geogebra.desktop.awt.AwtFactoryD;
 import org.geogebra.desktop.awt.GBufferedImageD;
 import org.geogebra.desktop.awt.GDimensionD;
 import org.geogebra.desktop.awt.GFontD;
@@ -179,7 +185,6 @@ import org.geogebra.desktop.euclidianND.EuclidianViewInterfaceD;
 import org.geogebra.desktop.export.GeoGebraTubeExportD;
 import org.geogebra.desktop.export.PrintPreviewD;
 import org.geogebra.desktop.export.pstricks.ExportGraphicsFactoryD;
-import org.geogebra.desktop.factories.AwtFactoryD;
 import org.geogebra.desktop.factories.CASFactoryD;
 import org.geogebra.desktop.factories.FactoryD;
 import org.geogebra.desktop.factories.LaTeXFactoryD;
@@ -221,17 +226,14 @@ import org.geogebra.desktop.util.LoggerD;
 import org.geogebra.desktop.util.StringUtilD;
 import org.geogebra.desktop.util.UtilD;
 
+import com.formdev.flatlaf.FlatLightLaf;
+
 /**
  * GeoGebra Application
  *
  * @author Markus Hohenwarter
  */
 public class AppD extends App implements KeyEventDispatcher, AppDI {
-
-	/**
-	 * License file
-	 */
-	public static final String LICENSE_FILE = "/org/geogebra/desktop/_license.txt";
 
 	/**
 	 * Command line arguments
@@ -571,6 +573,17 @@ public class AppD extends App implements KeyEventDispatcher, AppDI {
 	 *            LAF
 	 */
 	public static void setLAF(boolean isSystemLAF) {
+		try {
+			System.setProperty("flatlaf.menuBarEmbedded", "false");
+
+			UIManager.setLookAndFeel(new FlatLightLaf());
+			UIManager.put("Table.showHorizontalLines", true);
+			UIManager.put("Table.showVerticalLines", true);
+			UIManager.put("Table.intercellSpacing", new Dimension(1, 1));
+			return;
+		} catch (Exception ex) {
+			System.err.println("Failed to initialize LaF");
+		}
 		try {
 			if (isSystemLAF) {
 				UIManager.setLookAndFeel(
@@ -1754,7 +1767,7 @@ public class AppD extends App implements KeyEventDispatcher, AppDI {
 	 */
 	@Override
 	public MyImageD getExternalImage(String filename) {
-		return ImageManagerD.getExternalImage(filename);
+		return ImageManagerD.getStaticExternalImage(filename);
 	}
 
 	/***
@@ -1767,7 +1780,7 @@ public class AppD extends App implements KeyEventDispatcher, AppDI {
 	@Override
 	public final MyImage getExternalImageAdapter(String filename, int width,
 			int height) {
-		return ImageManagerD.getExternalImage(filename);
+		return ImageManagerD.getStaticExternalImage(filename);
 	}
 
 	/***
@@ -1776,7 +1789,7 @@ public class AppD extends App implements KeyEventDispatcher, AppDI {
 	 * @param image image
 	 */
 	@Override
-	public void addExternalImage(String filename, MyImageJre image) {
+	public void addExternalImage(String filename, MyImage image) {
 		imageManager.addExternalImage(filename, image);
 	}
 
@@ -1978,7 +1991,7 @@ public class AppD extends App implements KeyEventDispatcher, AppDI {
 	 *             error
 	 */
 	@Override
-	public MyImageJre getExportImage(double maxX, double maxY)
+	public MyImage getExportImage(double maxX, double maxY)
 			throws OutOfMemoryError {
 
 		return new MyImageD(GBufferedImageD.getAwtBufferedImage(
@@ -3220,11 +3233,11 @@ public class AppD extends App implements KeyEventDispatcher, AppDI {
 	 */
 
 	@Override
-	protected void getLayoutXML(StringBuilder sb, boolean asPreference) {
+	protected void getLayoutXML(XMLStringBuilder sb, boolean asPreference) {
 		if (guiManager == null) {
 			initGuiManager();
 		}
-		getGuiManager().getLayout().getXml(sb, asPreference);
+		super.getLayoutXML(sb, asPreference);
 	}
 
 	/**
@@ -4781,7 +4794,7 @@ public class AppD extends App implements KeyEventDispatcher, AppDI {
 		Image img1 = icon.getImage();
 
 		BufferedImage img2 = ImageManagerD.toBufferedImage(img1);
-		return StringUtil.pngMarker + GgbAPID.base64encode(img2, 72);
+		return StringUtil.pngMarker + GBufferedImageD.base64encode(img2, 72);
 	}
 
 	/**
@@ -4791,23 +4804,15 @@ public class AppD extends App implements KeyEventDispatcher, AppDI {
 	 *            string builder
 	 */
 	@Override
-	public void getKeyboardXML(StringBuilder sb) {
-		sb.append("<keyboard width=\"");
-		sb.append(((KeyboardSettings) getSettings().getKeyboard())
-				.getKeyboardWidth());
-		sb.append("\" height=\"");
-		sb.append(((KeyboardSettings) getSettings().getKeyboard())
-				.getKeyboardHeight());
-		sb.append("\" opacity=\"");
-		sb.append(((KeyboardSettings) getSettings().getKeyboard())
-				.getKeyboardOpacity());
-		sb.append("\" language=\"");
-		sb.append(((KeyboardSettings) getSettings().getKeyboard())
-				.getKeyboardLocale());
-		sb.append("\" show=\"");
-		sb.append(((KeyboardSettings) getSettings().getKeyboard())
-				.isShowKeyboardOnStart());
-		sb.append("\"/>");
+	public void getKeyboardXML(XMLStringBuilder sb) {
+		KeyboardSettings keyboard = (KeyboardSettings) getSettings().getKeyboard();
+		sb.startTag("keyboard", 0)
+				.attr("width", keyboard.getKeyboardWidth())
+				.attr("height", keyboard.getKeyboardHeight())
+				.attr("opacity", keyboard.getKeyboardOpacity())
+				.attr("language", keyboard.getKeyboardLocale())
+				.attr("show", keyboard.isShowKeyboardOnStart())
+				.endTag();
 	}
 
 	@Override

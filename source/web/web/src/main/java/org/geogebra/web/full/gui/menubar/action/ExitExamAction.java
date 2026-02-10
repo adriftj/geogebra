@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.web.full.gui.menubar.action;
 
 import org.geogebra.common.awt.GColor;
@@ -9,14 +25,14 @@ import org.geogebra.common.main.Localization;
 import org.geogebra.common.main.settings.Settings;
 import org.geogebra.common.ownership.GlobalScope;
 import org.geogebra.common.util.StringUtil;
+import org.geogebra.web.awt.GFontW;
+import org.geogebra.web.awt.GGraphics2DW;
 import org.geogebra.web.full.gui.exam.ExamExitConfirmDialog;
 import org.geogebra.web.full.gui.exam.ExamLogAndExitDialog;
 import org.geogebra.web.full.gui.exam.ExamUtil;
 import org.geogebra.web.full.gui.menubar.DefaultMenuAction;
 import org.geogebra.web.full.main.AppWFull;
 import org.geogebra.web.html5.Browser;
-import org.geogebra.web.html5.awt.GFontW;
-import org.geogebra.web.html5.awt.GGraphics2DW;
 import org.geogebra.web.shared.GlobalHeader;
 import org.geogebra.web.shared.components.dialog.DialogData;
 import org.gwtproject.canvas.client.Canvas;

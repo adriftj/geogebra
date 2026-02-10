@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.exam;
 
 import static org.geogebra.common.contextmenu.InputContextMenuItem.Expression;
@@ -36,7 +52,9 @@ import org.geogebra.common.main.syntax.suggestionfilter.LineSelectorSyntaxFilter
 import org.geogebra.common.main.syntax.suggestionfilter.SyntaxFilter;
 import org.geogebra.common.plugin.Operation;
 import org.geogebra.common.properties.PropertiesRegistry;
+import org.geogebra.common.properties.PropertyKey;
 import org.geogebra.common.properties.factory.GeoElementPropertiesFactory;
+import org.geogebra.common.properties.impl.general.AngleUnitProperty;
 
 final class TestExamRestrictions extends ExamRestrictions {
 
@@ -130,8 +148,9 @@ final class TestExamRestrictions extends ExamRestrictions {
 		return operation -> !restrictedOperations.contains(operation);
 	}
 
-	private static Map<String, PropertyRestriction> createPropertyRestrictions() {
-		return Map.of("AngleUnit", new PropertyRestriction(true, value ->
+	private static Map<PropertyKey, PropertyRestriction> createPropertyRestrictions() {
+		return Map.of(PropertyKey.of(AngleUnitProperty.class),
+				new PropertyRestriction(true, value ->
 				value != Integer.valueOf(Kernel.ANGLE_DEGREES_MINUTES_SECONDS)));
 	}
 

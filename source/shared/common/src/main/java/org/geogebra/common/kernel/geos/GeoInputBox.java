@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.kernel.geos;
 
 import java.util.Arrays;
@@ -13,6 +29,7 @@ import org.geogebra.common.euclidian.EuclidianConstants;
 import org.geogebra.common.euclidian.EuclidianViewInterfaceCommon;
 import org.geogebra.common.euclidian.SymbolicEditor;
 import org.geogebra.common.euclidian.draw.DrawInputBox;
+import org.geogebra.common.io.XMLStringBuilder;
 import org.geogebra.common.kernel.Construction;
 import org.geogebra.common.kernel.StringTemplate;
 import org.geogebra.common.kernel.VarString;
@@ -30,8 +47,7 @@ import org.geogebra.common.kernel.kernelND.GeoVectorND;
 import org.geogebra.common.plugin.GeoClass;
 import org.geogebra.common.util.StringUtil;
 import org.geogebra.common.util.TextObject;
-
-import com.himamis.retex.editor.share.util.Unicode;
+import org.geogebra.editor.share.util.Unicode;
 
 /**
  * Input box for user input
@@ -100,7 +116,7 @@ public class GeoInputBox extends GeoButton implements HasSymbolicMode, HasAlignm
 			return false;
 		}
 
-		if (hasCommand(geo.getDefinition())) {
+		if (hasCommand(geo.definition)) {
 			return false;
 		}
 
@@ -270,54 +286,45 @@ public class GeoInputBox extends GeoButton implements HasSymbolicMode, HasAlignm
 	}
 
 	@Override
-	protected void getStyleXML(StringBuilder sb) {
+	protected void getStyleXML(XMLStringBuilder sb) {
 		super.getStyleXML(sb);
 
 		// print decimals
 		if (printDecimals >= 0 && !useSignificantFigures) {
-			sb.append("\t<decimals val=\"");
-			sb.append(printDecimals);
-			sb.append("\"/>\n");
+			sb.startTag("decimals").attr("val", printDecimals).endTag();
 		}
 
 		// print significant figures
 		if (printFigures >= 0 && useSignificantFigures) {
-			sb.append("\t<significantfigures val=\"");
-			sb.append(printFigures);
-			sb.append("\"/>\n");
+			sb.startTag("significantfigures").attr("val", printFigures).endTag();
 		}
 
 		if (isSymbolicMode()) {
-			sb.append("\t<symbolic val=\"true\" />\n");
-			sb.append("\t<contentSerif val=\"").append(serifContent).append("\" />\n");
+			sb.startTag("symbolic").attr("val", true).endTag();
+			sb.startTag("contentSerif").attr("val", serifContent).endTag();
 		}
 
 		if (getLength() != defaultLength) {
-			sb.append("\t<length val=\"");
-			sb.append(getLength());
-			sb.append("\"/>\n");
+			sb.startTag("length").attr("val", getLength()).endTag();
 		}
 		if (getAlignment() != HorizontalAlignment.LEFT) {
-			sb.append("\t<textAlign val=\"");
-			sb.append(getAlignment().toString());
-			sb.append("\"/>\n");
+			sb.startTag("textAlign").attr("val", getAlignment()).endTag();
 		}
 
 		if (tempUserDisplayInput != null
 				&& tempUserEvalInput != null) {
-			sb.append("\t<tempUserInput display=\"");
-			StringUtil.encodeXML(sb, tempUserDisplayInput);
-			sb.append("\" eval=\"");
-			StringUtil.encodeXML(sb, tempUserEvalInput);
-			sb.append("\"/>\n");
+			sb.startTag("tempUserInput")
+					.attr("display", tempUserDisplayInput)
+					.attr("eval", tempUserEvalInput)
+					.endTag();
 		}
 
 		// for input boxes created without linked object save the
 		// input in the tempUserInput
 		if (linkedGeo.isGeoText() && !linkedGeo.isLabelSet()) {
-			sb.append("\t<tempUserInput eval=\"");
-			StringUtil.encodeXML(sb, ((GeoText) linkedGeo).getTextStringSafe());
-			sb.append("\"/>\n");
+			sb.startTag("tempUserInput")
+					.attr("eval", ((GeoText) linkedGeo).getTextStringSafe())
+					.endTag();
 		}
 	}
 

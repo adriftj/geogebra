@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.exam;
 
 import static org.geogebra.common.euclidian.EuclidianConstants.MODE_MOVE;
@@ -31,7 +47,7 @@ import org.geogebra.common.kernel.implicit.GeoImplicitCurve;
 import org.geogebra.common.main.settings.AlgebraStyle;
 import org.geogebra.common.properties.Property;
 import org.geogebra.common.properties.factory.PropertiesArray;
-import org.geogebra.common.properties.impl.collections.NamedEnumeratedPropertyCollection;
+import org.geogebra.common.properties.impl.facade.NamedEnumeratedPropertyListFacade;
 import org.geogebra.common.properties.impl.objects.LinearEquationFormProperty;
 import org.geogebra.test.annotation.Issue;
 import org.junit.jupiter.api.BeforeEach;
@@ -322,8 +338,8 @@ public final class CvteExamTests extends BaseExamTestSetup {
                 getAlgebraProcessor(), getApp().getLocalization(), List.of(line));
         LinearEquationFormProperty equationFormProperty = null;
         for (Property property : properties.getProperties()) {
-            if (property instanceof NamedEnumeratedPropertyCollection) {
-                Property firstProperty = ((NamedEnumeratedPropertyCollection<?, ?>) property)
+            if (property instanceof NamedEnumeratedPropertyListFacade) {
+                Property firstProperty = ((NamedEnumeratedPropertyListFacade<?, ?>) property)
                         .getFirstProperty();
                 if (firstProperty instanceof LinearEquationFormProperty) {
                     equationFormProperty = (LinearEquationFormProperty) firstProperty;
@@ -375,9 +391,5 @@ public final class CvteExamTests extends BaseExamTestSetup {
                 AlgebraItem.getPreviewLatexForGeoElement(lookup("f")));
         assertEquals("\\text{g = Tangent to c through A}",
                 AlgebraItem.getPreviewLatexForGeoElement(lookup("g")));
-    }
-
-    private GeoElement lookup(String label) {
-        return getKernel().lookupLabel(label);
     }
 }

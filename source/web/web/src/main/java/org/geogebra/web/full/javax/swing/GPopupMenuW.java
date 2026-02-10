@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.web.full.javax.swing;
 
 import java.util.HashMap;
@@ -6,7 +22,7 @@ import java.util.Map;
 import org.geogebra.common.gui.AccessibilityManagerInterface;
 import org.geogebra.common.gui.MayHaveFocus;
 import org.geogebra.common.util.DoubleUtil;
-import org.geogebra.web.full.css.MaterialDesignResources;
+import org.geogebra.editor.share.util.JavaKeyCodes;
 import org.geogebra.web.full.gui.menubar.GMenuBar;
 import org.geogebra.web.full.html5.AttachedToDOM;
 import org.geogebra.web.html5.gui.GPopupPanel;
@@ -15,8 +31,9 @@ import org.geogebra.web.html5.gui.menu.AriaMenuBar;
 import org.geogebra.web.html5.gui.menu.AriaMenuItem;
 import org.geogebra.web.html5.gui.menu.MenuHoverListener;
 import org.geogebra.web.html5.gui.util.Dom;
+import org.geogebra.web.html5.gui.view.IconSpec;
 import org.geogebra.web.html5.main.AppW;
-import org.geogebra.web.resources.SVGResource;
+import org.geogebra.web.html5.main.general.GeneralIcon;
 import org.gwtproject.core.client.Scheduler;
 import org.gwtproject.core.client.Scheduler.ScheduledCommand;
 import org.gwtproject.dom.client.Element;
@@ -26,8 +43,6 @@ import org.gwtproject.user.client.DOM;
 import org.gwtproject.user.client.Event;
 import org.gwtproject.user.client.ui.FlowPanel;
 import org.gwtproject.user.client.ui.Widget;
-
-import com.himamis.retex.editor.share.util.JavaKeyCodes;
 
 /**
  * Popup menu for web.
@@ -250,9 +265,9 @@ public class GPopupMenuW implements AttachedToDOM, MenuHoverListener {
 		hide();
 	}
 
-	private static SVGResource getSubMenuIcon(boolean isRTL) {
-		return isRTL ? MaterialDesignResources.INSTANCE.arrow_drop_left_black()
-				: MaterialDesignResources.INSTANCE.arrow_drop_right_black();
+	private IconSpec getSubMenuIcon(boolean isRTL) {
+		return app.getGeneralIconResource().getImageResource(isRTL
+			? GeneralIcon.LOCK : GeneralIcon.ARROW_RIGHT);
 	}
 
 	/**
@@ -309,9 +324,8 @@ public class GPopupMenuW implements AttachedToDOM, MenuHoverListener {
 
 			popupMenu.setSelectionListener(this);
 			if (!horizontal) {
-				SVGResource imgRes = getSubMenuIcon(
-						app.getLocalization().isRightToLeftReadingOrder());
-				popupMenu.appendSubmenu(item, imgRes);
+				IconSpec icon = getSubMenuIcon(app.getLocalization().isRightToLeftReadingOrder());
+				popupMenu.appendSubmenu(item, icon);
 			}
 		}
 	}

@@ -1,6 +1,23 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.geogebra3D.kernel3D.geos;
 
 import org.geogebra.common.geogebra3D.kernel3D.algos.AlgoLinePoint;
+import org.geogebra.common.io.XMLStringBuilder;
 import org.geogebra.common.kernel.Construction;
 import org.geogebra.common.kernel.PathMover;
 import org.geogebra.common.kernel.PathMoverGeneric;
@@ -16,15 +33,14 @@ import org.geogebra.common.kernel.kernelND.GeoVectorND;
 import org.geogebra.common.kernel.matrix.Coords;
 import org.geogebra.common.plugin.GeoClass;
 import org.geogebra.common.util.ExtendedBoolean;
-
-import com.himamis.retex.editor.share.util.Unicode;
+import org.geogebra.editor.share.util.Unicode;
 
 /**
  * 3D line
  */
 public class GeoLine3D extends GeoCoordSys1D {
 
-	private String parameter = Unicode.lambda + "";
+	private String parameter = Unicode.lambda_STRING;
 	private boolean showUndefinedInAlgebraView = false;
 
 	/**
@@ -204,13 +220,13 @@ public class GeoLine3D extends GeoCoordSys1D {
 	}
 
 	@Override
-	protected void getXMLtags(StringBuilder sb) {
-		super.getXMLtags(sb);
+	protected void getXMLTags(XMLStringBuilder sb) {
+		super.getXMLTags(sb);
 		getCoordsXML(sb);
 	}
 
 	@Override
-	protected void getStyleXML(StringBuilder sb) {
+	protected void getStyleXML(XMLStringBuilder sb) {
 		super.getStyleXML(sb);
 		XMLBuilder.appendEquationTypeLine(sb, Form.PARAMETRIC, parameter);
 	}
@@ -221,31 +237,21 @@ public class GeoLine3D extends GeoCoordSys1D {
 	 * @param sb
 	 *            string for XML
 	 */
-	protected void getCoordsXML(StringBuilder sb) {
+	protected void getCoordsXML(XMLStringBuilder sb) {
 
 		Coords o = coordsys.getOrigin(); // TODO inhom coords
 		Coords v = coordsys.getVx();
 
-		sb.append("\t<coords");
-		sb.append(" ox=\"");
-		sb.append(o.getX());
-		sb.append("\" oy=\"");
-		sb.append(o.getY());
-		sb.append("\" oz=\"");
-		sb.append(o.getZ());
-		sb.append("\" ow=\"");
-		sb.append(o.getW());
-
-		sb.append("\" vx=\"");
-		sb.append(v.getX());
-		sb.append("\" vy=\"");
-		sb.append(v.getY());
-		sb.append("\" vz=\"");
-		sb.append(v.getZ());
-		sb.append("\" vw=\"");
-		sb.append(v.getW());
-
-		sb.append("\"/>\n");
+		sb.startTag("coords");
+		sb.attr("ox", o.getX());
+		sb.attr("oy", o.getY());
+		sb.attr("oz", o.getZ());
+		sb.attr("ow", o.getW());
+		sb.attr("vx", v.getX());
+		sb.attr("vy", v.getY());
+		sb.attr("vz", v.getZ());
+		sb.attr("vw", v.getW());
+		sb.endTag();
 	}
 
 	@Override

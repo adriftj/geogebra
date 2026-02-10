@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.web.full.euclidian.inline;
 
 import org.geogebra.common.awt.GColor;
@@ -7,6 +23,7 @@ import org.geogebra.common.euclidian.inline.InlineFormulaController;
 import org.geogebra.common.kernel.geos.GeoFormula;
 import org.geogebra.common.util.MyMath;
 import org.geogebra.common.util.StringUtil;
+import org.geogebra.editor.share.event.MathFieldListener;
 import org.geogebra.web.full.gui.components.MathFieldEditor;
 import org.geogebra.web.html5.gui.util.ClickEndHandler;
 import org.geogebra.web.html5.main.AppW;
@@ -17,8 +34,6 @@ import org.gwtproject.dom.style.shared.Unit;
 import org.gwtproject.timer.client.Timer;
 import org.gwtproject.user.client.ui.AbsolutePanel;
 import org.gwtproject.user.client.ui.Panel;
-
-import com.himamis.retex.editor.share.event.MathFieldListener;
 
 public class InlineFormulaControllerW implements InlineFormulaController {
 

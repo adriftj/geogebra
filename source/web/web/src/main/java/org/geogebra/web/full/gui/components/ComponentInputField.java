@@ -1,4 +1,22 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.web.full.gui.components;
+
+import static org.geogebra.common.properties.PropertyView.*;
 
 import org.geogebra.common.euclidian.event.PointerEventType;
 import org.geogebra.common.gui.SetLabels;
@@ -8,6 +26,7 @@ import org.geogebra.common.util.StringUtil;
 import org.geogebra.web.full.gui.dialog.ProcessInput;
 import org.geogebra.web.full.gui.view.algebra.InputPanelW;
 import org.geogebra.web.html5.gui.BaseWidgetFactory;
+import org.geogebra.web.html5.gui.accessibility.HasFocus;
 import org.geogebra.web.html5.gui.util.ClickStartHandler;
 import org.geogebra.web.html5.gui.util.Dom;
 import org.geogebra.web.html5.main.AppW;
@@ -18,7 +37,8 @@ import org.gwtproject.user.client.ui.Label;
 /**
  * input field material design component
  */
-public class ComponentInputField extends FlowPanel implements SetLabels, Input, HasDisabledState {
+public class ComponentInputField extends FlowPanel implements SetLabels, Input,
+		ConfigurationUpdateDelegate, VisibilityUpdateDelegate, HasFocus {
 	private final Localization loc;
 	private String errorTextKey;
 	private final String labelTextKey;
@@ -29,6 +49,7 @@ public class ComponentInputField extends FlowPanel implements SetLabels, Input, 
 	private InputPanelW inputTextField;
 	private Label errorLabel;
 	private Label suffixLabel;
+	private TextField textFieldProperty;
 
 	/**
 	 * @param app see {@link AppW}
@@ -79,6 +100,19 @@ public class ComponentInputField extends FlowPanel implements SetLabels, Input, 
 	public ComponentInputField(AppW app, String placeholder, String labelTxt,
 			String errorTxt, String defaultValue) {
 		this(app, placeholder, labelTxt, errorTxt, defaultValue, null);
+	}
+
+	/**
+	 * @param app see {@link AppW}
+	 * @param placeholder placeholder text (can be null)
+	 * @param errorTxt error label of input field
+	 * @param property {@link TextField}
+	 */
+	public ComponentInputField(AppW app, String placeholder, String errorTxt, TextField property) {
+		this(app, placeholder, property.getLabel(), errorTxt, property.getValue(), null);
+		textFieldProperty = property;
+		textFieldProperty.setConfigurationUpdateDelegate(this);
+		textFieldProperty.setVisibilityUpdateDelegate(this);
 	}
 
 	// BUILD UI
@@ -258,7 +292,10 @@ public class ComponentInputField extends FlowPanel implements SetLabels, Input, 
 		return !StringUtil.empty(errorTextKey);
 	}
 
-	@Override
+	/**
+	 * Enable/disable input text field
+	 * @param disabled whether it should be disabled or not
+	 */
 	public void setDisabled(boolean disabled) {
 		Dom.toggleClass(getContentPanel(), "disabled", disabled);
 		inputTextField.setEnabled(!disabled);
@@ -291,5 +328,23 @@ public class ComponentInputField extends FlowPanel implements SetLabels, Input, 
 					.setAttribute("placeholder",
 							loc.getMenu(placeholderTextKey));
 		}
+	}
+
+	@Override
+	public void configurationUpdated() {
+		setInputText(textFieldProperty.getValue());
+		setDisabled(!textFieldProperty.isEnabled());
+		String error = textFieldProperty.getErrorMessage();
+		setError(error);
+	}
+
+	@Override
+	public void visibilityUpdated() {
+		setVisible(textFieldProperty.isVisible());
+	}
+
+	@Override
+	public void focus() {
+		focusDeferred();
 	}
 }

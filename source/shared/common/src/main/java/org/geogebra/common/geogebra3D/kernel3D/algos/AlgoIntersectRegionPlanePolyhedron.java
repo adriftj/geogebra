@@ -1,19 +1,17 @@
-/* 
-GeoGebra - Dynamic Mathematics for Everyone
-http://www.geogebra.org
-
-This file is part of GeoGebra.
-
-This program is free software; you can redistribute it and/or modify it 
-under the terms of the GNU General Public License as published by 
-the Free Software Foundation.
-
- */
-
 /*
- * AlgoIntersectLines.java
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
  *
- * Created on 30. August 2001, 21:37
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
  */
 
 package org.geogebra.common.geogebra3D.kernel3D.algos;
@@ -29,6 +27,7 @@ import org.geogebra.common.geogebra3D.kernel3D.geos.GeoPoint3D;
 import org.geogebra.common.geogebra3D.kernel3D.geos.GeoPolygon3D;
 import org.geogebra.common.geogebra3D.kernel3D.geos.GeoPolyhedron;
 import org.geogebra.common.geogebra3D.kernel3D.geos.GeoSegment3D;
+import org.geogebra.common.io.XMLStringBuilder;
 import org.geogebra.common.kernel.Construction;
 import org.geogebra.common.kernel.StringTemplate;
 import org.geogebra.common.kernel.commands.Commands;
@@ -1143,17 +1142,11 @@ public class AlgoIntersectRegionPlanePolyhedron
 	}
 
 	@Override
-	protected void getCmdOutputXML(StringBuilder sb, StringTemplate tpl) {
-
+	protected void getCmdOutputXML(XMLStringBuilder sb, StringTemplate tpl) {
 		// add output sizes (polygons, points, segments)
-		sb.append("\t<outputSizes val=\"");
-		sb.append(outputPolygons.size());
-		sb.append(",");
-		sb.append(outputPoints.size());
-		sb.append(",");
-		sb.append(outputSegmentsPolyhedron.size());
-		sb.append("\"");
-		sb.append("/>\n");
+		String sizes = outputPolygons.size() + "," + outputPoints.size() + ","
+				+ outputSegmentsPolyhedron.size();
+		sb.startTag("outputSizes").attr("val", sizes).endTag();
 
 		// common method
 		super.getCmdOutputXML(sb, tpl);

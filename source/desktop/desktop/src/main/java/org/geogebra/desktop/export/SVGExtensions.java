@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ * 
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ * 
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.desktop.export;
 
 import java.awt.Dimension;
@@ -5,6 +21,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 
+import org.freehep.xml.util.XMLWriter;
 import org.geogebra.common.awt.GGraphics2D;
 import org.geogebra.common.euclidian.Drawable;
 import org.geogebra.common.kernel.geos.GeoElement;
@@ -92,13 +109,13 @@ public class SVGExtensions extends org.freehep.graphicsio.svg.SVGGraphics2D {
 
 		if (title != null) {
 			sb.append("\n<title>");
-			StringUtil.encodeXML(sb, title);
+			sb.append(XMLWriter.normalizeText(title));
 			sb.append("</title>");
 		}
 
 		if (desc != null) {
 			sb.append("\n<desc>");
-			StringUtil.encodeXML(sb, desc);
+			sb.append(XMLWriter.normalizeText(desc));
 			sb.append("</desc>\n");
 		}
 

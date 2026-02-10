@@ -1,16 +1,32 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.jre.headless;
 
 import java.util.HashMap;
 import java.util.Locale;
 
 import org.geogebra.common.GeoGebraConstants.Platform;
+import org.geogebra.common.awt.AwtFactory;
 import org.geogebra.common.awt.GFont;
 import org.geogebra.common.awt.GGraphics2D;
 import org.geogebra.common.awt.MyImage;
 import org.geogebra.common.euclidian.DrawEquation;
 import org.geogebra.common.euclidian.EuclidianController;
 import org.geogebra.common.euclidian.EuclidianView;
-import org.geogebra.common.factories.AwtFactory;
 import org.geogebra.common.factories.CASFactory;
 import org.geogebra.common.factories.CASFactoryDummy;
 import org.geogebra.common.factories.Factory;
@@ -20,6 +36,7 @@ import org.geogebra.common.gui.Layout;
 import org.geogebra.common.gui.layout.DockManager;
 import org.geogebra.common.gui.view.algebra.AlgebraView;
 import org.geogebra.common.io.MyXMLio;
+import org.geogebra.common.io.XMLStringBuilder;
 import org.geogebra.common.io.layout.DockPanelData;
 import org.geogebra.common.io.layout.Perspective;
 import org.geogebra.common.jre.factory.FormatFactoryJre;
@@ -79,6 +96,7 @@ public class AppCommon extends App {
 	private ImageManager imageManager;
 	private final HashMap<String, MyImageCommon> externalImages = new HashMap<>();
 	private GuiManager guiManager;
+	public boolean forceSpreadsheetEnabled = false;
 
 	public AppCommon(LocalizationJre loc, AwtFactory awtFactory) {
 		this(loc, awtFactory, new AppConfigDefault());
@@ -142,6 +160,12 @@ public class AppCommon extends App {
 	}
 
 	@Override
+	public boolean isSpreadsheetEnabled() {
+		// forced override used by SpreadsheetDemo
+		return forceSpreadsheetEnabled || super.isSpreadsheetEnabled();
+	}
+
+	@Override
 	protected void showErrorDialog(String msg) {
 		// not needed with no UI
 	}
@@ -181,7 +205,7 @@ public class AppCommon extends App {
     }
 
     @Override
-    protected void getLayoutXML(StringBuilder sb, boolean asPreference) {
+    protected void getLayoutXML(XMLStringBuilder sb, boolean asPreference) {
 		// TODO
     }
 
@@ -781,7 +805,7 @@ public class AppCommon extends App {
 	}
 
 	@Override
-	protected void getViewsXML(StringBuilder sb, boolean asPreference) {
+	protected void getViewsXML(XMLStringBuilder sb, boolean asPreference) {
 		getSettings().getSpreadsheet().getXML(sb, asPreference);
 		getSettings().getAlgebra().getXML(sb, asPreference);
 	}

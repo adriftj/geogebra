@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.gui.view.data;
 
 import java.util.ArrayList;
@@ -7,6 +23,7 @@ import org.geogebra.common.awt.GColor;
 import org.geogebra.common.euclidian.EuclidianConstants;
 import org.geogebra.common.gui.view.data.DataDisplayModel.PlotType;
 import org.geogebra.common.gui.view.data.DataVariable.GroupType;
+import org.geogebra.common.io.XMLStringBuilder;
 import org.geogebra.common.kernel.Kernel;
 import org.geogebra.common.kernel.StringTemplate;
 import org.geogebra.common.kernel.arithmetic.ExpressionNodeConstants.StringType;
@@ -630,24 +647,22 @@ public class DataAnalysisModel {
 	 * @param sb
 	 *            XML builder
 	 */
-	public void getXML(StringBuilder sb) {
-		sb.append("<dataAnalysis mode=\"");
-		sb.append(getMode());
-		if (this.getListener().getDisplayModel(0).getSelectedPlot() != null) {
-			sb.append("\" plot1=\"");
-			sb.append(this.getListener().getDisplayModel(0).getSelectedPlot());
+	public void getXML(XMLStringBuilder sb) {
+		sb.startOpeningTag("dataAnalysis", 0).attr("mode", getMode());
+		if (getListener().getDisplayModel(0).getSelectedPlot() != null) {
+			sb.attr("plot1",
+					getListener().getDisplayModel(0).getSelectedPlot());
 		}
-		if (this.getListener().getDisplayModel(1).getSelectedPlot() != null) {
-			sb.append("\" plot2=\"");
-			sb.append(this.getListener().getDisplayModel(1).getSelectedPlot());
+		if (getListener().getDisplayModel(1).getSelectedPlot() != null) {
+			sb.attr("plot2",
+					getListener().getDisplayModel(1).getSelectedPlot());
 		}
 		if (getRegressionMode() != null) {
-			sb.append("\" regression=\"");
-			sb.append(getRegressionMode());
+			sb.attr("regression", getRegressionMode());
 		}
-		sb.append("\">\n");
+		sb.endTag();
 		getDataSource().getXMLDescription(sb);
-		sb.append("</dataAnalysis>");
+		sb.closeTag("dataAnalysis");
 	}
 
 	/**

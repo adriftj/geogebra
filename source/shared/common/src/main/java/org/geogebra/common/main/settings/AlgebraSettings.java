@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.main.settings;
 
 import java.util.HashSet;
@@ -10,6 +26,7 @@ import javax.annotation.Nonnull;
 
 import org.geogebra.common.gui.view.algebra.AlgebraOutputFormatFilter;
 import org.geogebra.common.gui.view.algebra.AlgebraView.SortMode;
+import org.geogebra.common.io.XMLStringBuilder;
 import org.geogebra.common.main.App;
 import org.geogebra.common.main.Localization;
 
@@ -225,31 +242,30 @@ public class AlgebraSettings extends AbstractSettings {
 	 * @param sb string builder
 	 * @param showAuxiliaryObjects whether aux objects are visible in AV
 	 */
-	public void getXML(StringBuilder sb, boolean showAuxiliaryObjects) {
-		sb.append("<algebraView>\n");
-		sb.append("\t<mode val=\"");
-		sb.append(getTreeMode().toInt());
-		sb.append("\"/>\n");
+	public void getXML(XMLStringBuilder sb, boolean showAuxiliaryObjects) {
+		sb.startOpeningTag("algebraView", 0).endTag();
+		sb.startTag("mode").attr("val", getTreeMode().toInt()).endTag();
 
 		// auxiliary objects
 		if (showAuxiliaryObjects) {
-			sb.append("\t<auxiliary show=\"true\"/>");
+			sb.startTag("auxiliary").attr("show", true).endTag();
 		}
 
 		// collapsed nodes
 		appendCollapsedNodes(sb);
-		sb.append("</algebraView>\n");
+		sb.closeTag("algebraView");
 	}
 
-	private void appendCollapsedNodes(StringBuilder sbXML) {
+	private void appendCollapsedNodes(XMLStringBuilder sbXML) {
 		if (collapsedNodes != null && !collapsedNodes.isEmpty()) {
-			sbXML.append("\t<collapsed val=\"");
-			sbXML.append(collapsedNodes.get(0));
+			sbXML.startTag("collapsed");
+			StringBuilder nodes = new StringBuilder();
+			nodes.append(collapsedNodes.get(0));
 			for (int i = 1; i < collapsedNodes.size(); i++) {
-				sbXML.append(",");
-				sbXML.append(collapsedNodes.get(i));
+				nodes.append(",");
+				nodes.append(collapsedNodes.get(i));
 			}
-			sbXML.append("\"/>\n");
+			sbXML.attrRaw("val", nodes).endTag();
 		}
 	}
 

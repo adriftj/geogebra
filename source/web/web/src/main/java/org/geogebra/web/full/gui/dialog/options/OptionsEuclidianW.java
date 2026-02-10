@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.web.full.gui.dialog.options;
 
 import java.util.Arrays;
@@ -12,10 +28,12 @@ import org.geogebra.common.gui.dialog.options.OptionsEuclidian;
 import org.geogebra.common.gui.dialog.options.model.EuclidianOptionsModel;
 import org.geogebra.common.main.Localization;
 import org.geogebra.common.properties.NamedEnumeratedProperty;
+import org.geogebra.common.properties.PropertyView;
 import org.geogebra.common.properties.impl.graphics.GridStyleProperty;
 import org.geogebra.common.properties.impl.graphics.PointCapturingProperty;
 import org.geogebra.common.util.StringUtil;
 import org.geogebra.common.util.debug.Log;
+import org.geogebra.editor.share.util.Unicode;
 import org.geogebra.web.full.gui.components.ComponentCheckbox;
 import org.geogebra.web.full.gui.components.ComponentComboBox;
 import org.geogebra.web.full.gui.components.ComponentDropDown;
@@ -35,8 +53,6 @@ import org.geogebra.web.html5.util.tabpanel.MultiRowsTabPanel;
 import org.gwtproject.user.client.ui.FlowPanel;
 import org.gwtproject.user.client.ui.Label;
 import org.gwtproject.user.client.ui.Widget;
-
-import com.himamis.retex.editor.share.util.Unicode;
 
 public class OptionsEuclidianW extends OptionsEuclidian implements OptionPanelW {
 
@@ -151,7 +167,12 @@ public class OptionsEuclidianW extends OptionsEuclidian implements OptionPanelW 
 
 			NamedEnumeratedProperty<?> pointCaptProperty = new PointCapturingProperty(
 					app.getLocalization(), view);
-			pointCapturingStyle = new ComponentDropDown(app, pointCaptProperty);
+			PropertyView.Dropdown pointCapturingDropdownProperty =
+					(PropertyView.Dropdown) PropertyView.of(pointCaptProperty);
+			if (pointCapturingDropdownProperty == null) {
+				return;
+			}
+			pointCapturingStyle = new ComponentDropDown(app, pointCapturingDropdownProperty);
 			pointCapturingStyle.addChangeHandler(() -> {
 				app.setUnsaved();
 				app.storeUndoInfo();
@@ -196,7 +217,12 @@ public class OptionsEuclidianW extends OptionsEuclidian implements OptionPanelW 
 			}
 			NamedEnumeratedProperty<?> gridTypeProperty = new GridStyleProperty(
 					app.getLocalization(), view.getSettings());
-			lbGridType = new ComponentDropDown(app, gridTypeProperty);
+			PropertyView.Dropdown gridTypeDropdownProperty =
+					(PropertyView.Dropdown) PropertyView.of(gridTypeProperty);
+			if (gridTypeDropdownProperty == null) {
+				return;
+			}
+			lbGridType = new ComponentDropDown(app, gridTypeDropdownProperty);
 			lblGridType = new FormLabel("").setFor(lbGridType);
 			mainPanel.add(lblGridType);
 			lblGridType.setStyleName("panelTitle");

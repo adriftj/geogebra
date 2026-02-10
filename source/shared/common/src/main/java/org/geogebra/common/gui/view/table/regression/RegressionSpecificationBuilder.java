@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.gui.view.table.regression;
 
 import java.util.ArrayList;
@@ -11,8 +27,7 @@ import org.geogebra.common.exam.ExamType;
 import org.geogebra.common.exam.restrictions.ExamFeatureRestriction;
 import org.geogebra.common.exam.restrictions.ExamRestrictable;
 import org.geogebra.common.kernel.statistics.Regression;
-
-import com.himamis.retex.editor.share.util.Unicode;
+import org.geogebra.editor.share.util.Unicode;
 
 public class RegressionSpecificationBuilder implements ExamRestrictable {
 
@@ -45,11 +60,11 @@ public class RegressionSpecificationBuilder implements ExamRestrictable {
 		specs.add(new CustomRegressionSpecification("a x^2 + b x + c", 2, 1, 0));
 		specs.add(new CustomRegressionSpecification("a x^2 + b x", 2, 1));
 		specs.add(new CustomRegressionSpecification("a x^2 + c", 2, 0));
-		specs.add(new CustomRegressionSpecification("a x^2", 2, 1, 0));
+		specs.add(new CustomRegressionSpecification("a x^2", 2));
 		specs.add(new CustomRegressionSpecification("a * exp(b x) + c",
-				CustomRegressionSpecification.Type.EXP_PLUS_CONSTANT));
+				"acb", CustomRegressionSpecification.Type.EXP_PLUS_CONSTANT));
 		specs.add(new CustomRegressionSpecification("a * exp(b x)",
-				CustomRegressionSpecification.Type.EXPONENTIAL));
+				"ab", CustomRegressionSpecification.Type.EXPONENTIAL));
 		specs.add(new CustomRegressionSpecification("a / x + b", -1, 0));
 		specs.add(new CustomRegressionSpecification("a / x", -1));
 		specs.add(new CustomRegressionSpecification("a / x^2 + b", -2, 0));

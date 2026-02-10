@@ -1,18 +1,35 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.web.full.gui.pagecontrolpanel;
 
+import org.geogebra.common.awt.GColor;
 import org.geogebra.common.gui.SetLabels;
 import org.geogebra.common.main.App;
 import org.geogebra.common.main.undo.UndoInfoStoredListener;
 import org.geogebra.common.plugin.Event;
 import org.geogebra.common.plugin.EventType;
 import org.geogebra.common.util.debug.Log;
-import org.geogebra.web.full.css.MaterialDesignResources;
 import org.geogebra.web.full.gui.applet.GeoGebraFrameFull;
 import org.geogebra.web.full.gui.layout.panels.EuclidianDockPanelW;
 import org.geogebra.web.full.main.AppWFull;
 import org.geogebra.web.html5.gui.util.ClickStartHandler;
 import org.geogebra.web.html5.gui.view.button.StandardButton;
 import org.geogebra.web.html5.main.GgbFile;
+import org.geogebra.web.html5.main.general.GeneralIcon;
 import org.geogebra.web.html5.util.CSSEvents;
 import org.geogebra.web.html5.util.PersistablePanel;
 import org.gwtproject.dom.style.shared.Unit;
@@ -86,8 +103,9 @@ public class PageListPanel
 	}
 
 	private void addPlusButton() {
-		plusButton = new StandardButton(
-				MaterialDesignResources.INSTANCE.add_white(), null, 24);
+		plusButton = new StandardButton(app.getGeneralIconResource()
+				.getImageResource(GeneralIcon.PLUS).withFill(GColor.WHITE.toString()),
+				null, 24, 24);
 		plusButton.setStyleName("mowFloatingButton");
 		plusButton.addStyleName("floatingActionButton");
 		plusButton.addStyleName("mowPlusButton");

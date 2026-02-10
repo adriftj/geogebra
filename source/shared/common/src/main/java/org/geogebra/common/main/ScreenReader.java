@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.main;
 
 import org.geogebra.common.euclidian.EuclidianConstants;
@@ -10,10 +26,10 @@ import org.geogebra.common.kernel.geos.ScreenReaderBuilder;
 import org.geogebra.common.kernel.geos.ScreenReaderSerializationAdapter;
 import org.geogebra.common.util.DoubleUtil;
 import org.geogebra.common.util.debug.Log;
+import org.geogebra.editor.share.controller.ExpressionReader;
+import org.geogebra.editor.share.serializer.ScreenReaderSerializer;
+import org.geogebra.editor.share.tree.Formula;
 
-import com.himamis.retex.editor.share.controller.ExpressionReader;
-import com.himamis.retex.editor.share.model.MathFormula;
-import com.himamis.retex.editor.share.serializer.ScreenReaderSerializer;
 import com.himamis.retex.renderer.share.serialize.DefaultSerializationAdapter;
 import com.himamis.retex.renderer.share.serialize.SerializationAdapter;
 import com.himamis.retex.renderer.share.serialize.TableAdapter;
@@ -349,9 +365,9 @@ public class ScreenReader {
 	 * @return the full aural representation of the expression with its preview if
 	 *         any.
 	 */
-	public static String getAriaExpression(App app, MathFormula exp, String ariaPreview) {
+	public static String getAriaExpression(App app, Formula exp, String ariaPreview) {
 		try {
-			String expr = ScreenReaderSerializer.fullDescription(exp.getRootComponent(),
+			String expr = ScreenReaderSerializer.fullDescription(exp.getRootNode(),
 					getSerializationAdapter(app));
 			if (ariaPreview != null) {
 				return expr + " = " + ariaPreview;

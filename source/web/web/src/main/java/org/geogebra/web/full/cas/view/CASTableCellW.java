@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.web.full.cas.view;
 
 import org.geogebra.common.awt.GColor;
@@ -7,6 +23,11 @@ import org.geogebra.common.kernel.geos.GeoCasCell;
 import org.geogebra.common.main.App;
 import org.geogebra.common.util.StringUtil;
 import org.geogebra.common.util.debug.Log;
+import org.geogebra.editor.share.catalog.TemplateCatalog;
+import org.geogebra.editor.share.io.latex.ParseException;
+import org.geogebra.editor.share.io.latex.Parser;
+import org.geogebra.editor.share.serializer.TeXSerializer;
+import org.geogebra.editor.share.tree.Formula;
 import org.geogebra.web.full.cas.view.InputPanel.InputPanelCanvas;
 import org.geogebra.web.full.cas.view.InputPanel.InputPanelLabel;
 import org.geogebra.web.html5.gui.util.ClickEndHandler;
@@ -15,14 +36,7 @@ import org.gwtproject.canvas.client.Canvas;
 import org.gwtproject.dom.style.shared.Unit;
 import org.gwtproject.user.client.ui.FlowPanel;
 import org.gwtproject.user.client.ui.Label;
-import org.gwtproject.user.client.ui.VerticalPanel;
 import org.gwtproject.user.client.ui.Widget;
-
-import com.himamis.retex.editor.share.io.latex.ParseException;
-import com.himamis.retex.editor.share.io.latex.Parser;
-import com.himamis.retex.editor.share.meta.MetaModel;
-import com.himamis.retex.editor.share.model.MathFormula;
-import com.himamis.retex.editor.share.serializer.TeXSerializer;
 
 /**
  * Graphical representation of CAS cells in Web
@@ -30,11 +44,11 @@ import com.himamis.retex.editor.share.serializer.TeXSerializer;
  * @author Zbynek Konecny
  *
  */
-public class CASTableCellW extends VerticalPanel {
-	private GeoCasCell casCell;
+public class CASTableCellW extends FlowPanel {
+	private final GeoCasCell casCell;
 	private final InputPanel inputPanel;
 	private final FlowPanel inputWrapper;
-	private FlowPanel outputPanel;
+	private final FlowPanel outputPanel;
 	private String textBeforeEdit;
 	private CASEditorW textField;
 	private String outputText;
@@ -94,7 +108,6 @@ public class CASTableCellW extends VerticalPanel {
 			}
 			commentLabel.getElement().getStyle()
 					.setFontSize(app.getFontSize(), Unit.PX);
-			// commentLabel.getElement().getStyle().setColor("gray");
 			outputPanel.add(commentLabel);
 		}
 		outputPanel.add(canvas == null ? outputLabel : canvas);
@@ -106,7 +119,7 @@ public class CASTableCellW extends VerticalPanel {
 		String ret = casCell.getLaTeXInput();
 		if (ret == null) {
 			try {
-				MathFormula mf = new Parser(new MetaModel())
+				Formula mf = new Parser(new TemplateCatalog())
 						.parse(casCell.getLocalizedInput());
 				return new TeXSerializer().serialize(mf);
 			} catch (ParseException e) {
@@ -232,13 +245,6 @@ public class CASTableCellW extends VerticalPanel {
 	 */
 	public Widget getOutputWidget() {
 		return outputPanel;
-	}
-
-	/**
-	 * @return input in CAS (plain text)
-	 */
-	public String getInputString() {
-		return inputPanel.getText();
 	}
 
 	/**

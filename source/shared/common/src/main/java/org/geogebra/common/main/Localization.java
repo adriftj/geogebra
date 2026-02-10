@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.main;
 
 import java.util.ArrayList;
@@ -16,8 +32,7 @@ import org.geogebra.common.main.syntax.LocalizedCommandSyntax;
 import org.geogebra.common.util.StringUtil;
 import org.geogebra.common.util.debug.Log;
 import org.geogebra.common.util.lang.Language;
-
-import com.himamis.retex.editor.share.util.Unicode;
+import org.geogebra.editor.share.util.Unicode;
 
 public abstract class Localization extends LocalizationI {
 
@@ -57,6 +72,7 @@ public abstract class Localization extends LocalizationI {
 	private char unicodeComma = ','; // \u060c for Arabic comma
 
 	private int[] decimalPlacesOptions = { 0, 1, 2, 3, 4, 5, 10, 13, 15 };
+	private int[] inputBoxDecimalPlacesOptions = { -1, 0, 1, 2, 3, 4, 5, 10, 13, 15 };
 	private int[] significantFiguresOptions = {3, 5, 10, 15};
 
 	// TODO this doesn't really belong here; find a better owner (CommandProcessor?)
@@ -133,6 +149,13 @@ public abstract class Localization extends LocalizationI {
 	 */
 	public void setDecimalPlaces(int[] decimalPlaces) {
 		this.decimalPlacesOptions = decimalPlaces;
+	}
+
+	/**
+	 * @return the decimal places for input box in this localization
+	 */
+	public int[] getInputBoxDecimalPlaces() {
+		return inputBoxDecimalPlacesOptions;
 	}
 
 	/**
@@ -436,13 +459,19 @@ public abstract class Localization extends LocalizationI {
 
 	/**
 	 * Returns translation of given key from the "error" bundle
-	 * 
-	 * @param key
-	 *            key
+	 * @param key key
 	 * @return translation for key
 	 */
-
-	public abstract String getError(String key);
+	public final String getError(String key) {
+		if (key == null) {
+			return "";
+		}
+		String ret = getMenu("Error." + key);
+		if (ret.equals("Error." + key)) {
+			return key;
+		}
+		return ret;
+	}
 
 	/**
 	 * Returns translation of given key from the "symbol" bundle
@@ -455,20 +484,39 @@ public abstract class Localization extends LocalizationI {
 	public abstract String getSymbol(int key);
 
 	/**
-	 * @param colorName
-	 *            localized color name
+	 * @param colorName localized color name
 	 * @return internal color name
 	 */
-	public abstract String reverseGetColor(String colorName);
+	public final String reverseGetColor(String colorName) {
+		String str = StringUtil.removeSpaces(StringUtil.toLowerCaseUS(colorName));
+		for (String key : GeoGebraColorConstants.getGeoGebraColors().keySet()) {
+			if (str.equals(StringUtil.removeSpaces(StringUtil.toLowerCaseUS(getColor(key))))) {
+				return key;
+			}
+		}
+		return str;
+	}
 
 	/**
 	 * Returns translation of a key in colors bundle
-	 * 
-	 * @param key
-	 *            key (color name)
+	 * @param key key (color name)
 	 * @return localized color name
 	 */
-	public abstract String getColor(String key);
+	public String getColor(String key) {
+		if (key == null) {
+			return "";
+		}
+
+		if (key.length() == 5 && StringUtil.toLowerCaseUS(key).startsWith("gray")) {
+			return StringUtil.getGrayString(key.charAt(4), this);
+		}
+
+		String ret = getMenu("Color." + StringUtil.toLowerCaseUS(key));
+		if (ret.startsWith("Color.")) {
+			return key;
+		}
+		return ret;
+	}
 
 	/**
 	 * Translates the key and replaces "%0" by args[0], "%1" by args[1], etc

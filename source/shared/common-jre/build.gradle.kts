@@ -5,7 +5,6 @@ plugins {
     alias(libs.plugins.geogebra.pmd)
     alias(libs.plugins.geogebra.checkstyle)
     alias(libs.plugins.geogebra.spotbugs)
-    alias(libs.plugins.geogebra.sourcesets)
 }
 
 group = "org.geogebra"
@@ -56,13 +55,11 @@ val jacocoSources by configurations.creating {
         attribute(VerificationType.VERIFICATION_TYPE_ATTRIBUTE, objects.named(VerificationType.MAIN_SOURCES))
     }
     isCanBeConsumed = false
-    isVisible = false
 }
 
 val jacocoClasses by configurations.creating {
     extendsFrom(configurations.implementation.get())
     isCanBeConsumed = false
-    isVisible = false
 }
 
 val sourceDirs = jacocoSources.files.filter {

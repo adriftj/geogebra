@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ * 
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ * 
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.plugin;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -20,12 +36,12 @@ import org.geogebra.common.kernel.geos.GeoList;
 import org.geogebra.common.kernel.geos.GeoNumeric;
 import org.geogebra.common.kernel.geos.SymbolicEditorCommon;
 import org.geogebra.common.plugin.script.GgbScript;
+import org.geogebra.editor.share.catalog.TemplateCatalog;
 import org.geogebra.ggbjdk.java.awt.geom.Rectangle;
 import org.geogebra.test.TestErrorHandler;
 import org.geogebra.test.annotation.Issue;
 import org.junit.Test;
 
-import com.himamis.retex.editor.share.meta.MetaModel;
 import com.himamis.retex.renderer.share.platform.FactoryProvider;
 
 public class GgbScriptTest extends BaseUnitTest {
@@ -35,7 +51,7 @@ public class GgbScriptTest extends BaseUnitTest {
 		FactoryProvider.setInstance(new FactoryProviderCommon());
 		add("v=(?,?)");
 		GeoInputBox ib = add("ib=InputBox(v)");
-		MathFieldCommon mf = new MathFieldCommon(new MetaModel(), null);
+		MathFieldCommon mf = new MathFieldCommon(new TemplateCatalog(), null);
 		SymbolicEditorCommon editor = new SymbolicEditorCommon(mf, getApp());
 		((EuclidianViewNoGui) getApp().getActiveEuclidianView()).setSymbolicEditor(editor);
 		editor.attach(ib, new Rectangle(0, 0),

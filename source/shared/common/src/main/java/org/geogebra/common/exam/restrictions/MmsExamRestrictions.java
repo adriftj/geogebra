@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.exam.restrictions;
 
 import static org.geogebra.common.SuiteSubApp.CAS;
@@ -300,7 +316,7 @@ public class MmsExamRestrictions extends ExamRestrictions {
 	 * <p>Example: {@code Normal(2, 0.5, 1)}</p>
 	 * <ul>
 	 *     <li>
-	 *         Restricted {@code (erf(-√2) + 1) / 2} output format
+	 *         Restricted {@code (erf(-sqrt(2)) + 1) / 2} output format
 	 *         ({@link AlgebraOutputFormat#EXACT})
 	 *     </li>
 	 *     <li>
@@ -336,10 +352,10 @@ public class MmsExamRestrictions extends ExamRestrictions {
 	 * <p>Examples: </p>
 	 * <ul>
 	 *     <li>
-	 *         {@code (3; π / 3)}
+	 *         {@code (3; pi / 3)}
 	 *         <ul>
 	 *             <li>
-	 *                 Restricted {@code (3 / 2, 3 * √3 / 2)} output format
+	 *                 Restricted {@code (3 / 2, 3 * sqrt(3) / 2)} output format
 	 *                 ({@link AlgebraOutputFormat#EXACT})
 	 *             </li>
 	 *             <li>

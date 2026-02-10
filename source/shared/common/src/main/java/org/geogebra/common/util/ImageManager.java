@@ -1,8 +1,28 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.util;
 
 import java.io.StringReader;
 import java.util.ArrayList;
 
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+
+import org.geogebra.common.awt.MyImage;
 import org.geogebra.common.euclidian.EuclidianView;
 import org.geogebra.common.gui.EdgeInsets;
 import org.geogebra.common.io.QDParser;
@@ -251,5 +271,23 @@ abstract public class ImageManager {
 	 */
 	public void setImageForFillable(Kernel kernel, GeoText geo, GeoElement fillable) {
 		// only works on platforms with SVG support (web, desktop)
+	}
+
+	/**
+	 * Adds an external image to be stored.
+	 * @param image image
+	 * @param path path
+	 */
+	public void addExternalImage(@Nonnull MyImage image, @Nonnull String path) {
+		//
+	}
+
+	/**
+	 * Get an external image, that was stored previously.
+	 * @param path path to image
+	 * @return image or {@code null}
+	 */
+	public @CheckForNull MyImage getExternalImage(@Nonnull String path) {
+		return null;
 	}
 }

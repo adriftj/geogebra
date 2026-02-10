@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.web.html5.euclidian;
 
 import java.util.List;
@@ -5,9 +21,8 @@ import java.util.List;
 import org.geogebra.common.awt.GGraphics2D;
 import org.geogebra.common.awt.GPoint;
 import org.geogebra.common.euclidian.PenPreviewLine;
-import org.geogebra.web.html5.awt.GGraphics2DW;
-
-import com.himamis.retex.renderer.web.graphics.JLMContext2d;
+import org.geogebra.web.awt.GGraphics2DW;
+import org.geogebra.web.awt.JLMContext2D;
 
 /**
  * Pen preview drawing that uses the Canvas API directly, skipping conversion
@@ -18,7 +33,7 @@ public class PenPreviewLineW extends PenPreviewLine {
 	@Override
 	protected void drawPolyline(List<GPoint> penPoints, GGraphics2D g2) {
 		int minQuadDistance = 20;
-		JLMContext2d g2w = ((GGraphics2DW) g2).getContext();
+		JLMContext2D g2w = ((GGraphics2DW) g2).getContext();
 		g2w.beginPath();
 
 		double prevx = penPoints.get(0).x;

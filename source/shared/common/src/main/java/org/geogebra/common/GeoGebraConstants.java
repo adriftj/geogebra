@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common;
 
 /**
@@ -10,10 +26,10 @@ public interface GeoGebraConstants {
 	// as it is read by the build system
 	// and updated automatically by the "Version Bump" task
 	/** last build date */
-	public static final String BUILD_DATE = "04 November 2025";
+	public static final String BUILD_DATE = "06 February 2026";
 	/** complete version string */
 
-	public static final String VERSION_STRING = "5.2.906.0";
+	public static final String VERSION_STRING = "5.4.916.0";
 	/** proper noun, should NOT be translated / transliterated */
 	public static final String APPLICATION_NAME = "GeoGebra";
 
@@ -109,7 +125,7 @@ public interface GeoGebraConstants {
 			// 6.0.x.x
 			switch (this) {
 			default:
-				// change 5.2.274.0 to 6.0.274.0
+				// change 5.4.274.0 to 6.0.274.0
 				return getVersionString6() + "-" + suffix;
 			case DESKTOP:
 				return VERSION_STRING + "-" + suffix;
@@ -166,7 +182,7 @@ public interface GeoGebraConstants {
 
 	// This is used for checking if a minor update exists (on each run):
 	public static final String VERSION_URL_MINOR =
-			"https://download.geogebra.org/installers/5.2/version.txt";
+			"https://download.geogebra.org/installers/5.4/version.txt";
 
 	// This is used for checking whether a major update exists (monthly):
 	public static final String VERSION_URL = "https://download.geogebra.org/installers/version.txt";
@@ -175,21 +191,13 @@ public interface GeoGebraConstants {
 
 	// archive
 	/** short version, for online archive */
-	public static final String SHORT_VERSION_STRING = "5.2";
+	public static final String SHORT_VERSION_STRING = "5.4";
 	// File format versions
 	/** XSD for ggb files */
 	public static final String GGB_XSD_FILENAME = "ggb.xsd";
 	/** XSD for ggt (macro) files */
 	public static final String GGT_XSD_FILENAME = "ggt.xsd";
 	// URLs
-	/** URL of GeoGebra jars */
-	public final static String GEOGEBRA_ONLINE_ARCHIVE_BASE = "https://jars.geogebra.org/webstart/"
-			+ SHORT_VERSION_STRING + "/";
-	/** URL of GeoGebra jars, zipped */
-	public static final String GEOGEBRA_ONLINE_JARS_ZIP = GEOGEBRA_ONLINE_ARCHIVE_BASE
-			+ "geogebra-jars.zip";
-	/** update directory, typically on Windows */
-	public static final String GEOGEBRA_JARS_UPDATE_DIR = "\\GeoGebra 5.2\\jars\\update";
 
 	/** http prefix */
 	public static final String HTTP = "http://";
@@ -269,6 +277,6 @@ public interface GeoGebraConstants {
 	 * @return version string
 	 */
 	static String getVersionString6() {
-		return VERSION_STRING.replace("5.2.", "6.0.");
+		return VERSION_STRING.replace("5.4.", "6.0.");
 	}
 }

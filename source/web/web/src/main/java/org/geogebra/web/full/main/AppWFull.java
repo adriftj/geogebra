@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.web.full.main;
 
 import static org.geogebra.common.GeoGebraConstants.CAS_APPCODE;
@@ -97,10 +113,12 @@ import org.geogebra.common.plugin.Event;
 import org.geogebra.common.plugin.EventType;
 import org.geogebra.common.plugin.ScriptManager;
 import org.geogebra.common.properties.factory.GeoElementPropertiesFactory;
+import org.geogebra.common.spreadsheet.kernel.GeoElementCellRendererFactory;
 import org.geogebra.common.util.AsyncOperation;
 import org.geogebra.common.util.StringUtil;
 import org.geogebra.common.util.SyntaxAdapterImpl;
 import org.geogebra.common.util.debug.Log;
+import org.geogebra.editor.web.MathFieldW;
 import org.geogebra.ggbjdk.java.awt.geom.Dimension;
 import org.geogebra.gwtutil.NavigatorUtil;
 import org.geogebra.keyboard.base.impl.TemplateKeyProvider;
@@ -110,6 +128,9 @@ import org.geogebra.web.cas.giac.CASFactoryW;
 import org.geogebra.web.full.euclidian.inline.InlineFormulaControllerW;
 import org.geogebra.web.full.euclidian.inline.InlineTableControllerW;
 import org.geogebra.web.full.euclidian.inline.InlineTextControllerW;
+import org.geogebra.web.full.euclidian.quickstylebar.icon.DefaultPropertiesIconProvider;
+import org.geogebra.web.full.euclidian.quickstylebar.icon.MebisPropertiesIconProvider;
+import org.geogebra.web.full.euclidian.quickstylebar.icon.PropertiesIconResource;
 import org.geogebra.web.full.gui.CustomizeToolbarGUI;
 import org.geogebra.web.full.gui.GuiManagerW;
 import org.geogebra.web.full.gui.MyHeaderPanel;
@@ -144,6 +165,7 @@ import org.geogebra.web.full.gui.menubar.PerspectivesPopup;
 import org.geogebra.web.full.gui.menubar.action.StartExamAction;
 import org.geogebra.web.full.gui.properties.PropertiesViewW;
 import org.geogebra.web.full.gui.toolbarpanel.ToolbarPanel;
+import org.geogebra.web.full.gui.toolbarpanel.spreadsheet.AwtReTexGraphicsBridgeW;
 import org.geogebra.web.full.gui.toolbarpanel.tableview.dataimport.CsvImportHandler;
 import org.geogebra.web.full.gui.util.FontSettingsUpdaterW;
 import org.geogebra.web.full.gui.util.PopupMenuButtonW;
@@ -201,12 +223,10 @@ import org.gwtproject.dom.style.shared.Position;
 import org.gwtproject.timer.client.Timer;
 import org.gwtproject.user.client.Command;
 import org.gwtproject.user.client.DOM;
-import org.gwtproject.user.client.ui.HorizontalPanel;
+import org.gwtproject.user.client.ui.FlowPanel;
 import org.gwtproject.user.client.ui.RequiresResize;
 import org.gwtproject.user.client.ui.RootPanel;
 import org.gwtproject.user.client.ui.Widget;
-
-import com.himamis.retex.editor.web.MathFieldW;
 
 import elemental2.core.Global;
 import elemental2.dom.DomGlobal;
@@ -252,7 +272,7 @@ public class AppWFull extends AppW implements HasKeyboard, MenuViewListener {
 	private boolean isMenuInited = false;
 	// helper
 	// variable
-	private HorizontalPanel splitPanelWrapper = null;
+	private FlowPanel splitPanelWrapper = null;
 	private @CheckForNull MenuViewController menuViewController;
 
 	private EmbedManagerW embedManager;
@@ -283,6 +303,7 @@ public class AppWFull extends AppW implements HasKeyboard, MenuViewListener {
 	private final GeoElementPropertiesFactory geoElementPropertiesFactory;
 	private final ContextMenuFactory contextMenuFactory;
 	private InitialViewState initialViewState;
+	private PropertiesIconResource propertiesIconResource;
 
 	/**
 	 * @param geoGebraElement GeoGebra element
@@ -331,6 +352,11 @@ public class AppWFull extends AppW implements HasKeyboard, MenuViewListener {
 		startActivity();
 
 		setPurpose();
+	}
+
+	@Override
+	protected @Nonnull GeoElementCellRendererFactory getGeoElementCellRendererFactory() {
+		return new GeoElementCellRendererFactory(new AwtReTexGraphicsBridgeW());
 	}
 
 	private void setupHeader() {
@@ -1348,20 +1374,21 @@ public class AppWFull extends AppW implements HasKeyboard, MenuViewListener {
 	@Override
 	public final void setSaved() {
 		super.setSaved();
-		if (hasAutosave()) {
+		if (hasSaveCheckDialog()) {
 			getFileManager().deleteAutoSavedFile();
 			getLAF().removeWindowClosingHandler();
 		}
 	}
 
-	private boolean hasAutosave() {
-		return appletParameters.getDataParamApp();
+	private boolean hasSaveCheckDialog() {
+		// we want to show the dialog also when embedded, see MOW-1799
+		return appletParameters.getDataParamFitToScreen() && showMenuBar();
 	}
 
 	@Override
 	public final void setUnsaved() {
 		super.setUnsaved();
-		if (hasAutosave() && kernel != null && kernel.getConstruction() != null
+		if (hasSaveCheckDialog() && kernel != null && kernel.getConstruction() != null
 				&& kernel.getConstruction().isStarted()) {
 			getLAF().addWindowClosingHandler(this);
 		}
@@ -1679,7 +1706,8 @@ public class AppWFull extends AppW implements HasKeyboard, MenuViewListener {
 		if (oldSplitLayoutPanel != null) {
 			if (!isFloatingMenu()
 					&& getAppletParameters().getDataParamShowMenuBar(false)) {
-				this.splitPanelWrapper = new HorizontalPanel();
+				splitPanelWrapper = new FlowPanel();
+				splitPanelWrapper.addStyleName("splitPanelWrapper");
 				// TODO
 				splitPanelWrapper.add(oldSplitLayoutPanel);
 				if (this.menuShowing) {
@@ -2058,14 +2086,10 @@ public class AppWFull extends AppW implements HasKeyboard, MenuViewListener {
 	}
 
 	@Override
-	protected void getLayoutXML(StringBuilder sb, boolean asPreference) {
-		super.getLayoutXML(sb, asPreference);
-	}
-
-	@Override
 	public void toggleMenu() {
 		if (!menuShowing) {
 			getAppletFrame().hidePanel(null);
+			double fullWidth = getWidth();
 			menuShowing = true;
 			boolean needsUpdate = isMenuInited;
 			if (!isFloatingMenu() && !isMenuInited) {
@@ -2081,8 +2105,7 @@ public class AppWFull extends AppW implements HasKeyboard, MenuViewListener {
 				return;
 			}
 			splitPanelWrapper.add(frame.getMenuBar(this));
-			spWidth = oldSplitLayoutPanel.getOffsetWidth()
-					- GLookAndFeel.MENUBAR_WIDTH;
+			spWidth = (int) (fullWidth - GLookAndFeel.MENUBAR_WIDTH);
 			oldSplitLayoutPanel.setPixelSize(spWidth,
 					oldSplitLayoutPanel.getOffsetHeight());
 			updateMenuHeight();
@@ -2199,7 +2222,7 @@ public class AppWFull extends AppW implements HasKeyboard, MenuViewListener {
 			height += GLookAndFeel.TOOLBAR_HEIGHT;
 		}
 		if (isWhiteboardActive()) {
-			height += frame.getNotesLayoutSafe(this).getTopBarHeight();
+			height += frame.getNotesTopBarHeight();
 		}
 		return height;
 	}
@@ -2466,7 +2489,7 @@ public class AppWFull extends AppW implements HasKeyboard, MenuViewListener {
 	}
 
 	private Stream<ExamRestrictable> getRestrictables() {
-		return Stream.of(this, getEuclidianView1(), getConfig(), getRegressionSpecBuilder());
+		return Stream.of(this, getEuclidianView1(), getConfig());
 	}
 
 	private ExamController.ContextDependencies getExamDependencies() {
@@ -2844,5 +2867,17 @@ public class AppWFull extends AppW implements HasKeyboard, MenuViewListener {
 		getKernel().updateConstruction(false);
 
 		guiManager.updatePropertiesView();
+	}
+
+	/**
+	 * @return properties icon resource provider
+	 */
+	public PropertiesIconResource getPropertiesIconResource() {
+		if (propertiesIconResource == null) {
+			propertiesIconResource = new PropertiesIconResource(isUsingFontAwesome()
+					? new MebisPropertiesIconProvider() : new DefaultPropertiesIconProvider());
+		}
+
+		return propertiesIconResource;
 	}
 }

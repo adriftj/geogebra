@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ * 
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ * 
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+ 
 package org.geogebra.desktop.gui.util;
 
 import static org.junit.Assert.assertEquals;
@@ -12,8 +28,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.geogebra.common.BaseUnitTest;
+import org.geogebra.common.awt.MyImage;
 import org.geogebra.common.io.file.ByteArrayZipFile;
-import org.geogebra.common.jre.gui.MyImageJre;
 import org.geogebra.desktop.headless.AppDNoGui;
 import org.geogebra.desktop.main.LocalizationD;
 import org.geogebra.desktop.util.UtilD;
@@ -33,7 +49,7 @@ public class SvgLoadTest extends BaseUnitTest {
 		unsupportedSvgNames.clear();
 		app = new AppDNoGui(new LocalizationD(3), false) {
 			@Override
-			public void addExternalImage(String name, MyImageJre img) {
+			public void addExternalImage(String name, MyImage img) {
 				if (img.isSVG()) {
 					if (JSVGConstants.UNSUPPORTED_SVG.equals(img.getSVG())) {
 						unsupportedSvgNames.add(name.split("/")[1]);
@@ -107,7 +123,7 @@ public class SvgLoadTest extends BaseUnitTest {
 	public void imageReloadTest() {
 		createSvg("2.svg");
 		SVGImage image2 = JSVGImageBuilder.fromContent(image.getContent());
-		assertEquals(image, image2);
+		assertEquals(image.getContent(), image2.getContent());
 	}
 
 	@Test

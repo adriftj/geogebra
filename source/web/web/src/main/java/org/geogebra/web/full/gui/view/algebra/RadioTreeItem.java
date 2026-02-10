@@ -1,13 +1,17 @@
 /*
-GeoGebra - Dynamic Mathematics for Everyone
-http://www.geogebra.org
-
-This file is part of GeoGebra.
-
-This program is free software; you can redistribute it and/or modify it
-under the terms of the GNU General Public License as published by
-the Free Software Foundation.
-
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
  */
 
 package org.geogebra.web.full.gui.view.algebra;
@@ -43,6 +47,11 @@ import org.geogebra.common.util.IndexHTMLBuilder;
 import org.geogebra.common.util.ManualPage;
 import org.geogebra.common.util.StringUtil;
 import org.geogebra.common.util.shape.Rectangle;
+import org.geogebra.editor.share.syntax.SyntaxController;
+import org.geogebra.editor.share.syntax.SyntaxHint;
+import org.geogebra.editor.share.syntax.SyntaxTooltipUpdater;
+import org.geogebra.editor.share.util.Unicode;
+import org.geogebra.editor.web.MathFieldW;
 import org.geogebra.gwtutil.NavigatorUtil;
 import org.geogebra.web.full.css.MaterialDesignResources;
 import org.geogebra.web.full.gui.inputbar.AlgebraInputW;
@@ -82,11 +91,6 @@ import org.gwtproject.user.client.ui.RequiresResize;
 import org.gwtproject.user.client.ui.TreeItem;
 import org.gwtproject.user.client.ui.Widget;
 
-import com.himamis.retex.editor.share.syntax.SyntaxController;
-import com.himamis.retex.editor.share.syntax.SyntaxHint;
-import com.himamis.retex.editor.share.syntax.SyntaxTooltipUpdater;
-import com.himamis.retex.editor.share.util.Unicode;
-import com.himamis.retex.editor.web.MathFieldW;
 import com.himamis.retex.renderer.web.graphics.Graphics2DW;
 
 /**
@@ -2140,5 +2144,12 @@ public abstract class RadioTreeItem extends AVTreeItem implements MathKeyboardLi
 	 */
 	public void insertMath(String string) {
 		// Needed only for LaTeXTreeItem
+	}
+
+	/**
+	 * @return whether it is the last item or not
+	 */
+	public boolean isLastRadioTreeItem() {
+		return index == getAV().getItemCount();
 	}
 }

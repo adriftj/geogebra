@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ * 
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ * 
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.kernel.arithmetic;
 
 import static org.geogebra.test.commands.AlgebraTestHelper.shouldFail;
@@ -13,20 +29,18 @@ import org.geogebra.common.BaseUnitTest;
 import org.geogebra.common.jre.headless.AppCommon;
 import org.geogebra.common.kernel.Kernel;
 import org.geogebra.common.kernel.StringTemplate;
-import org.geogebra.common.kernel.geos.CasEvaluableFunction;
 import org.geogebra.common.kernel.geos.GeoElement;
 import org.geogebra.common.kernel.geos.GeoFunction;
 import org.geogebra.common.kernel.geos.GeoFunctionNVar;
 import org.geogebra.common.kernel.geos.GeoLine;
 import org.geogebra.common.kernel.geos.GeoNumeric;
 import org.geogebra.common.kernel.implicit.GeoImplicit;
+import org.geogebra.editor.share.util.Unicode;
 import org.geogebra.test.TestStringUtil;
 import org.geogebra.test.annotation.Issue;
 import org.geogebra.test.commands.AlgebraTestHelper;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.himamis.retex.editor.share.util.Unicode;
 
 public class ArithmeticTest extends BaseUnitTest {
 
@@ -613,6 +627,33 @@ public class ArithmeticTest extends BaseUnitTest {
 		assertTrue(b.getNumber().isImprecise());
 		GeoNumeric c = add("7.01/a");
 		assertTrue(c.getNumber().isImprecise());
+	}
+
+	@Test
+	@Issue("APPS-7262")
+	public void testFloorPrecision() {
+		add("A1=3.15");
+		add("A2=floor(A1)");
+		add("B1=A1-A2");
+		GeoNumeric b2 = add("B2=10 B1");
+		assertEquals("1.5", b2.toValueString(StringTemplate.maxDecimals));
+		add("A2=3");
+		assertEquals("1.5", lookup("B2").toValueString(StringTemplate.maxDecimals));
+		add("A2=floor(A1)");
+		assertEquals("1.5", lookup("B2")
+				.toValueString(StringTemplate.maxDecimals));
+	}
+
+	@Test
+	@Issue("APPS-7262")
+	public void testMultiplicationPrecision() {
+		add("A1=3.15");
+		add("A4=3");
+		add("B4=A1-A4");
+		GeoNumeric b5 = add("B5=10 B4");
+		assertEquals("1.5", b5.toValueString(StringTemplate.maxDecimals));
+		add("A4=3.0");
+		assertEquals("1.5", lookup("B5").toValueString(StringTemplate.maxDecimals));
 	}
 
 	@Test

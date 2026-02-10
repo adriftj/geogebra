@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.util;
 
 import java.util.HashMap;
@@ -7,6 +23,7 @@ import java.util.Map.Entry;
 
 import org.geogebra.common.io.DocHandler;
 import org.geogebra.common.io.XMLParseException;
+import org.geogebra.common.io.XMLStringBuilder;
 
 /**
  * Parse a single svg element to get width, height and viewBox
@@ -49,7 +66,8 @@ public class SVGDocHandler implements DocHandler {
 	 * @return svg header tag with fixed dimensions
 	 */
 	public String getSVGTag() {
-		StringBuilder sb = new StringBuilder("<svg");
+		XMLStringBuilder sb = new XMLStringBuilder(new StringBuilder(50));
+		sb.startOpeningTag("svg", 0);
 		for (Entry<String, String> entry : attrs.entrySet()) {
 			if (!"width".equals(entry.getKey())
 					&& !"height".equals(entry.getKey())
@@ -60,8 +78,8 @@ public class SVGDocHandler implements DocHandler {
 		appendAttr(sb, "viewBox", getViewBox());
 		appendAttr(sb, "height", getHeight());
 		appendAttr(sb, "width", getWidth());
-		sb.append(">");
-		return sb.toString();
+		sb.endTag();
+		return sb.toString().trim();
 	}
 
 	private String getWidth() {
@@ -74,8 +92,7 @@ public class SVGDocHandler implements DocHandler {
 			return null;
 		}
 		String[] params = getViewBox().trim().split(" ");
-		return (Double.parseDouble(params[j]) - Double.parseDouble(params[i]))
-				+ "";
+		return String.valueOf(Double.parseDouble(params[j]) - Double.parseDouble(params[i]));
 	}
 
 	private String getHeight() {
@@ -87,13 +104,9 @@ public class SVGDocHandler implements DocHandler {
 		return attrs.get("viewBox");
 	}
 
-	private static void appendAttr(StringBuilder sb, String key, String value) {
+	private static void appendAttr(XMLStringBuilder sb, String key, String value) {
 		if (value != null) {
-			sb.append(' ');
-			sb.append(key);
-			sb.append("=\"");
-			StringUtil.encodeXML(sb, value);
-			sb.append("\"");
+			sb.attr(key, value);
 		}
 	}
 

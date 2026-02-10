@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.web.shared;
 
 import static org.geogebra.common.gui.AccessibilityGroup.SIGN_IN_ICON;
@@ -32,6 +48,7 @@ import org.geogebra.web.html5.gui.util.Dom;
 import org.geogebra.web.html5.gui.view.ImageIconSpec;
 import org.geogebra.web.html5.gui.zoompanel.FocusableWidget;
 import org.geogebra.web.html5.main.AppW;
+import org.geogebra.web.html5.util.StringConsumer;
 import org.geogebra.web.shared.view.button.ActionButton;
 import org.gwtproject.animation.client.AnimationScheduler;
 import org.gwtproject.animation.client.AnimationScheduler.AnimationCallback;
@@ -47,6 +64,7 @@ import org.gwtproject.user.client.ui.RootPanel;
 import org.gwtproject.user.client.ui.Widget;
 
 import elemental2.core.Function;
+import elemental2.core.JsArray;
 import elemental2.dom.DomGlobal;
 import jsinterop.base.Js;
 
@@ -370,6 +388,7 @@ public final class GlobalHeader implements EventRenderable, ExamListener {
 			}
 		});
 		if (getButtonElement() == null) {
+			initSafeExamBrowser(hash -> {});
 			return;
 		}
 		// remove other buttons
@@ -397,14 +416,7 @@ public final class GlobalHeader implements EventRenderable, ExamListener {
 
 		ExamType examType = examController.getExamType();
 		if (SafeExamBrowser.get() != null && SafeExamBrowser.get().security != null) {
-			if (Js.isTruthy(GeoGebraGlobal.ggbCallbacks)) {
-				SafeExamBrowser.SebSecurity security = SafeExamBrowser.get().security;
-				GeoGebraGlobal.ggbCallbacks.push(() ->  {
-					examHash = security.configKey.substring(0, 8);
-					addExamType("Safe Exam Browser (" + examHash + ")");
-				});
-				security.updateKeys(GeoGebraGlobal.runCallbacks);
-			}
+			initSafeExamBrowser(hash -> addExamType("Safe Exam Browser (" + hash + ")"));
 		} else if (examType != ExamType.GENERIC && examType != null) {
 			addExamType(examType.getDisplayName(
 					app.getLocalization(), app.getConfig()));
@@ -417,6 +429,28 @@ public final class GlobalHeader implements EventRenderable, ExamListener {
 				app.getGuiManager().showExamInfoDialog(examInfoBtn));
 		// run timer
 		onResize();
+	}
+
+	private void initSafeExamBrowser(StringConsumer onHashChange) {
+		if (SafeExamBrowser.get() == null || SafeExamBrowser.get().security == null) {
+			return;
+		}
+		if (Js.isFalsy(GeoGebraGlobal.ggbCallbacks)) {
+			GeoGebraGlobal.ggbCallbacks = JsArray.of();
+			GeoGebraGlobal.runCallbacks = val -> {
+				GeoGebraGlobal.ggbCallbacks.forEach((callback, ignore) -> {
+					callback.run();
+					return null;
+				});
+				GeoGebraGlobal.ggbCallbacks.splice(0);
+			};
+		}
+		SafeExamBrowser.SebSecurity security = SafeExamBrowser.get().security;
+		GeoGebraGlobal.ggbCallbacks.push(() ->  {
+			examHash = security.configKey.substring(0, 8);
+			onHashChange.consume(examHash);
+		});
+		security.updateKeys(GeoGebraGlobal.runCallbacks);
 	}
 
 	private void addExamType(String examTypeName) {

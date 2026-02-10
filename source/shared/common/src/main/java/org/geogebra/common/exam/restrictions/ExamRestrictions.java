@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.exam.restrictions;
 
 import java.util.HashSet;
@@ -34,6 +50,7 @@ import org.geogebra.common.properties.GeoElementPropertyFilter;
 import org.geogebra.common.properties.PropertiesRegistry;
 import org.geogebra.common.properties.PropertiesRegistryListener;
 import org.geogebra.common.properties.Property;
+import org.geogebra.common.properties.PropertyKey;
 import org.geogebra.common.properties.factory.GeoElementPropertiesFactory;
 import org.geogebra.common.properties.impl.objects.ShowObjectProperty;
 
@@ -74,7 +91,7 @@ public class ExamRestrictions implements PropertiesRegistryListener {
 			new ExamCommandArgumentFilter();
 	private final SyntaxFilter syntaxFilter;
 	private final ToolCollectionFilter toolsFilter;
-	private final Map<String, PropertyRestriction> propertyRestrictions;
+	private final Map<PropertyKey, PropertyRestriction> propertyRestrictions;
 	private final GeoElementPropertyFilter restrictedGeoElementVisibilityPropertyFilter;
 	private final GeoElementSetup restrictedGeoElementVisibilitySetup;
 	private final @CheckForNull EquationBehaviour equationBehaviour;
@@ -149,7 +166,7 @@ public class ExamRestrictions implements PropertiesRegistryListener {
 			@CheckForNull Set<ContextMenuItemFilter> contextMenuItemFilters,
 			@CheckForNull SyntaxFilter syntaxFilter,
 			@CheckForNull ToolCollectionFilter toolsFilter,
-			@CheckForNull Map<String, PropertyRestriction> propertyRestrictions,
+			@CheckForNull Map<PropertyKey, PropertyRestriction> propertyRestrictions,
 			@CheckForNull Set<VisibilityRestriction> visibilityRestrictions,
 			@CheckForNull EquationBehaviour equationBehaviour,
 			@CheckForNull Set<DisabledAlgorithms> disabledAlgorithms,
@@ -260,8 +277,8 @@ public class ExamRestrictions implements PropertiesRegistryListener {
 			dependencies.autoCompleteProvider.setOperationFilter(operationFilter);
 		}
 		if (propertiesRegistry != null) {
-			propertyRestrictions.forEach((name, restriction) -> {
-				Property property = propertiesRegistry.lookup(name, dependencies.context);
+			propertyRestrictions.forEach((key, restriction) -> {
+				Property property = propertiesRegistry.lookup(key, dependencies.context);
 				if (property != null) {
 					restriction.applyTo(property);
 				}
@@ -426,8 +443,9 @@ public class ExamRestrictions implements PropertiesRegistryListener {
 	 */
 	@Override
 	public void propertyRegistered(@Nonnull Property property, Object context) {
-		if (propertyRestrictions.containsKey(property.getRawName())) {
-			propertyRestrictions.get(property.getRawName()).applyTo(property);
+		PropertyKey key = property.getKey();
+		if (propertyRestrictions.containsKey(key)) {
+			propertyRestrictions.get(key).applyTo(property);
 		}
 	}
 
@@ -437,8 +455,9 @@ public class ExamRestrictions implements PropertiesRegistryListener {
 	 */
 	@Override
 	public void propertyUnregistered(@Nonnull Property property, Object context) {
-		if (propertyRestrictions.containsKey(property.getRawName())) {
-			propertyRestrictions.get(property.getRawName()).removeFrom(property);
+		PropertyKey key = property.getKey();
+		if (propertyRestrictions.containsKey(key)) {
+			propertyRestrictions.get(key).removeFrom(property);
 		}
 	}
 
@@ -462,7 +481,9 @@ public class ExamRestrictions implements PropertiesRegistryListener {
 			if (VisibilityRestriction.isVisibilityRestricted(geoElementND.toGeoElement(),
 					visibilityRestrictions)) {
 				geoElementND.toGeoElement().setRestrictedEuclidianVisibility(true);
+				return true;
 			}
+			return false;
 		};
 	}
 

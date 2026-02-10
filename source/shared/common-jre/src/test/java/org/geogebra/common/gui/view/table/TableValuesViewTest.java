@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ * 
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ * 
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.gui.view.table;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -5,7 +21,6 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.stringContainsInOrder;
-import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -19,7 +34,6 @@ import static org.mockito.Mockito.verify;
 
 import org.geogebra.common.BaseUnitTest;
 import org.geogebra.common.GeoElementFactory;
-import org.geogebra.common.kernel.StringTemplate;
 import org.geogebra.common.kernel.arithmetic.ExpressionNode;
 import org.geogebra.common.kernel.arithmetic.Function;
 import org.geogebra.common.kernel.geos.GeoConic;
@@ -524,7 +538,7 @@ public class TableValuesViewTest extends BaseUnitTest {
 		showColumn(fn);
 		assertThat(getApp().getXML(),
 				stringContainsInOrder(
-						"<tableview min=\"0.0\" max=\"10.0\"",
+						"<tableview min=\"0\" max=\"10\"",
 								"<tableview column=\"1\" points=\"true\"/>"));
 	}
 

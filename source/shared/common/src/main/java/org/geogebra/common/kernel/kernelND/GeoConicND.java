@@ -1,14 +1,18 @@
-/* 
-GeoGebra - Dynamic Mathematics for Everyone
-http://www.geogebra.org
-
-This file is part of GeoGebra.
-
-This program is free software; you can redistribute it and/or modify it 
-under the terms of the GNU General Public License as published by 
-the Free Software Foundation.
-
-*/
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
 
 package org.geogebra.common.kernel.kernelND;
 
@@ -16,8 +20,9 @@ import java.util.ArrayList;
 import java.util.TreeSet;
 import java.util.function.Consumer;
 
+import org.geogebra.common.awt.AwtFactory;
 import org.geogebra.common.awt.GAffineTransform;
-import org.geogebra.common.factories.AwtFactory;
+import org.geogebra.common.io.XMLStringBuilder;
 import org.geogebra.common.kernel.Construction;
 import org.geogebra.common.kernel.EquationSolver;
 import org.geogebra.common.kernel.Kernel;
@@ -60,8 +65,7 @@ import org.geogebra.common.util.ExtendedBoolean;
 import org.geogebra.common.util.GgbMat;
 import org.geogebra.common.util.MyMath;
 import org.geogebra.common.util.debug.Log;
-
-import com.himamis.retex.editor.share.util.Unicode;
+import org.geogebra.editor.share.util.Unicode;
 
 /**
  * Class for conic in any dimension.
@@ -272,7 +276,7 @@ public abstract class GeoConicND extends GeoQuadricND
 			double[] coords = new double[3];
 			P.getCoords(coords);
 			setMidpoint(coords);
-			// M is normalvector of double line
+			// M is normal vector of double line
 			eigenvecX = -M.y;
 			eigenvecY = M.x;
 			findEigenvectors();
@@ -2130,7 +2134,7 @@ public abstract class GeoConicND extends GeoQuadricND
 		matrix[2] = -16.0 * afo - sqsumdiff * sqsumdiff
 				+ 8.0 * asq * (sqsumb + sqsumc);
 
-		// set eigenvectors' directions (B -> C and normalvector)
+		// set eigenvectors' directions (B -> C and normal vector)
 		// this is needed, so that setEigenvectors() (called by classifyConic)
 		// will surely take the right direction
 		// normalizing is not needed at this point
@@ -2506,7 +2510,7 @@ public abstract class GeoConicND extends GeoQuadricND
 				eigenvec[0].setCoords(eigenvecX, eigenvecY);
 			}
 
-			// second eigenvector (compared to normalvector (-eigenvecY,
+			// second eigenvector (compared to normal vector (-eigenvecY,
 			// eigenvecX)
 			if (eigenvec[1].getY() * eigenvecX < eigenvec[1].getX()
 					* eigenvecY) {
@@ -2543,7 +2547,7 @@ public abstract class GeoConicND extends GeoQuadricND
 		eigenvec[0].setCoords(eigenvecX, eigenvecY);
 
 		if (kernel.isContinuous()) {
-			// second eigenvector (compared to normalvector (-eigenvecY,
+			// second eigenvector (compared to normal vector (-eigenvecY,
 			// eigenvecX)
 			if (eigenvec[1].getY() * eigenvecX < eigenvec[1].getX()
 					* eigenvecY) {
@@ -3360,30 +3364,28 @@ public abstract class GeoConicND extends GeoQuadricND
 	 * returns all class-specific xml tags for saveXML
 	 */
 	@Override
-	protected void getXMLtags(StringBuilder sb) {
+	protected void getXMLTags(XMLStringBuilder sb) {
 		getStyleXML(sb);
-		sb.append("\t<eigenvectors x0=\"");
-		sb.append(eigenvec[0].getX());
-		sb.append("\" y0=\"");
-		sb.append(eigenvec[0].getY());
-		sb.append("\" z0=\"1.0\" x1=\"");
-		sb.append(eigenvec[1].getX());
-		sb.append("\" y1=\"");
-		sb.append(eigenvec[1].getY());
-		sb.append("\" z1=\"1.0\"/>\n");
+		sb.startTag("eigenvectors");
+		sb.attr("x0", eigenvec[0].getX());
+		sb.attr("y0", eigenvec[0].getY());
+		sb.attr("z0", 1.0);
+		sb.attr("x1", eigenvec[1].getX());
+		sb.attr("y1", eigenvec[1].getY());
+		sb.attr("z1", 1.0).endTag();
 
 		// matrix must be saved after eigenvectors
 		// as only <matrix> will cause a call to classifyConic()
 		// see geogebra.io.MyXMLHandler: handleMatrix() and handleEigenvectors()
-		sb.append("\t<matrix");
+		sb.startTag("matrix");
 		for (int i = 0; i < 6; i++) {
-			sb.append(" A").append(i).append("=\"").append(matrix[i]).append("\"");
+			sb.attr("A" + i, matrix[i]);
 		}
-		sb.append("/>\n");
+		sb.endTag();
 	}
 
 	@Override
-	protected void getStyleXML(StringBuilder sb) {
+	protected void getStyleXML(XMLStringBuilder sb) {
 		super.getStyleXML(sb);
 		// line thickness and type
 		getLineStyleXML(sb);

@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.util;
 
 import java.util.HashMap;
@@ -198,69 +214,6 @@ public abstract class Assignment {
 	 * @return the the Results which are meaningful for the type of Assignment
 	 */
 	public abstract Result[] possibleResults();
-
-	/**
-	 * @return XML describing the Exercise. Will be empty if no changes to the
-	 *         Exercise were made (i.e. if isStandardExercise).<p>
-	 *         Only Elements and Properties which are set or not standard will
-	 *         be included.
-	 *
-	 *         <pre>
-	 * {@code
-	 *  <assignment toolName="Tool2">
-	 *    <result name="CORRECT" hint="Great, that's correct!" />
-	 *    <result name="WRONG" hint="Try again!" />
-	 *    <result name="NOT_ENOUGH_INPUTS" hint="You should at least have
-	 *            {inputs} in your construction!" />
-	 *    <result name="WRONG_INPUT_TYPES" hint="We were not able to find
-	 *            {inputs}, although it seems you have drawn a triangle!" />
-	 *    <result name="WRONG_OUTPUT_TYPE" hint=
-	 *        "We couldn't find a triangle in the construction!" />
-	 *    <result name="WRONG_AFTER_RANDOMIZE" hint="Should never happen
-	 *        in this construction! Contact your teacher!" fraction="0.5" />
-	 *    <result name="UNKNOWN" hint=
-	 *        "Something went wrong - ask your teacher!" />
-	 *  </assignment>
-	 * }
-	 *         </pre>
-	 */
-	public abstract String getAssignmentXML();
-
-	/**
-	 * @param sb
-	 *            the StringBuilder to which to append the XML common to all
-	 *            Assignments
-	 * 
-	 * @return XML including the mapping of possible Results to hints and
-	 *         fractions
-	 */
-	protected StringBuilder getAssignmentXML(StringBuilder sb) {
-
-		if (hasHint() || hasFraction()) {
-			for (Result res1 : Result.values()) {
-				String hint = hintForResult.get(res1);
-				Double fraction = fractionForResult.get(res1);
-				if (hint != null && !hint.isEmpty() || fraction != null) {
-					sb.append("\t\t<result name=\"");
-					StringUtil.encodeXML(sb, res1.toString());
-					sb.append("\" ");
-					if (hint != null && !hint.isEmpty()) {
-						sb.append("hint=\"");
-						StringUtil.encodeXML(sb, hint);
-						sb.append("\" ");
-					}
-					if (fraction != null) {
-						sb.append("fraction=\"");
-						sb.append(fraction.floatValue());
-						sb.append("\" ");
-					}
-					sb.append("/>\n");
-				}
-			}
-		}
-		sb.append("\t</assignment>\n");
-		return sb;
-	}
 
 	/**
 	 * @return Filename or String indicating which icon should be used by GUI

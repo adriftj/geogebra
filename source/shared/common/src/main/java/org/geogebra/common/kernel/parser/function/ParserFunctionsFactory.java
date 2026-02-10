@@ -1,8 +1,23 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.kernel.parser.function;
 
 import org.geogebra.common.plugin.Operation;
-
-import com.himamis.retex.editor.share.util.Unicode;
+import org.geogebra.editor.share.util.Unicode;
 
 /**
  * Creates ParserFunctions.
@@ -41,10 +56,16 @@ public class ParserFunctionsFactory {
 		return new ParserFunctionsFactory(false);
 	}
 
+	/**
+	 * @return parser functions for algebra input
+	 */
 	public ParserFunctions createParserFunctions() {
 		return createParserFunctions(false);
 	}
 
+	/**
+	 * @return parser functions input boxes
+	 */
 	public ParserFunctions createInputBoxParserFunctions() {
 		return createParserFunctions(true);
 	}

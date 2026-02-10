@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.exam.restrictions.wtr;
 
 import javax.annotation.CheckForNull;
@@ -11,24 +27,30 @@ import org.geogebra.common.kernel.arithmetic.NumberValue;
 import org.geogebra.common.kernel.geos.GeoAngle;
 import org.geogebra.common.kernel.kernelND.GeoElementND;
 import org.geogebra.common.plugin.Operation;
-
-import com.himamis.retex.editor.share.util.Unicode;
+import org.geogebra.editor.share.util.Unicode;
 
 public class AlgebraConversionFilter implements AlgebraOutputFilter {
 
 	@Override
 	public boolean isAllowed(GeoElementND element) {
-		if (element.getKernel().getAngleUnit() == Kernel.ANGLE_RADIANT
-				&& element.getDefinition() != null
-				&& element.getDefinition().any(this::isDegree)) {
-			return false;
-		} else if (element.getKernel().getAngleUnit() != Kernel.ANGLE_RADIANT
-				&& element.getDefinition() != null
-				&& element.getDefinition().any(this::isDegree)
-				&& wrongAngleDimension(element, getAngleDimension(element.getDefinition()))) {
-			return false;
+		if (element.getKernel().getAngleUnit() == Kernel.ANGLE_RADIANT) {
+			return element.getDefinition() == null
+					|| element.getDefinition().deepCopy(element.getKernel())
+							.traverse(this::skipTrig).none(this::isDegree);
 		}
-		return true;
+		return element.getDefinition() == null
+				|| element.getDefinition().none(this::isDegree)
+				|| !wrongAngleDimension(element, getAngleDimension(element.getDefinition()));
+	}
+
+	private ExpressionValue skipTrig(ExpressionValue value) {
+		if (value.isExpressionNode()) {
+			Operation op = ((ExpressionNode) value).getOperation();
+			if (op.hasDegreeInput()) {
+				return ((ExpressionNode) value).getKernel().getEulerNumber();
+			}
+		}
+		return value;
 	}
 
 	private boolean wrongAngleDimension(GeoElementND element, Integer angleDimension) {

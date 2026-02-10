@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ * 
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ * 
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+ 
 package org.geogebra.common.kernel.arithmetic.simplifiers;
 
 import static org.geogebra.common.kernel.arithmetic.simplifiers.RationalizeFractionAlgo.checkDecimals;
@@ -17,7 +33,6 @@ import org.geogebra.common.kernel.arithmetic.ExpressionValue;
 import org.geogebra.common.kernel.geos.GeoNumeric;
 import org.geogebra.common.kernel.geos.GeoText;
 import org.geogebra.common.kernel.kernelND.GeoElementND;
-import org.geogebra.common.main.PreviewFeature;
 import org.geogebra.common.util.DoubleUtil;
 import org.geogebra.test.BaseAppTestSetup;
 import org.geogebra.test.annotation.Issue;
@@ -46,7 +61,8 @@ public class RationalizationTest extends BaseAppTestSetup {
 			"(3 (sqrt(3) + 1)) / sqrt(2)",
 			"(-5 + sqrt(5)) / (-3 + sqrt(9))",
 			"(6 + sqrt(10)) / (-4 + sqrt(9))",
-			"(sqrt(3) + 1) / (sqrt(2) - 1)"
+			"(sqrt(3) + 1) / (sqrt(2) - 1)",
+			"(5 sqrt(2))/(2 sqrt(10))"
 	})
 	public void testSupported(String definition) {
 		GeoElementND geo = evaluateGeoElement(definition);
@@ -375,7 +391,6 @@ public class RationalizationTest extends BaseAppTestSetup {
 
 	@Test
 	public void testFormulaText() {
-		PreviewFeature.setPreviewFeaturesEnabled(true);
 		evaluate("a = -1");
 		evaluate("b = 5");
 		evaluate("c = -2");

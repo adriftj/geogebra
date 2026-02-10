@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.properties;
 
 /**
@@ -10,6 +26,7 @@ public enum PropertyResource {
 
 	/* Icons for buttons */
 	ICON_STANDARD_VIEW, ICON_ZOOM_TO_FIT, ICON_RELOAD_AR, ICON_AR_FIT_THICKNESS,
+	ICON_CLEAR_COLOR,
 
 	/* Icons for 3D view projection type */
 	ICON_PROJECTION_PARALLEL, ICON_PROJECTION_PERSPECTIVE, ICON_PROJECTION_GLASSES,
@@ -18,8 +35,8 @@ public enum PropertyResource {
 	/* Icons for 3D view direction */
 	ICON_VIEW_DIRECTION_XY, ICON_VIEW_DIRECTION_XZ, ICON_VIEW_DIRECTION_YZ,
 
-	/* Icons for axes label style */
-	ICON_AXES_BOLD, ICON_AXES_ITALIC, ICON_AXES_SERIF,
+	/* Icons label style */
+	ICON_BOLD, ICON_ITALIC, ICON_SERIF, ICON_UNDERLINE,
 
 	/* Icons for axes line style */
 	ICON_AXES_LINE_TYPE_FULL, ICON_AXES_LINE_TYPE_ARROW, ICON_AXES_LINE_TYPE_ARROW_FILLED,
@@ -65,6 +82,9 @@ public enum PropertyResource {
 
 	/* Cell border type */
 	ICON_CELL_BORDER_ALL, ICON_CELL_BORDER_INNER, ICON_CELL_BORDER_OUTER, ICON_CELL_BORDER_NONE,
+
+	/* Text border type */
+	ICON_BORDER_NONE, ICON_BORDER_THIN, ICON_BORDER_THICK,
 
 	/* Angle style */
 	ICON_RIGHT_ANGLE_STYLE_NONE, ICON_RIGHT_ANGLE_STYLE_SQUARE, ICON_RIGHT_ANGLE_STYLE_DOT,

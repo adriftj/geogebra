@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.web.geogebra3D.web.main;
 
 import org.geogebra.common.euclidian.EuclidianController;
@@ -8,6 +24,7 @@ import org.geogebra.common.geogebra3D.io.OFFHandler;
 import org.geogebra.common.geogebra3D.kernel3D.GeoFactory3D;
 import org.geogebra.common.geogebra3D.kernel3D.Kernel3D;
 import org.geogebra.common.geogebra3D.main.App3DCompanion;
+import org.geogebra.common.io.XMLStringBuilder;
 import org.geogebra.common.kernel.GeoFactory;
 import org.geogebra.common.kernel.Kernel;
 import org.geogebra.common.main.App;
@@ -194,21 +211,17 @@ public class AppWapplet3D extends AppWFull {
 	}
 
 	@Override
-	public String getCompleteUserInterfaceXML(boolean asPreference) {
-		StringBuilder sb = new StringBuilder();
-
+	public void getCompleteUserInterfaceXML(boolean asPreference, XMLStringBuilder builder) {
 		// save super settings
-		sb.append(super.getCompleteUserInterfaceXML(asPreference));
+		super.getCompleteUserInterfaceXML(asPreference, builder);
 
 		// save euclidianView3D settings
 		if (isEuclidianView3Dinited()) {
-			euclidianView3D.getXML(sb, asPreference);
+			euclidianView3D.getXML(builder, asPreference);
 		}
 
 		// save euclidian views for plane settings
-		((App3DCompanion) companion).addCompleteUserInterfaceXMLForPlane(sb, asPreference);
-
-		return sb.toString();
+		((App3DCompanion) companion).addCompleteUserInterfaceXMLForPlane(builder, asPreference);
 	}
 
 	@Override

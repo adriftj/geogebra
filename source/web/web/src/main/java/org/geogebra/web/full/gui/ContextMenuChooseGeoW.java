@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.web.full.gui;
 
 import java.util.ArrayList;
@@ -13,6 +29,7 @@ import org.geogebra.web.html5.gui.menu.AriaMenuBar;
 import org.geogebra.web.html5.gui.menu.AriaMenuItem;
 import org.geogebra.web.html5.main.AppW;
 import org.gwtproject.event.dom.client.MouseOverEvent;
+import org.gwtproject.resources.client.ResourcePrototype;
 import org.gwtproject.user.client.ui.InlineHTML;
 
 /**
@@ -140,11 +157,11 @@ public class ContextMenuChooseGeoW extends ContextMenuGeoElementW {
 		Localization localization = app.getLocalization();
 		if (EuclidianConstants.isMoveOrSelectionMode(mode)) {
 			selectAnotherMenuItem = new AriaMenuItem(
-					localization.getMenu("SelectAnother"), null,
+					localization.getMenu("SelectAnother"), (ResourcePrototype) null,
 					selectAnotherMenu);
 		} else {
 			selectAnotherMenuItem = new AriaMenuItem(
-					localization.getMenu("PerformToolOn"), null,
+					localization.getMenu("PerformToolOn"), (ResourcePrototype) null,
 					selectAnotherMenu);
 		}
 		wrappedPopup.addItem(selectAnotherMenuItem);

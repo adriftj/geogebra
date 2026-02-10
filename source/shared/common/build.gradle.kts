@@ -7,7 +7,6 @@ plugins {
     alias(libs.plugins.geogebra.pmd)
     alias(libs.plugins.geogebra.checkstyle)
     alias(libs.plugins.geogebra.spotbugs)
-    alias(libs.plugins.geogebra.sourcesets)
     alias(libs.plugins.geogebra.javacc)
 }
 
@@ -19,6 +18,7 @@ dependencies {
     javacc(libs.javacc)
     api(project(":editor-base"))
     api(project(":renderer-base"))
+    api(project(":canvas-base"))
     api(libs.apache.math)
     api(libs.spotbugs.annotations)
     api(libs.findbugs.annotations)

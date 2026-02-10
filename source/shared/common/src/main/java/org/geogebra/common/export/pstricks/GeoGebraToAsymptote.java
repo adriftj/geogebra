@@ -1,9 +1,17 @@
 /*
-This file is part of GeoGebra.
-This program is free software; you can redistribute it and/or modify it 
-under the terms of the GNU General Public License as published by 
-the Free Software Foundation.
-
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
  */
 
 package org.geogebra.common.export.pstricks;
@@ -16,6 +24,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
+import org.geogebra.common.awt.AwtFactory;
 import org.geogebra.common.awt.GAffineTransform;
 import org.geogebra.common.awt.GColor;
 import org.geogebra.common.awt.GFont;
@@ -24,7 +33,6 @@ import org.geogebra.common.awt.GShape;
 import org.geogebra.common.euclidian.DrawableND;
 import org.geogebra.common.euclidian.draw.DrawPoint;
 import org.geogebra.common.export.UnicodeTeX;
-import org.geogebra.common.factories.AwtFactory;
 import org.geogebra.common.kernel.Kernel;
 import org.geogebra.common.kernel.MyPoint;
 import org.geogebra.common.kernel.StringTemplate;
@@ -71,9 +79,8 @@ import org.geogebra.common.main.App;
 import org.geogebra.common.plugin.EuclidianStyleConstants;
 import org.geogebra.common.util.StringUtil;
 import org.geogebra.common.util.debug.Log;
-
-import com.himamis.retex.editor.share.util.Greek;
-import com.himamis.retex.editor.share.util.Unicode;
+import org.geogebra.editor.share.util.Greek;
+import org.geogebra.editor.share.util.Unicode;
 
 /**
  * @author Andy Zhu
@@ -857,9 +864,9 @@ public class GeoGebraToAsymptote extends GeoGebraExport {
 		double angEnd = angEnd0 - angle;
 		code.append(format(Math.toDegrees(angEnd)));
 		code.append(")");
-		if (lineOptionCode(geo, true) != null) {
+		if (lineOptionCode(geo) != null) {
 			packSpaceAfter(code, ",");
-			code.append(lineOptionCode(geo, true));
+			code.append(lineOptionCode(geo));
 		} // TODO: resize?
 		if (anticlockwise) {
 			code.append(",EndArcArrow(6)");
@@ -1444,12 +1451,12 @@ public class GeoGebraToAsymptote extends GeoGebraExport {
 		addPoint(x1, y1, code);
 		code.append("--");
 		addPoint(x2, y2, code);
-		if (lineOptionCode(geo, true) != null) {
+		if (lineOptionCode(geo) != null) {
 			code.append(",");
 			if (!compact) {
 				code.append(" ");
 			}
-			code.append(lineOptionCode(geo, true));
+			code.append(lineOptionCode(geo));
 		}
 		code.append(",EndArrow(6)); ");
 	}
@@ -2161,9 +2168,9 @@ public class GeoGebraToAsymptote extends GeoGebraExport {
 		endDraw(geo, str);
 		String s = str.toString();
 		StringBuilder sb = new StringBuilder();
-		if (lineOptionCode(geo, true) != null) {
+		if (lineOptionCode(geo) != null) {
 			packSpaceAfter(sb, ",");
-			sb.append(lineOptionCode(geo, true));
+			sb.append(lineOptionCode(geo));
 		}
 		sb.append("); ");
 		StringBuilder sa = new StringBuilder();
@@ -2235,7 +2242,6 @@ public class GeoGebraToAsymptote extends GeoGebraExport {
 				format(ymax) + "; ");
 		if (!compact) {
 			codePreamble.append(" /* image dimensions */\n");
-		} else { /* codePreamble.append("\n"); */
 		}
 	}
 
@@ -2380,10 +2386,8 @@ public class GeoGebraToAsymptote extends GeoGebraExport {
 			// if(compactcse5) {
 			// codePoint.append(",fp");
 			// }
-			if (isPointLabel && !frame.getKeepDotColors()) {
-				// configurable or default black?
-				// temp empty
-			} else if (!geocolor.equals(GColor.BLACK)) {
+			if (!(isPointLabel && !frame.getKeepDotColors())
+					&& !geocolor.equals(GColor.BLACK)) {
 				if (compactcse5) {
 					codePoint.append(",fp+");
 				} else {
@@ -2916,7 +2920,7 @@ public class GeoGebraToAsymptote extends GeoGebraExport {
 	}
 
 	// Line style code; does not include comma.
-	private String lineOptionCode(GeoElementND geo, boolean transparency) {
+	private String lineOptionCode(GeoElementND geo) {
 		StringBuilder sb = new StringBuilder();
 		int linethickness = geo.getLineThickness();
 		int linestyle = geo.getLineType();
@@ -2935,14 +2939,9 @@ public class GeoGebraToAsymptote extends GeoGebraExport {
 			packSpace(sb, "+");
 			colorCode(info.getLinecolor(), sb);
 		}
-		if (transparency && geo.isFillable() && info.getAlpha() > 0.0f) {
-			/*
-			 * TODO: write opacity code? if (!noPlus) packSpace("+",sb); else
-			 * noPlus = false; sb.append("fillcolor="); ColorCode(linecolor,sb);
-			 * sb.append(",fillstyle=solid,opacity=");
-			 * sb.append(geo.getAlphaValue());
-			 */
-		}
+		/*
+		 * TODO: write opacity code?
+		 */
 		return sb.toString();
 	}
 
@@ -3401,9 +3400,9 @@ public class GeoGebraToAsymptote extends GeoGebraExport {
 		if (fillInequality) {
 			return;
 		}
-		if (lineOptionCode(geo, true) != null) {
+		if (lineOptionCode(geo) != null) {
 			packSpaceAfter(sb, ",");
-			sb.append(lineOptionCode(geo, true));
+			sb.append(lineOptionCode(geo));
 		}
 		sb.append("); ");
 	}
@@ -3459,9 +3458,9 @@ public class GeoGebraToAsymptote extends GeoGebraExport {
 			packSpaceAfter(sb, ",");
 			colorLightCode(info.getLinecolor(), info.getAlpha(), sb);
 		}
-		if (lineOptionCode(geo, true) != null) {
+		if (lineOptionCode(geo) != null) {
 			packSpaceAfter(sb, ",");
-			sb.append(lineOptionCode(geo, true));
+			sb.append(lineOptionCode(geo));
 		}
 		sb.append("); ");
 	}
@@ -3590,7 +3589,7 @@ public class GeoGebraToAsymptote extends GeoGebraExport {
 		// look up unicodeTable conversions and replace with LaTeX commands
 		while (it.hasNext()) {
 			char skey = it.next();
-			s1 = s1.replace(skey + "",
+			s1 = s1.replace(String.valueOf(skey),
 					"\\\\" + UnicodeTeX.getMap().get(skey) + " ");
 		}
 
@@ -3610,7 +3609,6 @@ public class GeoGebraToAsymptote extends GeoGebraExport {
 			if (s1.charAt(i - 1) == '\\'
 					&& (i == 1 || s1.charAt(i - 2) != '\\')) {
 				sb.append(s1.charAt(i));
-				continue;
 			} else if (s1.charAt(i) == '$') {
 				sb.append("\\$");
 			} else {
@@ -3703,7 +3701,7 @@ public class GeoGebraToAsymptote extends GeoGebraExport {
 			String latexName = "\\" + latexNameNoBackslash;
 
 			// temporary code: may be redundant, fail-safe
-			renameFunc(sb, greek.unicode + "", latexNameNoBackslash);
+			renameFunc(sb, String.valueOf(greek.unicode), latexNameNoBackslash);
 
 			renameFunc(sb, latexName, latexNameNoBackslash);
 		}
@@ -3769,7 +3767,7 @@ public class GeoGebraToAsymptote extends GeoGebraExport {
 				&& FillType.STANDARD == curves[0].getFillType()) {
 			return false;
 		}
-		String lineOptionCode = lineOptionCode(curves[0], true);
+		String lineOptionCode = lineOptionCode(curves[0]);
 		for (int i = 0; i < curves.length; i++) {
 			drawSingleCurveCartesian(curves[i], false);
 		}

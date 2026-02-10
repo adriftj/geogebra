@@ -1,19 +1,17 @@
-/* 
- GeoGebra - Dynamic Mathematics for Everyone
- http://www.geogebra.org
-
- This file is part of GeoGebra.
-
- This program is free software; you can redistribute it and/or modify it 
- under the terms of the GNU General Public License as published by 
- the Free Software Foundation.
-
- */
-
-/**
- * GeoGebra Application
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
  *
- * @author Markus Hohenwarter
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
  */
 
 package org.geogebra.desktop.gui.app;
@@ -82,15 +80,21 @@ import org.geogebra.desktop.util.FrameCollector;
 import org.geogebra.desktop.util.HttpRequestD;
 import org.geogebra.desktop.util.LoggerD;
 import org.geogebra.desktop.util.UtilD;
-
-import com.himamis.retex.editor.share.util.Unicode;
+import org.geogebra.editor.share.util.Unicode;
 
 /**
  * GeoGebra's main window.
  */
 public class GeoGebraFrame extends JFrame
 		implements WindowFocusListener, Printable, ComponentListener {
-
+	public static final String JARS_UPDATE_DIR = "\\GeoGebra "
+			+ GeoGebraConstants.SHORT_VERSION_STRING + "\\jars\\update";
+	/** URL of GeoGebra jars */
+	public final static String ONLINE_ARCHIVE_BASE = "https://jars.geogebra.org/webstart/"
+			+ GeoGebraConstants.SHORT_VERSION_STRING + "/";
+	/** URL of GeoGebra jars, zipped */
+	public static final String GEOGEBRA_ONLINE_JARS_ZIP = ONLINE_ARCHIVE_BASE
+			+ "geogebra-jars.zip";
 	private static final long serialVersionUID = 1L;
 
 	private static final int VERSION_CHECK_DAYS = 1;
@@ -527,7 +531,7 @@ public class GeoGebraFrame extends JFrame
 			try {
 				// Creating working directory:
 				String updateDir = System.getenv("APPDATA")
-						+ GeoGebraConstants.GEOGEBRA_JARS_UPDATE_DIR;
+						+ JARS_UPDATE_DIR;
 				Log.debug("Creating " + updateDir);
 				UtilD.mkdirs(new File(updateDir));
 
@@ -535,9 +539,9 @@ public class GeoGebraFrame extends JFrame
 				String filename = updateDir + File.separator
 						+ "geogebra-jars.zip";
 				File dest = new File(filename);
-				URL url = new URL(GeoGebraConstants.GEOGEBRA_ONLINE_JARS_ZIP);
+				URL url = new URL(GEOGEBRA_ONLINE_JARS_ZIP);
 				Log.debug("Downloading "
-						+ GeoGebraConstants.GEOGEBRA_ONLINE_JARS_ZIP);
+						+ GEOGEBRA_ONLINE_JARS_ZIP);
 				DownloadManager.copyURLToFile(url, dest);
 
 				// Unzipping:

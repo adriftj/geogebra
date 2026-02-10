@@ -1,13 +1,17 @@
-/* 
-GeoGebra - Dynamic Mathematics for Everyone
-http://www.geogebra.org
-
-This file is part of GeoGebra.
-
-This program is free software; you can redistribute it and/or modify it 
-under the terms of the GNU General Public License as published by 
-the Free Software Foundation.
-
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
  */
 
 package org.geogebra.common.kernel.arithmetic;
@@ -20,6 +24,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
 
+import org.geogebra.common.io.XMLStringBuilder;
 import org.geogebra.common.kernel.ConstructionDefaults;
 import org.geogebra.common.kernel.Kernel;
 import org.geogebra.common.kernel.StringTemplate;
@@ -40,7 +45,6 @@ import org.geogebra.common.plugin.Operation;
 import org.geogebra.common.util.DoubleUtil;
 import org.geogebra.common.util.MaxSizeHashMap;
 import org.geogebra.common.util.MyMath;
-import org.geogebra.common.util.StringUtil;
 import org.geogebra.common.util.debug.Log;
 
 import com.google.j2objc.annotations.Weak;
@@ -406,7 +410,7 @@ public class FunctionNVar extends ValidExpression
 	}
 
 	/**
-	 * Returns the last x, y and z variables from the input var array, if they exist.
+	 * Returns the last x, y and z variables from the input var array if they exist.
 	 *
 	 * @param vars input array
 	 * @return x, y and z variables from the input, if they exist
@@ -415,11 +419,11 @@ public class FunctionNVar extends ValidExpression
 		// get function variables for x, y, z
 		FunctionVariable xVar = null, yVar = null, zVar = null;
 		for (FunctionVariable fVar : vars) {
-			if ("x".equals(fVar.toString(StringTemplate.defaultTemplate))) {
+			if ("x".equals(fVar.getSetVarString())) {
 				xVar = fVar;
-			} else if ("y".equals(fVar.toString(StringTemplate.defaultTemplate))) {
+			} else if ("y".equals(fVar.getSetVarString())) {
 				yVar = fVar;
-			} else if ("z".equals(fVar.toString(StringTemplate.defaultTemplate))) {
+			} else if ("z".equals(fVar.getSetVarString())) {
 				zVar = fVar;
 			}
 		}
@@ -737,17 +741,16 @@ public class FunctionNVar extends ValidExpression
 	 * @param sb
 	 *            XML builder
 	 */
-	public void printCASevalMapXML(StringBuilder sb) {
+	public void printCASevalMapXML(XMLStringBuilder sb) {
 		if (casEvalMap != null) {
-			sb.append("<casMap>\n");
+			sb.startOpeningTag("casMap", 1).endTag();
 			for (Entry<String, FunctionNVar> entry : casEvalMap.entrySet()) {
-				sb.append("\t<entry key=\"");
-				StringUtil.encodeXML(sb, entry.getKey());
-				sb.append("\" val=\"");
-				StringUtil.encodeXML(sb, entry.getValue().toString(StringTemplate.xmlTemplate));
-				sb.append("\"/>\n");
+				sb.startTag("entry", 2)
+						.attr("key", entry.getKey())
+						.attr("val", entry.getValue().toString(StringTemplate.xmlTemplate))
+						.endTag();
 			}
-			sb.append("</casMap>\n");
+			sb.closeTag("casMap");
 		}
 	}
 

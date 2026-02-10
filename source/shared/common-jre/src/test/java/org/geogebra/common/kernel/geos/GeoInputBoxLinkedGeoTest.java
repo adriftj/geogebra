@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ * 
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ * 
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.kernel.geos;
 
 import static org.geogebra.common.kernel.geos.GeoInputBox.isGeoLinkable;
@@ -27,16 +43,16 @@ import org.geogebra.common.kernel.Kernel;
 import org.geogebra.common.kernel.StringTemplate;
 import org.geogebra.common.kernel.kernelND.GeoSurfaceCartesian2D;
 import org.geogebra.common.plugin.GeoClass;
+import org.geogebra.editor.share.catalog.TemplateCatalog;
+import org.geogebra.editor.share.event.KeyEvent;
+import org.geogebra.editor.share.serializer.TeXSerializer;
+import org.geogebra.editor.share.util.Unicode;
 import org.geogebra.ggbjdk.java.awt.geom.Rectangle;
 import org.geogebra.test.annotation.Issue;
 import org.geogebra.test.euclidian.TextFieldCommonJre;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.himamis.retex.editor.share.event.KeyEvent;
-import com.himamis.retex.editor.share.meta.MetaModel;
-import com.himamis.retex.editor.share.serializer.TeXSerializer;
-import com.himamis.retex.editor.share.util.Unicode;
 import com.himamis.retex.renderer.share.platform.FactoryProvider;
 
 public class GeoInputBoxLinkedGeoTest extends BaseUnitTest {
@@ -65,7 +81,7 @@ public class GeoInputBoxLinkedGeoTest extends BaseUnitTest {
 	@Test
 	public void shouldNotRemoveCommasForText() {
 		setupInput("txt", "\"Hello Friends\"");
-		final MathFieldCommon mf = new MathFieldCommon(new MetaModel(), null);
+		final MathFieldCommon mf = new MathFieldCommon(new TemplateCatalog(), null);
 		SymbolicEditorCommon editor = new SymbolicEditorCommon(mf, getApp());
 		editor.attach((GeoInputBox) lookup("ib"), new Rectangle(),
 				LatexRendererSettings.create());
@@ -77,7 +93,7 @@ public class GeoInputBoxLinkedGeoTest extends BaseUnitTest {
 	@Test
 	public void shouldAllowBracketForMatrices() {
 		setupInput("m1", "{{1,2},{3,4}}");
-		final MathFieldCommon mf = new MathFieldCommon(new MetaModel(), null);
+		final MathFieldCommon mf = new MathFieldCommon(new TemplateCatalog(), null);
 		SymbolicEditorCommon editor = new SymbolicEditorCommon(mf, getApp());
 		editor.attach((GeoInputBox) lookup("ib"), new Rectangle(),
 				LatexRendererSettings.create());
@@ -101,7 +117,7 @@ public class GeoInputBoxLinkedGeoTest extends BaseUnitTest {
 	@Test
 	public void shouldNotFireEventOnFocus() {
 		setupInput("txt", "\"GeoGebra\\\\nRocks\"");
-		final MathFieldCommon mf = new MathFieldCommon(new MetaModel(), null);
+		final MathFieldCommon mf = new MathFieldCommon(new TemplateCatalog(), null);
 		SymbolicEditorCommon editor = new SymbolicEditorCommon(mf, getApp());
 		editor.setKeyListener(key -> fail("Unexpected typing:" + key));
 		editor.attach((GeoInputBox) lookup("ib"), new Rectangle(),
@@ -112,7 +128,7 @@ public class GeoInputBoxLinkedGeoTest extends BaseUnitTest {
 	public void shouldUpdateColor() {
 		getApp().getEuclidianView1().setViewTextField(new TextFieldCommonJre());
 		setupInput("a", "1");
-		final MathFieldCommon mf = new MathFieldCommon(new MetaModel(), null);
+		final MathFieldCommon mf = new MathFieldCommon(new TemplateCatalog(), null);
 		SymbolicEditorCommon editor = new SymbolicEditorCommon(mf, getApp());
 		editor.attach((GeoInputBox) lookup("ib"), new Rectangle(),
 				LatexRendererSettings.create());
@@ -126,7 +142,7 @@ public class GeoInputBoxLinkedGeoTest extends BaseUnitTest {
 	public void testEditorDescription() {
 		getApp().getEuclidianView1().setViewTextField(new TextFieldCommonJre());
 		setupInput("a", "42");
-		final MathFieldCommon mf = new MathFieldCommon(new MetaModel(), null);
+		final MathFieldCommon mf = new MathFieldCommon(new TemplateCatalog(), null);
 		SymbolicEditorCommon editor = new SymbolicEditorCommon(mf, getApp());
 		editor.attach((GeoInputBox) lookup("ib"), new Rectangle(),
 				LatexRendererSettings.create());

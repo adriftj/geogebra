@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ * 
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ * 
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.kernel.geos;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -13,13 +29,13 @@ import org.geogebra.common.kernel.StringTemplate;
 import org.geogebra.common.main.AppCommon3D;
 import org.geogebra.common.main.ScreenReader;
 import org.geogebra.common.main.settings.config.AppConfigDefault;
+import org.geogebra.editor.share.catalog.TemplateCatalog;
+import org.geogebra.editor.share.serializer.ScreenReaderSerializer;
+import org.geogebra.editor.share.util.Unicode;
 import org.geogebra.ggbjdk.java.awt.geom.Rectangle;
 import org.geogebra.test.LocalizationCommonUTF;
 import org.junit.Test;
 
-import com.himamis.retex.editor.share.meta.MetaModel;
-import com.himamis.retex.editor.share.serializer.ScreenReaderSerializer;
-import com.himamis.retex.editor.share.util.Unicode;
 import com.himamis.retex.renderer.share.platform.FactoryProvider;
 import com.himamis.retex.renderer.share.serialize.SerializationAdapter;
 
@@ -80,13 +96,13 @@ public class AuralTextUnicodeTest extends BaseUnitTest {
 		FactoryProvider.setInstance(new FactoryProviderCommon());
 		add("A=(1,1)");
 		GeoInputBox input = add("ib=InputBox(A)");
-		final MathFieldCommon mf = new MathFieldCommon(new MetaModel(), null);
+		final MathFieldCommon mf = new MathFieldCommon(new TemplateCatalog(), null);
 		SymbolicEditorCommon editor = new SymbolicEditorCommon(mf, getApp());
 		editor.attach(input, new Rectangle(),
 				LatexRendererSettings.create());
 		SerializationAdapter adapter = ScreenReader.getSerializationAdapter(getApp());
 		assertThat(ScreenReaderSerializer.fullDescription(editor.getMathFieldInternal().getFormula()
-				.getRootComponent(), adapter), equalTo("( 1, 1)"));
+				.getRootNode(), adapter), equalTo("( 1, 1)"));
 
 	}
 

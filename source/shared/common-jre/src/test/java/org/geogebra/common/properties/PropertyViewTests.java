@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.properties;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
@@ -5,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -14,19 +31,32 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.geogebra.common.SuiteSubApp;
 import org.geogebra.common.euclidian.EuclidianView;
-import org.geogebra.common.main.Localization;
+import org.geogebra.common.jre.headless.MyImageCommon;
+import org.geogebra.common.kernel.geos.GeoElement;
+import org.geogebra.common.kernel.geos.GeoNumeric;
 import org.geogebra.common.main.PreviewFeature;
 import org.geogebra.common.main.settings.EuclidianSettings;
 import org.geogebra.common.ownership.GlobalScope;
+import org.geogebra.common.properties.aliases.ImageProperty;
+import org.geogebra.common.properties.factory.GeoElementPropertiesFactory;
 import org.geogebra.common.properties.factory.PropertiesArray;
+import org.geogebra.common.properties.impl.facade.ImagePropertyListFacade;
+import org.geogebra.common.properties.impl.facade.NamedEnumeratedPropertyListFacade;
 import org.geogebra.common.properties.impl.graphics.AxisDistanceProperty;
 import org.geogebra.common.properties.impl.graphics.GridDistanceProperty;
 import org.geogebra.common.properties.impl.graphics.GridDistancePropertyCollection;
 import org.geogebra.common.properties.impl.graphics.GridVisibilityProperty;
+import org.geogebra.common.properties.impl.objects.AnimationPropertyCollection;
+import org.geogebra.common.properties.impl.objects.FillImageProperty;
+import org.geogebra.common.properties.impl.objects.LinearEquationFormProperty;
+import org.geogebra.common.properties.impl.objects.delegate.NotApplicablePropertyException;
+import org.geogebra.common.util.ImageManagerCommon;
 import org.geogebra.test.BaseAppTestSetup;
+import org.geogebra.test.annotation.Issue;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 public class PropertyViewTests extends BaseAppTestSetup {
 	@BeforeAll
@@ -76,10 +106,12 @@ public class PropertyViewTests extends BaseAppTestSetup {
 				.RelatedPropertyViewCollection) PropertyView.of(gridDistancePropertyCollection);
 		PropertyView.Checkbox fixedDistanceCheckbox = (PropertyView.Checkbox)
 				relatedPropertyViewCollection.getPropertyViews().get(0);
-		PropertyView.ComboBoxRow gridDistanceComboBoxRow = (PropertyView.ComboBoxRow)
+		PropertyView.HorizontalSplitView horizontalSplitView = (PropertyView.HorizontalSplitView)
 				relatedPropertyViewCollection.getPropertyViews().get(1);
-		PropertyView.ComboBox xGridDistanceComboBox = gridDistanceComboBoxRow.getLeadingComboBox();
-		PropertyView.ComboBox yGridDistanceComboBox = gridDistanceComboBoxRow.getTrailingComboBox();
+		PropertyView.ComboBox xGridDistanceComboBox =
+				(PropertyView.ComboBox) horizontalSplitView.getLeadingPropertyView();
+		PropertyView.ComboBox yGridDistanceComboBox =
+				(PropertyView.ComboBox) horizontalSplitView.getTrailingPropertyView();
 
 		assertFalse(fixedDistanceCheckbox.isSelected());
 		assertFalse(xGridDistanceComboBox.isEnabled());
@@ -158,57 +190,124 @@ public class PropertyViewTests extends BaseAppTestSetup {
 	}
 
 	@Test
-	public void testComboBoxRowVisibilityListenersForEachPropertyViewInTheTree() {
+	public void testHorizontalSplitViewIgnoredVisibilityListenersForChildViews() {
 		setupApp(SuiteSubApp.GRAPHING);
 
-		GridDistanceProperty leadingComboBoxProperty = new GridDistanceProperty(
-				getAlgebraProcessor(), getLocalization(), getEuclidianView(), "x", 0);
-		GridDistanceProperty trailingComboBoxProperty = new GridDistanceProperty(
-				getAlgebraProcessor(), getLocalization(), getEuclidianView(), "y", 0);
-		PropertyView.ComboBoxRow comboBoxRow = new PropertyView.ComboBoxRow(
-				leadingComboBoxProperty, trailingComboBoxProperty);
+		PropertyView.ComboBox leadingComboBox = new PropertyView.ComboBox(new GridDistanceProperty(
+				getAlgebraProcessor(), getLocalization(), getEuclidianView(), "x", 0));
+		PropertyView.ComboBox trailingComboBox = new PropertyView.ComboBox(new GridDistanceProperty(
+				getAlgebraProcessor(), getLocalization(), getEuclidianView(), "y", 0));
+		PropertyView.HorizontalSplitView horizontalSplitView = new PropertyView.HorizontalSplitView(
+				leadingComboBox, trailingComboBox);
 
-		AtomicBoolean leadingComboBoxVisibilityListenerCalled = new AtomicBoolean(false);
-		comboBoxRow.getLeadingComboBox().setVisibilityUpdateDelegate(() ->
-				leadingComboBoxVisibilityListenerCalled.set(true));
+		AtomicBoolean leadingPropertyViewVisibilityListenerCalled = new AtomicBoolean(false);
+		horizontalSplitView.getLeadingPropertyView().setVisibilityUpdateDelegate(() ->
+				leadingPropertyViewVisibilityListenerCalled.set(true));
 
-		AtomicBoolean trailingComboBoxVisibilityListenerCalled = new AtomicBoolean(false);
-		comboBoxRow.getTrailingComboBox().setVisibilityUpdateDelegate(() ->
-				trailingComboBoxVisibilityListenerCalled.set(true));
+		AtomicBoolean trailingPropertyViewVisibilityListenerCalled = new AtomicBoolean(false);
+		horizontalSplitView.getTrailingPropertyView().setVisibilityUpdateDelegate(() ->
+				trailingPropertyViewVisibilityListenerCalled.set(true));
 
-		AtomicBoolean comboBoxRowVisibilityListenerCalled = new AtomicBoolean(false);
-		comboBoxRow.setVisibilityUpdateDelegate(() ->
-				comboBoxRowVisibilityListenerCalled.set(true));
+		AtomicBoolean horizontalSplitViewVisibilityListenerCalled = new AtomicBoolean(false);
+		horizontalSplitView.setVisibilityUpdateDelegate(() ->
+				horizontalSplitViewVisibilityListenerCalled.set(true));
 
 		getEuclidianSettings().setGridType(EuclidianView.GRID_POLAR);
 
-		assertAll(() -> assertTrue(comboBoxRowVisibilityListenerCalled.get()),
-				() -> assertTrue(leadingComboBoxVisibilityListenerCalled.get()),
-				() -> assertTrue(trailingComboBoxVisibilityListenerCalled.get()));
+		assertAll(() -> assertTrue(horizontalSplitViewVisibilityListenerCalled.get()),
+				() -> assertFalse(leadingPropertyViewVisibilityListenerCalled.get()),
+				() -> assertFalse(trailingPropertyViewVisibilityListenerCalled.get()));
 	}
 
 	@Test
-	public void testSingleComboBoxRowVisibilityListener() {
+	public void testSingleHorizontalSplitViewVisibilityListener() {
 		setupApp(SuiteSubApp.GRAPHING);
 
-		GridDistanceProperty leadingComboBoxProperty = new GridDistanceProperty(
-				getAlgebraProcessor(), getLocalization(), getEuclidianView(), "x", 0);
-		GridDistanceProperty trailingComboBoxProperty = new GridDistanceProperty(
-				getAlgebraProcessor(), getLocalization(), getEuclidianView(), "y", 0);
-		PropertyView.ComboBoxRow comboBoxRow = new PropertyView.ComboBoxRow(
-				leadingComboBoxProperty, trailingComboBoxProperty);
+		PropertyView.HorizontalSplitView horizontalSplitView = new PropertyView.HorizontalSplitView(
+				new PropertyView.ComboBox(new GridDistanceProperty(
+						getAlgebraProcessor(), getLocalization(), getEuclidianView(), "x", 0)),
+				new PropertyView.ComboBox(new GridDistanceProperty(
+						getAlgebraProcessor(), getLocalization(), getEuclidianView(), "y", 0)));
 
-		AtomicBoolean comboBoxRowVisibilityListenerCalled = new AtomicBoolean(false);
-		comboBoxRow.setVisibilityUpdateDelegate(() ->
-				comboBoxRowVisibilityListenerCalled.set(true));
+		AtomicBoolean horizontalSplitViewVisibilityListenerCalled = new AtomicBoolean(false);
+		horizontalSplitView.setVisibilityUpdateDelegate(() ->
+				horizontalSplitViewVisibilityListenerCalled.set(true));
 
 		getEuclidianSettings().setGridType(EuclidianView.GRID_POLAR);
 
-		assertTrue(comboBoxRowVisibilityListenerCalled.get());
+		assertTrue(horizontalSplitViewVisibilityListenerCalled.get());
 	}
 
-	private Localization getLocalization() {
-		return getApp().getLocalization();
+	@Test
+	public void testFrozenPropertiesAreHidden() {
+		setupApp(SuiteSubApp.GRAPHING);
+
+		GeoElement line = evaluateGeoElement("Line((-1,-1),(1,1))");
+		GeoElementPropertiesFactory propertiesFactory = new GeoElementPropertiesFactory();
+		PropertiesArray properties = propertiesFactory.createGeoElementProperties(
+				getAlgebraProcessor(), getLocalization(), List.of(line));
+		LinearEquationFormProperty linearEquationFormProperty = null;
+		for (Property property : properties.getProperties()) {
+			if (property instanceof NamedEnumeratedPropertyListFacade) {
+				Property firstProperty = ((NamedEnumeratedPropertyListFacade) property)
+						.getFirstProperty();
+				if (firstProperty instanceof LinearEquationFormProperty) {
+					linearEquationFormProperty = (LinearEquationFormProperty) firstProperty;
+					break;
+				}
+			}
+		}
+		assertNotNull(linearEquationFormProperty);
+		PropertyView propertyView = PropertyView.of(linearEquationFormProperty);
+		assertTrue(propertyView.isVisible());
+		linearEquationFormProperty.setFrozen(true);
+		propertyView = PropertyView.of(linearEquationFormProperty);
+		assertFalse(propertyView.isVisible());
+	}
+
+	@Test
+	@Issue({"APPS-7088", "APPS-7092"})
+	public void testSingleExpandableListIsConvertedToContents()
+			throws NotApplicablePropertyException {
+		setupApp(SuiteSubApp.GRAPHING);
+
+		GeoNumeric animatablePoint = evaluateGeoElement("a = 5");
+		animatablePoint.setIntervalMin(0);
+		animatablePoint.setIntervalMax(10);
+
+		PropertiesArray array = new PropertiesArray(null, getLocalization(),
+				new AnimationPropertyCollection(GlobalScope.geoElementPropertiesFactory,
+						getAlgebraProcessor(), getLocalization(), List.of(animatablePoint)));
+		List<PropertyView> propertyViews = PropertyViewFactory.propertyViewListOf(array);
+
+		assertAll(() -> assertFalse(propertyViews.get(0) instanceof PropertyView.ExpandableList),
+				() -> assertTrue(propertyViews.size() == 2)
+		);
+	}
+
+	@Test
+	@Issue({"APPS-7286"})
+	public void testColorPickerReturnsFileName()
+			throws NotApplicablePropertyException {
+		setupApp(SuiteSubApp.GRAPHING);
+		
+		getApp().setImageManager(new ImageManagerCommon());
+
+		GeoElement element = evaluateGeoElement("Circle((0,0),10)");
+		FillImageProperty property = new FillImageProperty(getLocalization(),
+				getApp().getImageManager(), element);
+		PropertyView.ImagePicker row = (PropertyView.ImagePicker)
+				PropertyView.of(new ImagePropertyListFacade(List.of(property)));
+		
+		MyImageCommon image = new MyImageCommon(10, 10);
+		property.setValue(new ImageProperty.Value(image, "path/to/file/image.png"));
+		assertEquals("image.png", row.getFileName());
+		property.setValue(new ImageProperty.Value(image, "image.png"));
+		assertEquals("image.png", row.getFileName());
+		property.setValue(new ImageProperty.Value(image, "image"));
+		assertEquals("image", row.getFileName());
+		property.setValue(null);
+		assertEquals(null, row.getFileName());
 	}
 
 	private EuclidianView getEuclidianView() {

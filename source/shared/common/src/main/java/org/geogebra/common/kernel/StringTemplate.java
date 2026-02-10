@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.kernel;
 
 import java.util.function.Function;
@@ -30,8 +46,7 @@ import org.geogebra.common.util.NumberFormatAdapter;
 import org.geogebra.common.util.ScientificFormatAdapter;
 import org.geogebra.common.util.StringUtil;
 import org.geogebra.common.util.debug.Log;
-
-import com.himamis.retex.editor.share.util.Unicode;
+import org.geogebra.editor.share.util.Unicode;
 
 /**
  * StringTemplate provides a container for all settings we might need when
@@ -3143,7 +3158,7 @@ public class StringTemplate implements ExpressionNodeConstants {
 	}
 
 	/**
-	 * Converts e.g. 1234 to 1.234 * 10³, 1234567 to 1.234567 * 10^6
+	 * Converts e.g. 1234 to 1.234 * 10^3, 1234567 to 1.234567 * 10^6
 	 * @param value Value
 	 * @param formatBaseNumber Function used to format the base number
 	 * @return Formatted string in engineering notation using m*10^n, where n is restricted

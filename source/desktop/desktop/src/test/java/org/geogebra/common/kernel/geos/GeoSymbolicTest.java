@@ -1,9 +1,25 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ * 
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ * 
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+ 
 package org.geogebra.common.kernel.geos;
 
-import static com.himamis.retex.editor.share.util.Unicode.EULER_STRING;
-import static com.himamis.retex.editor.share.util.Unicode.pi;
 import static org.geogebra.common.BaseUnitTest.hasProperty;
 import static org.geogebra.common.BaseUnitTest.hasValue;
+import static org.geogebra.editor.share.util.Unicode.EULER_STRING;
+import static org.geogebra.editor.share.util.Unicode.pi;
 import static org.hamcrest.CoreMatchers.either;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
@@ -27,6 +43,7 @@ import static org.junit.Assert.assertTrue;
 import java.util.ArrayList;
 import java.util.Set;
 
+import org.geogebra.common.awt.GGeneralPath;
 import org.geogebra.common.awt.GGraphicsCommon;
 import org.geogebra.common.awt.GShape;
 import org.geogebra.common.cas.giac.CASgiac;
@@ -37,6 +54,7 @@ import org.geogebra.common.gui.view.algebra.AlgebraOutputFormat;
 import org.geogebra.common.gui.view.algebra.Suggestion;
 import org.geogebra.common.gui.view.algebra.SuggestionIntersectExtremum;
 import org.geogebra.common.gui.view.algebra.scicalc.LabelHiderCallback;
+import org.geogebra.common.io.XMLStringBuilder;
 import org.geogebra.common.kernel.CASGenericInterface;
 import org.geogebra.common.kernel.Kernel;
 import org.geogebra.common.kernel.StringTemplate;
@@ -52,6 +70,7 @@ import org.geogebra.common.plugin.EuclidianStyleConstants;
 import org.geogebra.common.plugin.GeoClass;
 import org.geogebra.common.scientific.LabelController;
 import org.geogebra.common.util.SymbolicUtil;
+import org.geogebra.editor.share.util.Unicode;
 import org.geogebra.test.TestErrorHandler;
 import org.geogebra.test.TestStringUtil;
 import org.geogebra.test.UndoRedoTester;
@@ -63,8 +82,6 @@ import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.himamis.retex.editor.share.util.Unicode;
 
 public class GeoSymbolicTest extends BaseSymbolicTest {
 
@@ -1973,7 +1990,7 @@ public class GeoSymbolicTest extends BaseSymbolicTest {
 	public void testFactorInvalid() {
 		app.setCasConfig();
 		AlgebraTestHelper.shouldFail("Factor()", "Illegal number of arguments", app);
-		StringBuilder consXML = new StringBuilder();
+		XMLStringBuilder consXML = new XMLStringBuilder();
 		app.getKernel().getConstruction().getConstructionElementsXML(consXML, false);
 		assertThat(consXML.toString(), is(""));
 	}
@@ -2154,7 +2171,7 @@ public class GeoSymbolicTest extends BaseSymbolicTest {
 				shapes.add(shape);
 			}
 		});
-		GeneralPathClippedForCurvePlotter path = (GeneralPathClippedForCurvePlotter) shapes.get(0);
+		GGeneralPath path = (GGeneralPath) shapes.get(0);
 		assertEquals(800, path.getBounds().getWidth(), 1);
 	}
 
@@ -2636,5 +2653,14 @@ public class GeoSymbolicTest extends BaseSymbolicTest {
 	public void curvesShouldBeDisabled() {
 		GeoSymbolic curve1 = add("(sin(t),cos(t)),0<t<pi");
 		assertNull("Should not be plotted", curve1.getTwinGeo());
+	}
+
+	@Test
+	@Issue("APPS-7201")
+	public void functionShouldNotReferenceSelf() {
+		GeoNumeric num = add("a=Slider(1,5,1)");
+		shouldFail("f(x)=f(x-a)", "Circular definition");
+		num.setValue(4);
+		num.updateCascade();
 	}
 }

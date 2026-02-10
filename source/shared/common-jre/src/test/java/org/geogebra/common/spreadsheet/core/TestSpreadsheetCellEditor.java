@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ * 
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ * 
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.spreadsheet.core;
 
 import javax.annotation.Nonnull;
@@ -5,13 +21,12 @@ import javax.annotation.Nonnull;
 import org.geogebra.common.io.MathFieldCommon;
 import org.geogebra.common.spreadsheet.kernel.DefaultSpreadsheetCellDataSerializer;
 import org.geogebra.common.util.shape.Rectangle;
-
-import com.himamis.retex.editor.share.editor.MathFieldInternal;
-import com.himamis.retex.editor.share.meta.MetaModel;
+import org.geogebra.editor.share.catalog.TemplateCatalog;
+import org.geogebra.editor.share.editor.MathFieldInternal;
 
 final class TestSpreadsheetCellEditor implements SpreadsheetCellEditor {
 
-	private final MathFieldCommon mathField = new MathFieldCommon(new MetaModel(), null);
+	private final MathFieldCommon mathField = new MathFieldCommon(new TemplateCatalog(), null);
 
 	private final SpreadsheetCellDataSerializer cellDataSerializer =
 			new DefaultSpreadsheetCellDataSerializer();

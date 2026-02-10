@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ * 
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ * 
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.io;
 
 import static org.junit.Assert.assertEquals;
@@ -6,13 +22,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 import org.geogebra.common.util.StringUtil;
+import org.geogebra.editor.share.catalog.TemplateCatalog;
+import org.geogebra.editor.share.controller.CursorController;
+import org.geogebra.editor.share.event.KeyEvent;
+import org.geogebra.editor.share.util.JavaKeyCodes;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.himamis.retex.editor.share.controller.CursorController;
-import com.himamis.retex.editor.share.event.KeyEvent;
-import com.himamis.retex.editor.share.meta.MetaModel;
-import com.himamis.retex.editor.share.util.JavaKeyCodes;
 import com.himamis.retex.renderer.share.platform.FactoryProvider;
 
 public class EditorStateAPITest {
@@ -40,7 +56,7 @@ public class EditorStateAPITest {
 
 	@Test
 	public void getPathShouldFollowExpressionStructure() {
-		MathFieldCommon mathField = new MathFieldCommon(new MetaModel(), null);
+		MathFieldCommon mathField = new MathFieldCommon(new TemplateCatalog(), null);
 		mathField.insertString("x+x*(x+1)");
 
 		for (int i = 0; i < expectedPaths.length; i++) {
@@ -58,7 +74,7 @@ public class EditorStateAPITest {
 
 	@Test
 	public void setPathGetPathShouldBeCompatible() {
-		MathFieldCommon mathField = new MathFieldCommon(new MetaModel(), null);
+		MathFieldCommon mathField = new MathFieldCommon(new TemplateCatalog(), null);
 		mathField.insertString("x+x*(x+1)");
 
 		for (int i = 0; i < expectedPaths.length; i++) {

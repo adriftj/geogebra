@@ -1,21 +1,42 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.web.showcase;
 
+import static org.geogebra.common.properties.PropertyView.*;
+
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.annotation.CheckForNull;
 
 import org.geogebra.common.main.Localization;
+import org.geogebra.common.properties.PropertyView;
+import org.geogebra.common.properties.aliases.BooleanProperty;
 import org.geogebra.common.properties.factory.SimpleBooleanProperty;
 import org.geogebra.common.properties.impl.AbstractNamedEnumeratedProperty;
 import org.geogebra.common.properties.impl.AbstractValuedProperty;
 import org.geogebra.common.properties.util.StringPropertyWithSuggestions;
 import org.geogebra.common.util.debug.Log;
 import org.geogebra.common.util.shape.Rectangle;
+import org.geogebra.editor.share.syntax.SyntaxHintImpl;
 import org.geogebra.web.full.gui.components.ComponentCheckbox;
 import org.geogebra.web.full.gui.components.ComponentComboBox;
 import org.geogebra.web.full.gui.components.ComponentDropDown;
@@ -46,7 +67,6 @@ import org.gwtproject.user.client.ui.Label;
 import org.gwtproject.user.client.ui.RootPanel;
 
 import com.google.gwt.core.client.EntryPoint;
-import com.himamis.retex.editor.share.syntax.SyntaxHintImpl;
 
 import elemental2.dom.DomGlobal;
 
@@ -67,9 +87,9 @@ public class Showcase implements EntryPoint {
 		};
 		checkbox[2].setDisabled(true);
 		ComponentComboBox componentComboBox = new ComponentComboBox(app,
-				new SampleSuggestionProperty(app.getLocalization()));
+				"Fruit", Arrays.asList("Apple", "Orange", "Banana"));
 		ComponentDropDown componentDropDown = new ComponentDropDown(app, "Fruit",
-				new SampleProperty(app));
+				Arrays.asList("Apple", "Orange", "Banana"), 0);
 		ComponentInfoErrorPanel errorPanel = new ComponentInfoErrorPanel(app.getLocalization(),
 				new InfoErrorData("404", "Content not found"));
 		ComponentSwitch componentSwitch = new ComponentSwitch(true, bool -> {});
@@ -88,9 +108,11 @@ public class Showcase implements EntryPoint {
 				new RadioButtonData<>("nine", true, 9)), 5, val -> {});
 		RootPanel.get().add(frame);
 		StandardButton showDialog = createDialogButton(app);
-		AtomicBoolean bool = new AtomicBoolean();
-		ComponentExpandableList expandableList = new ComponentExpandableList(app,
-				new SimpleBooleanProperty(app.getLocalization(), null, bool::get, bool::set),
+		final boolean[] bool = {true};
+		BooleanProperty booleanProperty = new SimpleBooleanProperty(app.getLocalization(), "",
+				() -> bool[0], b -> bool[0] = b);
+		Checkbox checkBoxProperty = (Checkbox) PropertyView.of(booleanProperty);
+		ComponentExpandableList expandableList = new ComponentExpandableList(app, checkBoxProperty,
 				"Expand me");
 		expandableList.addToContent(new Label("TBD"));
 		StandardButton showSnackBar = newStandardButton("Show Snack Bar");

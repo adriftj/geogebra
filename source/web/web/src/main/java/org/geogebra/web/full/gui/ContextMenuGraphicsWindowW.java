@@ -1,11 +1,29 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.web.full.gui;
+
+import static org.geogebra.common.properties.PropertyView.*;
 
 import org.geogebra.common.awt.GColor;
 import org.geogebra.common.euclidian.EuclidianViewInterfaceCommon;
 import org.geogebra.common.gui.dialog.handler.ColorChangeHandler;
 import org.geogebra.common.main.OptionType;
+import org.geogebra.common.properties.PropertyView;
 import org.geogebra.common.properties.impl.graphics.GridStyleIconProperty;
-import org.geogebra.web.full.css.MaterialDesignResources;
 import org.geogebra.web.full.gui.components.dropdown.grid.GridDialog;
 import org.geogebra.web.full.gui.dialog.DialogManagerW;
 import org.geogebra.web.full.gui.menubar.MainMenu;
@@ -76,8 +94,13 @@ public class ContextMenuGraphicsWindowW extends ContextMenuGeoElementW {
 	}
 
 	private void addGridTypeItem() {
-		GridStyleIconProperty gridTypeProperty = new GridStyleIconProperty(loc,
-				app.getActiveEuclidianView().getSettings());
+		SingleSelectionIconRow gridTypeProperty = (SingleSelectionIconRow) PropertyView
+				.of(new GridStyleIconProperty(loc, app.getActiveEuclidianView().getSettings()));
+
+		if (gridTypeProperty == null) {
+			return;
+		}
+
 		IconButtonPanel gridTypePanel = new IconButtonPanel((AppW) app, gridTypeProperty, false,
 				wrappedPopup::hide);
 		gridTypePanel.setDisabled(!app.getActiveEuclidianView().getShowGrid());
@@ -87,7 +110,7 @@ public class ContextMenuGraphicsWindowW extends ContextMenuGeoElementW {
 	}
 
 	protected void addSettingsButton(OptionType optionType) {
-		StandardButton settingsButton = new StandardButton("SettingsGeneral.OpenSettings");
+		StandardButton settingsButton = new StandardButton(loc.getMenu("General.OpenSettings"));
 		settingsButton.addFastClickHandler(source -> {
 			showOptionsDialog(optionType);
 			wrappedPopup.hide();
@@ -100,9 +123,8 @@ public class ContextMenuGraphicsWindowW extends ContextMenuGeoElementW {
 
 	private void addRulingMenuItem() {
 		AriaMenuItem rulingMenuItem =
-				MainMenu.getMenuBarItem(
-						MaterialDesignResources.INSTANCE.minor_gridlines(),
-						loc.getMenu("Ruling"),
+				MainMenu.getMenuBarItem(((AppW) app).getTopBarIconResource().getImageResource(
+						TopBarIcon.RULING), loc.getMenu("Ruling"),
 				() -> {
 					DialogData data = new DialogData("Ruling", "Cancel", "Save");
 					GridDialog gridDialog = new GridDialog((AppW) app, data);

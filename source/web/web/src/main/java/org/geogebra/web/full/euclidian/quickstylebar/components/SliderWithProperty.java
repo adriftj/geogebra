@@ -1,9 +1,25 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.web.full.euclidian.quickstylebar.components;
 
 import org.geogebra.common.awt.GColor;
 import org.geogebra.common.properties.Property;
 import org.geogebra.common.properties.PropertySupplier;
-import org.geogebra.common.properties.impl.collections.RangePropertyCollection;
+import org.geogebra.common.properties.impl.facade.RangePropertyListFacade;
 import org.geogebra.common.properties.impl.objects.ImageOpacityProperty;
 import org.geogebra.common.properties.impl.objects.OpacityProperty;
 import org.geogebra.common.properties.impl.objects.ThicknessProperty;
@@ -16,7 +32,7 @@ import org.gwtproject.user.client.ui.Label;
 
 public class SliderWithProperty extends FlowPanel {
 	private final AppW appW;
-	private RangePropertyCollection<?> property;
+	private RangePropertyListFacade<?> property;
 	private final PropertySupplier propertySupplier;
 	private LineStylePreview preview;
 	private Label unitLabel;
@@ -33,7 +49,7 @@ public class SliderWithProperty extends FlowPanel {
 	 * @param lineType - line type
 	 * @param color - line color
 	 */
-	public SliderWithProperty(AppW appW, RangePropertyCollection<?> property,
+	public SliderWithProperty(AppW appW, RangePropertyListFacade<?> property,
 			PropertySupplier propertySupplier,
 			int lineType, GColor color) {
 		this.appW = appW;
@@ -105,7 +121,7 @@ public class SliderWithProperty extends FlowPanel {
 
 	private void onInputChange(int val) {
 		if (!dragging) {
-			property = (RangePropertyCollection<?>) propertySupplier.updateAndGet();
+			property = (RangePropertyListFacade<?>) propertySupplier.updateAndGet();
 			dragging = true;
 			property.beginSetValue();
 		}

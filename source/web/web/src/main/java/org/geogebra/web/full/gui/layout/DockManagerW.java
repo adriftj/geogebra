@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.web.full.gui.layout;
 
 import java.util.ArrayList;
@@ -39,7 +55,6 @@ import org.geogebra.web.html5.util.keyboard.KeyboardManagerInterface;
 import org.gwtproject.core.client.Scheduler;
 import org.gwtproject.user.client.ui.DockLayoutPanel;
 import org.gwtproject.user.client.ui.Panel;
-import org.gwtproject.user.client.ui.VerticalPanel;
 import org.gwtproject.user.client.ui.Widget;
 
 import elemental2.dom.BaseRenderingContext2D;
@@ -165,11 +180,7 @@ public class DockManagerW extends DockManager {
 				String styles = rootPane.getStyleName();
 				rootPane.clear();
 				if (rootPaneParent != null) {
-					if (rootPaneParent instanceof VerticalPanel) {
-						rootPane.removeFromParent();
-						setRootPane(splitPanes[0]);
-						((VerticalPanel) rootPaneParent).add(rootPane);
-					} else if (rootPaneParent instanceof DockLayoutPanel) {
+					if (rootPaneParent instanceof DockLayoutPanel) {
 						rootPane.removeFromParent();
 						setRootPane(splitPanes[0]);
 						((DockLayoutPanel) rootPaneParent).add(rootPane);
@@ -1702,7 +1713,7 @@ public class DockManagerW extends DockManager {
 	}
 
 	/**
-	 * Replace tabbed algebra panel with plain algebra pael or vice versa
+	 * Replace tabbed algebra panel with plain algebra panel or vice versa
 	 */
 	public void swapAlgebraPanel() {
 		DockPanelW old = this.getPanel(App.VIEW_ALGEBRA);
@@ -1715,7 +1726,7 @@ public class DockManagerW extends DockManager {
 	}
 
 	/**
-	 * Reset stylebar in all panels when changing classic to graphing or vice versa
+	 * Reset style bar in all panels when changing classic to graphing or vice versa
 	 */
 	public void reset() {
 		for (DockPanelW dock : this.dockPanels) {

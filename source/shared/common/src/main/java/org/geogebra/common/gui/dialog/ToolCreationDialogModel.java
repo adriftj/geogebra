@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.gui.dialog;
 
 import java.util.ArrayList;
@@ -5,6 +21,7 @@ import java.util.Iterator;
 import java.util.TreeSet;
 
 import org.geogebra.common.euclidian.EuclidianConstants;
+import org.geogebra.common.io.XMLStringBuilder;
 import org.geogebra.common.kernel.Kernel;
 import org.geogebra.common.kernel.Macro;
 import org.geogebra.common.kernel.StringTemplate;
@@ -262,7 +279,7 @@ public class ToolCreationDialogModel {
 		Kernel kernel = macro.getKernel();
 		App appToSave = kernel.getApplication();
 		if (compatible) {
-			StringBuilder sb = new StringBuilder();
+			XMLStringBuilder sb = new XMLStringBuilder();
 			newTool.getXML(sb);
 			if (app.getEditMacro() != null) {
 				kernel.removeMacro(app.getEditMacro());

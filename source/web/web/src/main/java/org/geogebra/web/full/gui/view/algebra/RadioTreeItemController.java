@@ -1,13 +1,17 @@
-/* 
-GeoGebra - Dynamic Mathematics for Everyone
-http://www.geogebra.org
-
-This file is part of GeoGebra.
-
-This program is free software; you can redistribute it and/or modify it 
-under the terms of the GNU General Public License as published by 
-the Free Software Foundation.
-
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
  */
 
 package org.geogebra.web.full.gui.view.algebra;
@@ -21,6 +25,7 @@ import org.geogebra.common.kernel.geos.GeoElement;
 import org.geogebra.common.main.App;
 import org.geogebra.common.plugin.Event;
 import org.geogebra.common.plugin.EventType;
+import org.geogebra.editor.share.editor.MathField;
 import org.geogebra.web.full.gui.layout.panels.AlgebraStyleBarW;
 import org.geogebra.web.full.main.AppWFull;
 import org.geogebra.web.html5.Browser;
@@ -54,8 +59,6 @@ import org.gwtproject.event.dom.client.TouchStartHandler;
 import org.gwtproject.timer.client.Timer;
 import org.gwtproject.user.client.ui.FlowPanel;
 import org.gwtproject.user.client.ui.Widget;
-
-import com.himamis.retex.editor.share.editor.MathField;
 
 /**
  * Controller class of a AV item.
@@ -258,16 +261,14 @@ public class RadioTreeItemController implements ClickHandler,
 
 		JsArray<Touch> touches = event.getTargetTouches().length() == 0
 				? event.getChangedTouches() : event.getTargetTouches();
+		PointerEvent wrappedEvent = PointerEvent.wrapEvent(touches.get(0), ZeroOffset.INSTANCE);
 
-		boolean active = isEditing();
-
-		PointerEvent wrappedEvent = PointerEvent.wrapEvent(touches.get(0),
-				ZeroOffset.INSTANCE);
-		if (isMarbleHit(wrappedEvent.getX(), wrappedEvent.getY())) {
+		if (isMarbleHit(wrappedEvent.getX(), wrappedEvent.getY())
+				|| isWidgetHit(item.controls, wrappedEvent)) {
 			return;
 		}
 
-		if (editOnTap(active, wrappedEvent)) {
+		if (editOnTap(isEditing(), wrappedEvent)) {
 			onPointerUp(wrappedEvent);
 			CancelEventTimer.touchEventOccurred();
 			return;

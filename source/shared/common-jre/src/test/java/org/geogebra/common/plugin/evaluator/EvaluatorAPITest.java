@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ * 
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ * 
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+ 
 package org.geogebra.common.plugin.evaluator;
 
 import static org.junit.Assert.assertEquals;
@@ -8,11 +24,11 @@ import org.geogebra.common.BaseUnitTest;
 import org.geogebra.common.io.EditorTyper;
 import org.geogebra.common.io.FactoryProviderCommon;
 import org.geogebra.common.io.MathFieldCommon;
+import org.geogebra.editor.share.catalog.TemplateCatalog;
+import org.geogebra.editor.share.serializer.TeXSerializer;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.himamis.retex.editor.share.meta.MetaModel;
-import com.himamis.retex.editor.share.serializer.TeXSerializer;
 import com.himamis.retex.renderer.share.platform.FactoryProvider;
 
 /**
@@ -25,7 +41,7 @@ public class EvaluatorAPITest extends BaseUnitTest {
 
 	@Before
 	public void setupTest() {
-		MathFieldCommon mathField = new MathFieldCommon(new MetaModel(), null);
+		MathFieldCommon mathField = new MathFieldCommon(new TemplateCatalog(), null);
 		api = new EvaluatorAPI(getKernel(), mathField.getInternal());
 		typer = new EditorTyper(mathField);
 		if (FactoryProvider.getInstance() == null) {

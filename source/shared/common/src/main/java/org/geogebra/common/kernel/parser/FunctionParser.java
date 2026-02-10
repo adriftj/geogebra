@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.common.kernel.parser;
 
 import java.util.ArrayList;
@@ -30,6 +46,7 @@ import org.geogebra.common.kernel.arithmetic.variable.VariableReplacerAlgorithm;
 import org.geogebra.common.kernel.arithmetic3D.MyVec3DNode;
 import org.geogebra.common.kernel.commands.Commands;
 import org.geogebra.common.kernel.geos.GeoCasCell;
+import org.geogebra.common.kernel.geos.GeoConic;
 import org.geogebra.common.kernel.geos.GeoElement;
 import org.geogebra.common.kernel.geos.GeoFunctionNVar;
 import org.geogebra.common.kernel.geos.GeoList;
@@ -44,9 +61,9 @@ import org.geogebra.common.main.MyParseError;
 import org.geogebra.common.plugin.Operation;
 import org.geogebra.common.util.DoubleUtil;
 import org.geogebra.common.util.StringUtil;
+import org.geogebra.editor.share.util.Unicode;
 
 import com.google.j2objc.annotations.Weak;
-import com.himamis.retex.editor.share.util.Unicode;
 
 /**
  * Class for building function nodes from parser
@@ -58,7 +75,7 @@ public class FunctionParser {
 	@Weak
 	private final App app;
 	private boolean inputBoxParsing = false;
-	private ArrayList<ExpressionNode> multiplyOrFunctionNodes;
+	private final ArrayList<ExpressionNode> multiplyOrFunctionNodes;
 
 	/**
 	 * @param kernel
@@ -241,10 +258,12 @@ public class FunctionParser {
 				false, !inputBoxParsing);
 		// number of arguments
 
-		if (parsedLabel.order > 0) { // derivative
-							// n-th derivative of geo
-			if (hasDerivative(geo)) {// function
-				registerFunctionVars((VarString) geo);
+		if (parsedLabel.order > 0) {
+			// n-th derivative of geo function
+			if (hasDerivative(geo)) {
+				ExpressionValue varString = geo.isGeoConic() ? ((GeoConic) geo).getFunction()
+						: geo;
+				registerFunctionVars((VarString) varString);
 				return derivativeNode(kernel, geoExp, parsedLabel.order, geo.isGeoCurveCartesian(),
 						myList.get(0));
 			}
@@ -257,7 +276,7 @@ public class FunctionParser {
 			Operation operation = getOperationFor((GeoSymbolic) geo);
 			boolean extract = operation == Operation.MULTIPLY || operation == Operation.FUNCTION;
 			return new ExpressionNode(kernel, geoExp, operation, extract ? myList.get(0) : myList);
-		} else if (geo instanceof Evaluatable && !geo.isGeoList()) {// function
+		} else if (geo instanceof Evaluatable && !geo.isGeoList()) { // function
 			if (geo instanceof ParametricCurve) {
 				registerFunctionVars((ParametricCurve) geo);
 			}
@@ -384,7 +403,7 @@ public class FunctionParser {
 		try {
 			Commands.valueOf(funcName);
 			return true;
-		} catch(Exception notFound){
+		} catch (Exception notFound) {
 			// not a command
 		}
 		return false;
@@ -401,7 +420,11 @@ public class FunctionParser {
 	}
 
 	private static boolean hasDerivative(GeoElement geo) {
-		return geo.isGeoFunction() || geo.isGeoCurveCartesian() || (geo instanceof GeoSymbolic);
+		if (geo == null) {
+			return false;
+		}
+		return geo.isGeoFunction() || geo.isGeoCurveCartesian() || (geo instanceof GeoSymbolic)
+				|| (geo.isGeoConic() && ((GeoConic) geo).getFunction().isDefined());
 	}
 
 	private ExpressionNode multiplication(ExpressionValue geoExp,
@@ -539,7 +562,7 @@ public class FunctionParser {
 			ParsedLabel parsedLabel = new ParsedLabel();
 			parsedLabel.parseDerivativeLabel(funLabel);
 			if (parsedLabel.order > 0) {
-				if (hasDerivative(parsedLabel.geo)) {// function
+				if (hasDerivative(parsedLabel.geo)) { // function
 					registerFunctionVars((VarString) parsedLabel.geo);
 					ExpressionNode lhs = derivativeNode(kernel, parsedLabel.geo, parsedLabel.order,
 							false, new FunctionVariable(kernel, localVars.get(0)));

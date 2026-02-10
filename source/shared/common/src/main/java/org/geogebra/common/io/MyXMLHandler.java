@@ -1,22 +1,22 @@
-/* 
-GeoGebra - Dynamic Mathematics for Everyone
-http://www.geogebra.org
-
-This file is part of GeoGebra.
-
-This program is free software; you can redistribute it and/or modify it 
-under the terms of the GNU General Public License as published by 
-the Free Software Foundation.
-
- */
-
 /*
- * MyXMLHandler.java
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
  *
- * Created on 14. June 2003, 12:04
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
  */
 
 package org.geogebra.common.io;
+
+import static org.geogebra.common.main.PreviewFeature.SETTINGS_VIEW;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -27,11 +27,11 @@ import java.util.TreeMap;
 
 import org.geogebra.common.GeoGebraConstants;
 import org.geogebra.common.SuiteSubApp;
+import org.geogebra.common.awt.AwtFactory;
 import org.geogebra.common.awt.GColor;
 import org.geogebra.common.awt.GDimension;
 import org.geogebra.common.awt.GPoint;
 import org.geogebra.common.awt.GRectangle;
-import org.geogebra.common.factories.AwtFactory;
 import org.geogebra.common.gui.dialog.options.OptionsCAS;
 import org.geogebra.common.gui.view.algebra.AlgebraView;
 import org.geogebra.common.gui.view.data.DataDisplayModel.PlotType;
@@ -77,6 +77,7 @@ import org.geogebra.common.main.GeoGebraPreferencesXML;
 import org.geogebra.common.main.Localization;
 import org.geogebra.common.main.MyError;
 import org.geogebra.common.main.MyError.Errors;
+import org.geogebra.common.main.PreviewFeature;
 import org.geogebra.common.main.error.ErrorHandler;
 import org.geogebra.common.main.error.ErrorHelper;
 import org.geogebra.common.main.settings.AlgebraStyle;
@@ -93,9 +94,9 @@ import org.geogebra.common.util.DoubleUtil;
 import org.geogebra.common.util.StringUtil;
 import org.geogebra.common.util.Util;
 import org.geogebra.common.util.debug.Log;
+import org.geogebra.editor.share.util.Unicode;
 
 import com.google.j2objc.annotations.Weak;
-import com.himamis.retex.editor.share.util.Unicode;
 
 /**
  * 
@@ -3576,7 +3577,8 @@ public class MyXMLHandler implements DocHandler {
 
 	private boolean handleAlgebraViewMode(LinkedHashMap<String, String> attrs) {
 		try {
-			int val = !app.isUnbundled() ? Integer.parseInt(attrs.get("val"))
+			int val = !app.isUnbundled() || !PreviewFeature.isAvailable(SETTINGS_VIEW)
+					? Integer.parseInt(attrs.get("val"))
 					: AlgebraView.SortMode.ORDER.toInt();
 			app.getSettings().getAlgebra().setTreeMode(val);
 			app.getSettings().getAlgebra().setModeChanged(true);

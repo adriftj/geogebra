@@ -1,3 +1,19 @@
+/*
+ * GeoGebra - Dynamic Mathematics for Everyone
+ * Copyright (c) GeoGebra GmbH, Altenbergerstr. 69, 4040 Linz, Austria
+ * https://www.geogebra.org
+ *
+ * This file is licensed by GeoGebra GmbH under the EUPL 1.2 licence and
+ * may be used under the EUPL 1.2 in compatible projects (see Article 5
+ * and the Appendix of EUPL 1.2 for details).
+ * You may obtain a copy of the licence at:
+ * https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Note: The overall GeoGebra software package is free to use for
+ * non-commercial purposes only.
+ * See https://www.geogebra.org/license for full licensing details
+ */
+
 package org.geogebra.web.full.gui.toolbarpanel.spreadsheet;
 
 import org.geogebra.common.spreadsheet.core.Modifiers;
@@ -5,16 +21,14 @@ import org.geogebra.common.spreadsheet.core.Spreadsheet;
 import org.geogebra.common.spreadsheet.core.SpreadsheetDelegate;
 import org.geogebra.common.spreadsheet.core.SpreadsheetStyleBarModel;
 import org.geogebra.common.spreadsheet.core.ViewportAdjusterDelegate;
-import org.geogebra.common.spreadsheet.kernel.DefaultSpreadsheetConstructionDelegate;
-import org.geogebra.common.spreadsheet.kernel.GeoElementCellRendererFactory;
-import org.geogebra.common.spreadsheet.kernel.KernelTabularDataAdapter;
-import org.geogebra.common.spreadsheet.settings.SpreadsheetSettingsAdapter;
 import org.geogebra.common.util.MouseCursor;
 import org.geogebra.common.util.shape.Rectangle;
 import org.geogebra.common.util.shape.Size;
+import org.geogebra.editor.share.catalog.TemplateCatalog;
+import org.geogebra.editor.web.KeyCodeUtil;
 import org.geogebra.gwtutil.NavigatorUtil;
+import org.geogebra.web.awt.GGraphics2DW;
 import org.geogebra.web.full.gui.view.probcalculator.MathTextFieldW;
-import org.geogebra.web.html5.awt.GGraphics2DW;
 import org.geogebra.web.html5.gui.util.ClickStartHandler;
 import org.geogebra.web.html5.gui.util.MathKeyboardListener;
 import org.geogebra.web.html5.main.AppW;
@@ -29,8 +43,6 @@ import org.gwtproject.event.dom.client.KeyEvent;
 import org.gwtproject.user.client.ui.FlowPanel;
 import org.gwtproject.user.client.ui.RequiresResize;
 import org.gwtproject.user.client.ui.ScrollPanel;
-
-import com.himamis.retex.editor.share.meta.MetaModel;
 
 import elemental2.dom.DomGlobal;
 import elemental2.dom.Event;
@@ -67,32 +79,23 @@ public class SpreadsheetPanel extends FlowPanel implements RequiresResize {
 		this.app = app;
 		addStyleName("spreadsheetPanel");
 
-		mathField = new MathTextFieldW(app, new MetaModel());
-		SpreadsheetControlsDelegateW controlsDelegate = initControlsDelegate();
+		mathField = new MathTextFieldW(app, new TemplateCatalog());
 
-		KernelTabularDataAdapter tabularData = new KernelTabularDataAdapter(app);
-		app.getKernel().notifyAddAll(tabularData);
-		spreadsheet = new Spreadsheet(tabularData,
-				new GeoElementCellRendererFactory(new AwtReTexGraphicsBridgeW()),
-				app.getUndoManager());
-		new SpreadsheetSettingsAdapter(spreadsheet, app).registerListeners();
+		spreadsheet = app.getSpreadsheet();
+		if (spreadsheet != null) {
+			spreadsheet.setControlsDelegate(initControlsDelegate());
+			spreadsheet.setSpreadsheetDelegate(initSpreadsheetDelegate());
+			spreadsheet.setViewportAdjustmentHandler(createScrollable());
+		}
 
-		app.getKernel().attach(tabularData);
 		add(spreadsheetWidget);
 		scrollOverlay = new ScrollPanel();
-
-		spreadsheet.setControlsDelegate(controlsDelegate);
-		spreadsheet.setSpreadsheetDelegate(initSpreadsheetDelegate());
-		spreadsheet.setSpreadsheetConstructionDelegate(initConstructionDelegate());
 
 		FlowPanel scrollContent = new FlowPanel();
 		scrollOverlay.setWidget(scrollContent);
 		scrollOverlay.setStyleName("spreadsheetScrollOverlay");
 		add(scrollOverlay);
 		spreadsheetElement = Js.uncheckedCast(scrollContent.getElement());
-
-		ViewportAdjusterDelegate viewportAdjusterDelegate = createScrollable();
-		spreadsheet.setViewportAdjustmentHandler(viewportAdjusterDelegate);
 
 		GlobalHandlerRegistry registry = app.getGlobalHandlers();
 
@@ -129,17 +132,19 @@ public class SpreadsheetPanel extends FlowPanel implements RequiresResize {
 		registry.addEventListener(DomGlobal.window, "pointerup", event -> {
 			elemental2.dom.Element target = Js.uncheckedCast(event.target);
 			if (target.closest(".spreadsheetScrollOverlay,.gwt-PopupPanel,.iconButton,"
-					+ ".colorChooser") != null) {
+					+ ".colorChooser,.tabButton") != null) {
 				return;
 			}
 			spreadsheet.clearSelectionOnly();
-			repaint();
+			if (spreadsheetIsVisible()) {
+				repaint();
+			}
 		});
 
 		ClickStartHandler.initDefaults(scrollContent, false, true);
 		scrollContent.getElement().setTabIndex(0);
 		scrollContent.addDomHandler(evt -> {
-			spreadsheet.handleKeyPressed(NavigatorUtil.translateGWTcode(
+			spreadsheet.handleKeyPressed(KeyCodeUtil.translateGWTCode(
 					evt.getNativeKeyCode()).getJavaKeyCode(),
 					getKey(evt.getNativeEvent()),
 					getKeyboardModifiers(evt));
@@ -187,10 +192,6 @@ public class SpreadsheetPanel extends FlowPanel implements RequiresResize {
 
 	private SpreadsheetDelegate initSpreadsheetDelegate() {
 		return this::repaint;
-	}
-
-	private DefaultSpreadsheetConstructionDelegate initConstructionDelegate() {
-		return new DefaultSpreadsheetConstructionDelegate(app.getKernel().getAlgebraProcessor());
 	}
 
 	/**
@@ -332,5 +333,9 @@ public class SpreadsheetPanel extends FlowPanel implements RequiresResize {
 
 	public Spreadsheet getSpreadsheet() {
 		return spreadsheet;
+	}
+
+	private boolean spreadsheetIsVisible() {
+		return !getParent().getParent().getElement().hasClassName("tab-hidden");
 	}
 }
