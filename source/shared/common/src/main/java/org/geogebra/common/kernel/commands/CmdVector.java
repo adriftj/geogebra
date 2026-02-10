@@ -3,13 +3,17 @@ package org.geogebra.common.kernel.commands;
 import org.geogebra.common.kernel.Kernel;
 import org.geogebra.common.kernel.arithmetic.Command;
 import org.geogebra.common.kernel.geos.GeoElement;
+import org.geogebra.common.kernel.geos.GeoNumberValue;
 import org.geogebra.common.kernel.kernelND.GeoPointND;
+import org.geogebra.common.kernel.kernelND.GeoVectorND;
 import org.geogebra.common.main.MyError;
 
 /**
  * Vector[ &lt;GeoPoint&gt;, &lt;GeoPoint&gt; ]
  * 
  * Vector[ &lt;GeoPoint&gt; ]
+ * Vector[ &lt;Number&gt;, &lt;Number&gt; ] - creates independent draggable vector
+ * Vector[ &lt;Number&gt;, &lt;Number&gt;, &lt;Number&gt; ] - creates independent draggable 3D vector
  */
 public class CmdVector extends CommandProcessor {
 	/**
@@ -64,6 +68,18 @@ public class CmdVector extends CommandProcessor {
 
 		case 2:
 			arg = resArgs(c, info);
+			
+			// Check for Vector(Number, Number) - creates independent draggable vector
+			if (arg[0] instanceof GeoNumberValue && arg[1] instanceof GeoNumberValue) {
+				double x = ((GeoNumberValue) arg[0]).getDouble();
+				double y = ((GeoNumberValue) arg[1]).getDouble();
+				GeoVectorND vector = getAlgoDispatcher().vector(x, y);
+				if (c.getLabels() != null && c.getLabels().length > 0)
+					vector.setLabel(c.getLabels()[0]);
+				return new GeoElement[]{(GeoElement) vector};
+			}
+			
+			// Existing case: Vector(Point, Point)
 			if ((ok[0] = arg[0].isGeoPoint())
 					&& (ok[1] = arg[1].isGeoPoint())) {
 				GeoElement[] ret = { vector(c.getLabel(), (GeoPointND) arg[0],
@@ -72,6 +88,26 @@ public class CmdVector extends CommandProcessor {
 			}
 
 			throw argErr(c, getBadArg(ok, arg));
+
+		case 3:
+			arg = resArgs(c, info);
+			
+			// Check for Vector(Number, Number, Number) - creates independent draggable 3D vector
+			if (arg[0] instanceof GeoNumberValue 
+					&& arg[1] instanceof GeoNumberValue 
+					&& arg[2] instanceof GeoNumberValue) {
+				double x = ((GeoNumberValue) arg[0]).getDouble();
+				double y = ((GeoNumberValue) arg[1]).getDouble();
+				double z = ((GeoNumberValue) arg[2]).getDouble();
+				GeoVectorND vector3D = (GeoVectorND) cons.getKernel().getManager3D()
+						.vector3D(x, y, z);
+				if (c.getLabels() != null && c.getLabels().length > 0)
+					vector3D.setLabel(c.getLabels()[0]);
+				return new GeoElement[]{(GeoElement) vector3D};
+			}
+			
+			// If not numeric arguments, throw error
+			throw argNumErr(c);
 
 		default:
 			throw argNumErr(c);

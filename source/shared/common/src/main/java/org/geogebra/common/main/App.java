@@ -451,6 +451,37 @@ public abstract class App implements UpdateSelection, AppInterface, EuclidianHos
 			= new RegressionSpecificationBuilder();
 	private InitialViewState initialViewState;
 
+	/**
+	 * URL prefix for local URLs starting with "@"
+	 * When a GeoElement URL (e.g., GeoImage filename) starts with "@", it will be replaced with this prefix
+	 */
+	private String localUrlPrefix = null;
+
+	/**
+	 * Sets the URL prefix for local URLs starting with "@"
+	 * If the prefix doesn't end with "/", a "/" will be automatically appended
+	 * @param prefix the URL prefix (e.g., "https://example.com/images" or "https://example.com/images/")
+	 */
+	public void setLocalUrlPrefix(String prefix) {
+		if (prefix == null || prefix.isEmpty()) {
+			this.localUrlPrefix = null;
+			return;
+		}
+		// Automatically append "/" if prefix doesn't end with "/"
+		if (!prefix.endsWith("/"))
+			this.localUrlPrefix = prefix + "/";
+		else
+			this.localUrlPrefix = prefix;
+	}
+
+	/**
+	 * Gets the URL prefix for local URLs starting with "@"
+	 * @return the URL prefix (always ends with "/" if set), or null if not set
+	 */
+	public String getLocalUrlPrefix() {
+		return localUrlPrefix;
+	}
+
 	public static String[] getStrDecimalSpacesAC() {
 		return strDecimalSpacesAC;
 	}

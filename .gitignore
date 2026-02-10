@@ -1,0 +1,13 @@
+# Gradle/Java/Kotlin build output
+build/
+ggbxmldoc/
+gpad_style_reference_sample.md
+.gradle/
+
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Backup files
+*.bak

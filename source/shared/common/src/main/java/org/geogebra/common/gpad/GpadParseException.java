@@ -1,0 +1,72 @@
+package org.geogebra.common.gpad;
+
+/**
+ * Exception thrown when Gpad parsing fails.
+ */
+public class GpadParseException extends Exception {
+	private static final long serialVersionUID = 1L;
+	private int lineNumber = -1;
+	private int columnNumber = -1;
+
+	/**
+	 * Creates a new Gpad parse exception.
+	 * 
+	 * @param message
+	 *            error message
+	 */
+	public GpadParseException(String message) {
+		super(message);
+	}
+
+	/**
+	 * Creates a new Gpad parse exception with position information.
+	 * 
+	 * @param message
+	 *            error message
+	 * @param lineNumber
+	 *            line number where error occurred
+	 * @param columnNumber
+	 *            column number where error occurred
+	 */
+	public GpadParseException(String message, int lineNumber, int columnNumber) {
+		super(message);
+		this.lineNumber = lineNumber;
+		this.columnNumber = columnNumber;
+	}
+
+	/**
+	 * Creates a new Gpad parse exception with a cause.
+	 * 
+	 * @param message
+	 *            error message
+	 * @param cause
+	 *            the cause
+	 */
+	public GpadParseException(String message, Throwable cause) {
+		super(message, cause);
+	}
+
+	/**
+	 * @return line number where error occurred, or -1 if unknown
+	 */
+	public int getLineNumber() {
+		return lineNumber;
+	}
+
+	/**
+	 * @return column number where error occurred, or -1 if unknown
+	 */
+	public int getColumnNumber() {
+		return columnNumber;
+	}
+
+	@Override
+	public String toString() {
+		if (lineNumber >= 0) {
+			// GWT-compatible replacement for String.format
+			return "Gpad parse error at line " + lineNumber + ", column " + columnNumber + ": " + getMessage();
+		}
+		return "Gpad parse error: " + getMessage();
+	}
+}
+

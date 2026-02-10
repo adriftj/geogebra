@@ -289,6 +289,8 @@ public class BasicCommandProcessorFactory implements CommandProcessorFactory {
 			return new CmdSurfaceCartesian(kernel);
 		case Stadium:
 			return new CmdStadium(kernel);
+		case Image:
+			return new CmdImage(kernel);
 		default:
 			break;
 		}

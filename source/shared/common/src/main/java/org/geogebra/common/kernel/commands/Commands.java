@@ -161,6 +161,8 @@ public enum Commands implements CommandsConstants,
 
 	PenStroke(TABLE_GEOMETRY),
 
+	Image(TABLE_GEOMETRY),
+
 	PointIn(TABLE_GEOMETRY),
 
 	AffineRatio(TABLE_GEOMETRY),

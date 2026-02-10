@@ -298,6 +298,23 @@ public class DefaultExportedApi implements ExportedApi {
 		return getGgbAPI().getImageFileName(objName + "");
 	}
 
+	/**
+	 * Sets the URL prefix for local URLs starting with "@"
+	 * If the prefix doesn't end with "/", a "/" will be automatically appended
+	 * @param prefix the URL prefix (e.g., "https://example.com/images" or "https://example.com/images/")
+	 */
+	public void setLocalUrlPrefix(String prefix) {
+		getGgbAPI().setLocalUrlPrefix(prefix + "");
+	}
+
+	/**
+	 * Gets the URL prefix for local URLs starting with "@"
+	 * @return the URL prefix (always ends with "/" if set), or null if not set
+	 */
+	public String getLocalUrlPrefix() {
+		return getGgbAPI().getLocalUrlPrefix();
+	}
+
 	public int getLineStyle(String objName) {
 		return getGgbAPI().getLineStyle(objName + "");
 	}
@@ -1176,5 +1193,67 @@ public class DefaultExportedApi implements ExportedApi {
 	 */
 	public void focus() {
 		getGgbAPI().focus();
+	}
+
+	/**
+	 * Evaluates the given Gpad string and creates GeoElements.
+	 * 
+	 * @param gpadText Gpad text to parse
+	 * @return comma separated labels of created objects, or null if parsing fails
+	 */
+	public String evalGpad(String gpadText) {
+		return getGgbAPI().evalGpad(gpadText + "");
+	}
+
+	/**
+	 * Gets the last error message from evalGpad, if any.
+	 * 
+	 * @return last error message, or null if no error occurred
+	 */
+	public String getLastError() {
+		return getGgbAPI().getLastError();
+	}
+
+	/**
+	 * Gets the last warning message from evalGpad, if any.
+	 * 
+	 * @return last warning message (may contain multiple warnings separated by newlines), or null if no warning occurred
+	 */
+	public String getLastWarning() {
+		return getGgbAPI().getLastWarning();
+	}
+
+	/**
+	 * Converts a GeoElement to Gpad format.
+	 * 
+	 * @param objName object name
+	 * @return Gpad string representation, or empty string if object not found
+	 */
+	public String geoToGpad(String objName) {
+		return getGgbAPI().geoToGpad(objName + "");
+	}
+
+	/**
+	 * Converts the entire construction to Gpad format.
+	 * 
+	 * @param mergeStylesheets whether to merge identical stylesheets
+	 * @return Gpad string representation of the entire construction
+	 */
+	public String toGpad(@TS(TS.OPTIONAL_BOOL) Object mergeStylesheets) {
+		boolean merge = Js.isTruthy(mergeStylesheets);
+		return getGgbAPI().toGpad(merge);
+	}
+
+	/**
+	 * Converts the entire construction to Gpad format by parsing XML directly.
+	 * 
+	 * @param xmlFile complete GeoGebra XML file (with <geogebra> as root element), containing construction content
+	 * @param xmlMacro complete macro XML (with <geogebra> as root element), containing all macro definitions (may contain multiple <macro> elements)
+	 * @param mergeStylesheets whether to merge identical stylesheets
+	 * @return Gpad string representation of the entire construction
+	 */
+	public String xmlToGpad(String xmlFile, String xmlMacro, @TS(TS.OPTIONAL_BOOL) Object mergeStylesheets) {
+		boolean merge = Js.isTruthy(mergeStylesheets);
+		return getGgbAPI().xmlToGpad(xmlFile + "", xmlMacro + "", merge);
 	}
 }

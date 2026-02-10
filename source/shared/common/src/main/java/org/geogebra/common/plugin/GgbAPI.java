@@ -104,6 +104,10 @@ public abstract class GgbAPI implements JavaScriptAPI {
 	protected AlgebraProcessor algebraprocessor = null;
 	/** application */
 	protected App app = null;
+	/** last error message from evalGpad */
+	private String lastError = null;
+	/** last warning message from evalGpad */
+	private String lastWarning = null;
 	private static final StringTemplate nonLocalizedTemplate = StringTemplate
 			.printDecimals(ExpressionNodeConstants.StringType.GEOGEBRA, 13, false);
 
@@ -270,6 +274,124 @@ public abstract class GgbAPI implements JavaScriptAPI {
 	@Override
 	public synchronized void debug(String string) {
 		Log.debug(string);
+	}
+
+	/**
+	 * Evaluates the given Gpad string and creates GeoElements.
+	 * 
+	 * @param gpadText Gpad text to parse
+	 * @return comma separated labels of created objects, or null if parsing fails
+	 */
+	public synchronized String evalGpad(String gpadText) {
+		lastError = null; // Clear previous error
+		lastWarning = null; // Clear previous warning
+		org.geogebra.common.gpad.GpadParser parser = null;
+		try {
+			parser = new org.geogebra.common.gpad.GpadParser(kernel);
+			java.util.List<org.geogebra.common.kernel.geos.GeoElement> geos = parser.parse(gpadText);
+			
+			if (geos.isEmpty())
+				return "";
+			
+			StringBuilder ret = new StringBuilder();
+			boolean first = true;
+			for (org.geogebra.common.kernel.geos.GeoElement geo : geos) {
+				if (!first)
+					ret.append(",");
+				first = false;
+				ret.append(geo.getLabelSimple());
+			}
+			return ret.toString();
+		} catch (org.geogebra.common.gpad.GpadParseException e) {
+			// GpadParseException already contains position info in message, just extract it
+			lastError = e.getMessage();
+		} catch (Throwable t) {
+			lastError = t.getMessage();
+			if (lastError == null)
+				lastError = t.getClass().getSimpleName();
+		} finally {
+			// Collect warnings from parser (even if parsing failed, there may be warnings)
+			if (parser != null) {
+				java.util.List<String> warnings = parser.getGpadWarnings();
+				if (warnings != null && !warnings.isEmpty()) {
+					StringBuilder warningBuilder = new StringBuilder();
+					boolean first = true;
+					for (String warning : warnings) {
+						if (!first)
+							warningBuilder.append("\n");
+						first = false;
+						warningBuilder.append(warning);
+					}
+					lastWarning = warningBuilder.toString();
+				}
+			}
+		}
+		// Don't use Log.error() here - let the caller handle error output
+		return null;
+	}
+
+	/**
+	 * Gets the last error message from evalGpad, if any.
+	 * 
+	 * @return last error message, or null if no error occurred
+	 */
+	public String getLastError() {
+		return lastError;
+	}
+
+	/**
+	 * Gets the last warning message from evalGpad, if any.
+	 * 
+	 * @return last warning message (may contain multiple warnings separated by newlines), or null if no warning occurred
+	 */
+	public String getLastWarning() {
+		return lastWarning;
+	}
+
+	/**
+	 * Converts a GeoElement to Gpad format.
+	 * 
+	 * @param objName
+	 *            object name
+	 * @return Gpad string representation, or empty string if object not found
+	 */
+	public synchronized String geoToGpad(String objName) {
+		GeoElement geo = kernel.lookupLabel(objName);
+		if (geo == null)
+			return "";
+		
+		org.geogebra.common.gpad.GeoElementToGpadConverter converter = 
+				new org.geogebra.common.gpad.GeoElementToGpadConverter();
+		return converter.toGpad(geo);
+	}
+
+	/**
+	 * Converts the entire construction to Gpad format.
+	 * Enumerates all construction elements in order and converts them to gpad format.
+	 * 
+	 * @param mergeStylesheets whether to merge identical stylesheets
+	 * @return Gpad string representation of the entire construction
+	 */
+	public synchronized String toGpad(boolean mergeStylesheets) {
+		org.geogebra.common.gpad.GgbToGpadConverter converter = 
+				new org.geogebra.common.gpad.GgbToGpadConverter(construction, mergeStylesheets);
+		return converter.toGpad();
+	}
+
+	/**
+	 * Converts the entire construction to Gpad format by parsing XML directly.
+	 * This is an alternative implementation to toGpad() that works from XML
+	 * instead of iterating through ConstructionElement objects.
+	 * 
+	 * @param xmlFile complete GeoGebra XML file (with <geogebra> as root element), containing construction content
+	 * @param xmlMacro complete macro XML (with <geogebra> as root element), containing all macro definitions (may contain multiple <macro> elements)
+	 * @param mergeStylesheets whether to merge identical stylesheets
+	 * @return Gpad string representation of the entire construction
+	 */
+	public synchronized String xmlToGpad(String xmlFile, String xmlMacro, boolean mergeStylesheets) {
+		org.geogebra.common.gpad.XMLToGpadConverter converter = 
+				new org.geogebra.common.gpad.XMLToGpadConverter(xmlFile, xmlMacro, mergeStylesheets);
+		return converter.toGpad();
 	}
 
 	/**
@@ -712,6 +834,23 @@ public abstract class GgbAPI implements JavaScriptAPI {
 			return "";
 		}
 		return geo.getImageFileName();
+	}
+
+	/**
+	 * Sets the URL prefix for local URLs starting with "@"
+	 * If the prefix doesn't end with "/", a "/" will be automatically appended
+	 * @param prefix the URL prefix (e.g., "https://example.com/images" or "https://example.com/images/")
+	 */
+	public void setLocalUrlPrefix(String prefix) {
+		app.setLocalUrlPrefix(prefix);
+	}
+
+	/**
+	 * Gets the URL prefix for local URLs starting with "@"
+	 * @return the URL prefix (always ends with "/" if set), or null if not set
+	 */
+	public String getLocalUrlPrefix() {
+		return app.getLocalUrlPrefix();
 	}
 
 	@Override

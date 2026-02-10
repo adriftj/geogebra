@@ -130,4 +130,99 @@ tasks {
         testClassesDirs = e2eTest.output.classesDirs
         classpath = e2eTest.runtimeClasspath
     }
+
+    register<JavaExec>("runGgbToGpad") {
+        description = "Run GgbToGpad tool"
+        group = "application"
+        mainClass = "org.geogebra.desktop.gpadtools.GgbToGpad"
+        classpath = sourceSets.main.get().runtimeClasspath
+        
+        // 传递命令行参数
+        if (project.hasProperty("args")) {
+            args((project.property("args") as String).split(" "))
+        }
+    }
+
+    register<Jar>("ggb2gpadJar") {
+        description = "Create executable JAR for GgbToGpad"
+        group = "build"
+        archiveBaseName = "ggb2gpad"
+        archiveClassifier = ""
+        
+        // 确保先编译
+        dependsOn("classes")
+        
+        // 确保所有依赖项目的构建任务先执行（包括通过 includeBuild 引入的项目）
+        // buildDependencies 会自动包含所有依赖的构建任务，包括 jar 任务
+        dependsOn(configurations.runtimeClasspath.get().buildDependencies)
+        
+        manifest {
+            attributes["Main-Class"] = "org.geogebra.desktop.gpadtools.GgbToGpad"
+        }
+        
+        // 包含所有编译后的类文件
+        from(sourceSets.main.get().output) {
+            include("**")
+        }
+        
+        // 包含所有运行时依赖，过滤掉不存在的文件
+        from(configurations.runtimeClasspath.get().filter { it.exists() }.map { 
+            if (it.isDirectory) {
+                it
+            } else {
+                zipTree(it)
+            }
+        }) {
+            exclude("META-INF/*.RSA", "META-INF/*.SF", "META-INF/*.DSA")
+        }
+        
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    }
+
+    register<JavaExec>("runGpadToGgb") {
+        description = "Run GpadToGgb tool"
+        group = "application"
+        mainClass = "org.geogebra.desktop.gpadtools.GpadToGgb"
+        classpath = sourceSets.main.get().runtimeClasspath
+        
+        // 传递命令行参数
+        if (project.hasProperty("args")) {
+            args((project.property("args") as String).split(" "))
+        }
+    }
+
+    register<Jar>("gpad2ggbJar") {
+        description = "Create executable JAR for GpadToGgb"
+        group = "build"
+        archiveBaseName = "gpad2ggb"
+        archiveClassifier = ""
+        
+        // 确保先编译
+        dependsOn("classes")
+        
+        // 确保所有依赖项目的构建任务先执行（包括通过 includeBuild 引入的项目）
+        dependsOn(configurations.runtimeClasspath.get().buildDependencies)
+        
+        manifest {
+            attributes["Main-Class"] = "org.geogebra.desktop.gpadtools.GpadToGgb"
+        }
+        
+        // 包含所有编译后的类文件
+        from(sourceSets.main.get().output) {
+            include("**")
+        }
+        
+        // 包含所有运行时依赖，过滤掉不存在的文件
+        from(configurations.runtimeClasspath.get().filter { it.exists() }.map { 
+            if (it.isDirectory) {
+                it
+            } else {
+                zipTree(it)
+            }
+        }) {
+            exclude("META-INF/*.RSA", "META-INF/*.SF", "META-INF/*.DSA")
+        }
+        
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    }
 }

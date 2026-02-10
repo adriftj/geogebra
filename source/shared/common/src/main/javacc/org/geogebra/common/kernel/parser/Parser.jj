@@ -42,9 +42,13 @@ the Free Software Foundation; either version 2 of the License, or
  * @version 10.4.2004
  */
 
+
 options {
    STATIC = false;
    JAVA_TEMPLATE_TYPE = "modern";
+   //DEBUG_PARSER = true;
+   //DEBUG_LOOKAHEAD = true;
+   //DEBUG_TOKEN_MANAGER = true;
 }
 
 PARSER_BEGIN(Parser)
@@ -71,6 +75,17 @@ import org.geogebra.common.kernel.Kernel;
 import org.geogebra.common.kernel.parser.cashandlers.CommandDispatcherGiac;
 import org.geogebra.common.main.App;
 import org.geogebra.common.plugin.Operation;
+import org.geogebra.common.gpad.GpadStyleSheet;
+import org.geogebra.common.gpad.GpadParseException;
+import org.geogebra.common.gpad.GpadSerializer;
+import org.geogebra.common.io.GpadStyleXMLApplier;
+import org.geogebra.common.kernel.commands.EvalInfo;
+import org.geogebra.common.kernel.CircularDefinitionException;
+import java.util.Map;
+import org.geogebra.common.gpad.GpadStyleMaps;
+import org.geogebra.common.kernel.Macro;
+import org.geogebra.common.kernel.MacroKernel;
+import org.geogebra.common.gpad.GpadParser;
 
 import java.util.ArrayList;
 import java.util.Vector;
@@ -95,6 +110,24 @@ public class Parser implements ParserInterface {
     private final ArrayList<ExpressionNode> undecided = new ArrayList<ExpressionNode >();
     private boolean highPrecisionParsing;
     private int nestedCommands = 0;
+    
+    // Gpad parsing state
+    private java.util.Map<String, GpadStyleSheet> gpadStyleSheets;
+    private java.util.List<GeoElement> gpadResults;
+    private java.util.List<String> gpadWarnings;
+
+    /**
+     * Constructor for expression validation (without Kernel).
+     * Used for checking if expressions are "simple" according to grammar rules.
+     */
+    public Parser() {
+        this ( new StringProvider("") ); // dummy stream for parser initing
+        this.kernel = null;
+        this.functionParser = null;
+        this.app = null;
+        this.loc = null;
+        highPrecisionParsing = false;
+    }
 
     public Parser(Kernel kernel) {
         this ( new StringProvider("") ); // dummy stream for parser initing
@@ -318,19 +351,446 @@ public class Parser implements ParserInterface {
             imageRecurring.replace(String.valueOf(Unicode.OVERLINE), ""));
     }
 
+    /**
+    * Error recovery: skip invalid tokens until ";" or "}" or EOF
+    * Collects warning information about skipped tokens.
+    */
+    void gpadSkipToSync() {
+        token_source.SwitchTo(DEFAULT);
+        Token currentToken = getToken(0);
+        int startLine = currentToken != null ? currentToken.beginLine : -1;
+        int startColumn = currentToken != null ? currentToken.beginColumn : -1;
+        Token t = getToken(1);
+        StringBuilder skippedTokens = new StringBuilder();
+        boolean firstToken = true;
+        
+        while (t.kind != POLAR_SEPARATOR && t.kind != RBRACE && t.kind != EOF) {
+            if (!firstToken)
+                skippedTokens.append(" ");
+            skippedTokens.append(t.image);
+            firstToken = false;
+            getNextToken();
+            t = getToken(1);
+        }
+        
+        if (skippedTokens.length() > 0) {
+            String warningMsg = "Skipped invalid tokens: " + skippedTokens.toString();
+            addGpadWarning(warningMsg, startLine, startColumn);
+        }
+    }
+
+    // 使用 GpadStyleMaps 中定义的映射表
+    private static final Map<String, String> gkUniqueAttrs = GpadStyleMaps.GPAD_TO_XML_ATTR_NAME_MAP;
+    private static final Map<String, String> gkNameMaps = GpadStyleMaps.GPAD_TO_XML_NAME_MAP;
+    private static final Map<String, String> gkStartEndStyleValues = GpadStyleMaps.START_END_STYLE_VALUES;
+    private static final Map<String, String> gkRevertBooleanValues = GpadStyleMaps.BOOLEAN_VALUE_REVERT_MAP;
+    private static final Map<String, String> gkEqnStyleValues = GpadStyleMaps.EQN_STYLE_VALUES;
+    private static final Map<String, String> gkLineStyleTypeValues = GpadStyleMaps.LINE_STYLE_TYPE_MAP;
+    private static final Map<String, String> gkLineStyleTypeHiddenValues = GpadStyleMaps.LINE_STYLE_TYPE_HIDDEN_MAP;
+    private static final Map<String, Map<String, String>> gkValueMaps = GpadStyleMaps.VALUE_MAPS;
+
+    /**
+     * Helper method to convert property key name and determine attribute name.
+     * 
+     * @param keyName the original key name from token
+     * @return String array with [propertyName, attrName]
+     */
+    private String[] convertPropertyKey(String keyName) {
+        // First, determine the attribute name (check gkUniqueAttrs)
+        String attrName = gkUniqueAttrs.getOrDefault(keyName, "val");
+        // Then convert the property name (check gkNameMaps)
+        String propertyName = gkNameMaps.getOrDefault(keyName, keyName);
+        return new String[]{propertyName, attrName};
+    }
+
+    /**
+     * Helper method to convert property value and set it to style sheet.
+     * Handles value conversion through gkValueMaps with error tolerance.
+     * 
+     * @param styleSheet the style sheet to set property
+     * @param key original property name
+     * @param originalValue the original value to convert
+     */
+    private void setPropertyWithValueConversion(GpadStyleSheet styleSheet, 
+            String key, String originalValue) {
+        String converted[] = convertPropertyKey(key);
+        // Check gkValueMaps for value conversion
+        String finalValue;
+        Map<String, String> valueMap = gkValueMaps.get(converted[0]);
+        if (valueMap == null) // No value map found, use original
+            finalValue = originalValue;
+        else {
+            // Check if original value is in the map
+            finalValue = valueMap.get(originalValue);
+            if (finalValue == null) // Value not found, skip
+                return;
+        }
+        // Write to style sheet
+        java.util.LinkedHashMap<String, String> attrs = new java.util.LinkedHashMap<>();
+        attrs.put(converted[1], finalValue);
+        styleSheet.setProperty(converted[0], attrs);
+    }
+
+    /**
+     * Parses a Gpad program and returns a list of GeoElements.
+     * 
+     * @param gpadText Gpad text to parse
+     * @return list of created GeoElements
+     * @throws ParseException if parsing fails
+     */
+    public java.util.List<GeoElement> parseGpad(String gpadText) throws GpadParseException {
+        if (gpadText == null || gpadText.trim().isEmpty())
+            return new java.util.ArrayList<>();
+        gpadStyleSheets = new java.util.HashMap<>();
+        gpadResults = new java.util.ArrayList<>();
+        gpadWarnings = new java.util.ArrayList<>();
+        
+        try {
+            myReInit(gpadText);
+            buildGpadProgram();
+            return gpadResults;
+        } catch (ParseException e) {
+            throw createGpadParseException(e);
+        } catch (Throwable t) {
+            // Catch any other exceptions (CircularDefinitionException and MyError should already be
+            // caught and converted to GpadParseException by gpadCommandExpression)
+            throw createGpadParseException(t, t.getClass().getSimpleName(), -1, -1, false);
+        }
+    }
+    
+    /**
+     * Adds a warning message with position information.
+     * 
+     * @param message warning message
+     * @param line line number (1-based), or -1 if unknown
+     * @param column column number (1-based), or -1 if unknown
+     */
+    private void addGpadWarning(String message, int line, int column) {
+        if (gpadWarnings == null)
+            gpadWarnings = new java.util.ArrayList<>();
+        gpadWarnings.add(buildDetailedErrorMessage(message, line, column, false));
+    }
+    
+    /**
+     * Adds a warning message without position information.
+     * 
+     * @param message warning message
+     */
+    private void addGpadWarning(String message) {
+        addGpadWarning(message, -1, -1);
+    }
+    
+    /**
+     * @return the list of warnings collected during Gpad parsing
+     */
+    public java.util.List<String> getGpadWarnings() {
+        return gpadWarnings;
+    }
+    
+    /**
+     * @return the global style sheets for Gpad
+     */
+    public java.util.Map<String, GpadStyleSheet> getGpadStyleSheets() {
+        return gpadStyleSheets;
+    }
+
+    /**
+     * Parses a hex color string (#rrggbb or #rrggbbaa) to 4-element array.
+     * @param colorHex the hex color string (e.g., "#FF0000" or "#FF0000FF")
+     * @param rgba the array to store [0]=r, [1]=g, [2]=b, [3]=alpha
+     */
+    private void parseHexColorToArray(String colorHex, int[] rgba) {
+        if (colorHex != null && colorHex.startsWith("#")) {
+            String colorUpper = colorHex.toUpperCase();
+            int len = colorUpper.length();
+            if(len == 7 || len == 9) {
+                try {
+                    int r = Integer.parseInt(colorUpper.substring(1, 3), 16);
+                    int g = Integer.parseInt(colorUpper.substring(3, 5), 16);
+                    int b = Integer.parseInt(colorUpper.substring(5, 7), 16);
+                    // Parse hex color #rrggbb (alpha defaults to 1.0) or #rrggbbaa
+                    rgba[3] = len==9? Integer.parseInt(colorUpper.substring(7, 9), 16): -1;
+                    rgba[0] = r; rgba[1] = g; rgba[2] = b;
+                    return;
+                } catch (NumberFormatException e) {
+                    // Invalid format
+                }
+            }
+        }
+        rgba[0] = rgba[1] = rgba[2] = rgba[3] = -1;
+    }
+
+
+    /**
+     * Parses a hex color string (#rrggbb or #rrggbbaa) and populates the attrs map.
+     * @param colorHex the hex color string (e.g., "#FF0000" or "#FF0000FF")
+     * @param attrs the map to populate with r, g, b, and alpha values
+     * @return true if the color was successfully parsed, false otherwise
+     */
+    private boolean parseHexColor(String colorHex, java.util.LinkedHashMap<String, String> attrs) {
+        int[] rgba = new int[4];
+        parseHexColorToArray(colorHex, rgba);
+        if (rgba[0]<0 || rgba[1]<0 || rgba[2]<0)
+            return false;
+        attrs.put("r", String.valueOf(rgba[0]));
+        attrs.put("g", String.valueOf(rgba[1]));
+        attrs.put("b", String.valueOf(rgba[2]));
+        if (rgba[3] >= 0)
+            attrs.put("alpha", String.valueOf(rgba[3]/255.0));
+        return true;
+    }
+
+    /**
+     * Extracts the value after "=" in a token string, skipping spaces and tabs.
+     * @param tokenImage the full token string (e.g., "fill = hatch" or "angle=30")
+     * @return the value after "=" with leading spaces/tabs removed, or null if "=" not found
+     */
+    private String extractValueAfterEquals(String tokenImage) {
+        int equalsIndex = tokenImage.indexOf('=');
+        if (equalsIndex < 0)
+            return null;
+        // Find the start of the value (skip spaces/tabs after =)
+        int valueStart = equalsIndex + 1;
+        while (valueStart < tokenImage.length() && (tokenImage.charAt(valueStart) == ' ' || tokenImage.charAt(valueStart) == '\t')) {
+            valueStart++;
+        }
+        return tokenImage.substring(valueStart);
+    }
+
+    /**
+     * Unescapes a quoted string by processing escape sequences.
+     * Handles: \\n -> \n, \\r -> \r, \\t -> \t, \\" -> ", \\\\ -> \
+     * @param quoted the string with escape sequences (already with quotes removed)
+     * @return the unescaped string
+     */
+    private static String unescapeString(String quoted) {
+        if (quoted == null || quoted.isEmpty())
+            return quoted;
+        StringBuilder sb = new StringBuilder(quoted.length());
+        int len = quoted.length();
+        for (int i = 0; i < len; i++) {
+            char c = quoted.charAt(i);
+            if (c != '\\') // 不是反斜杠，原样输出
+                sb.append(c);
+            else {
+                // 是反斜杠，看后面的字符
+                if (i + 1 < len) {
+                    char next = quoted.charAt(i + 1);
+                    switch (next) {
+                        case '\\':
+                            sb.append('\\');
+                            i++; // 跳过下一个字符
+                            break;
+                        case 't':
+                            sb.append('\t');
+                            i++; // 跳过下一个字符
+                            break;
+                        case 'r':
+                            sb.append('\r');
+                            i++; // 跳过下一个字符
+                            break;
+                        case 'n':
+                            sb.append('\n');
+                            i++; // 跳过下一个字符
+                            break;
+                        case '"':
+                            sb.append('"');
+                            i++; // 跳过下一个字符
+                            break;
+                        default:
+                            // 其它字符则输出反斜杠和这个字符
+                            sb.append('\\');
+                            sb.append(next);
+                            i++; // 跳过下一个字符
+                            break;
+                    }
+                } else // 反斜杠是最后一个字符，原样输出
+                    sb.append('\\');
+            }
+        }
+        return sb.toString();
+    }
+
+    /**
+     * Extracts the integer part from a float token string.
+     * Removes the decimal part if present (e.g., "12.5" -> "12", "10" -> "10").
+     * @param floatStr the float string from GK_VALUE_float token
+     * @return the integer part as a string
+     */
+    private static String extractIntegerPart(String floatStr) {
+        int dotIndex = floatStr.indexOf('.');
+        return dotIndex >= 0 ? floatStr.substring(0, dotIndex) : floatStr;
+    }
+
+    /**
+     * Extracts line and column information from a Token.
+     * @param token the token to extract position from (can be null)
+     * @return array with [line, column], both -1 if token is null or unavailable
+     */
+    private int[] extractPositionFromToken(Token token) {
+        try {
+            return new int[]{token.beginLine, token.beginColumn};
+        } catch (Exception ex) {
+            return new int[]{-1, -1};
+        }
+    }
+
+    /**
+     * Builds a detailed error message with position information.
+     * @param errorMsg the base error message
+     * @param line line number (1-based), or -1 if unknown
+     * @param column column number (1-based), or -1 if unknown
+     * @param checkExistingPosition if true, checks if errorMsg already contains position info
+     * @return detailed error message with position prefix if applicable
+     */
+    private String buildDetailedErrorMessage(String errorMsg, int line, int column, 
+            boolean checkExistingPosition) {
+        if (checkExistingPosition && errorMsg.startsWith("Line "))
+            return errorMsg;
+        StringBuilder detailedMsg = new StringBuilder();
+        if (line >= 0 && column >= 0)
+            detailedMsg.append("Line ").append(line).append(", column ")
+                    .append(column).append(": ");
+        else if (line >= 0)
+            detailedMsg.append("Line ").append(line).append(": ");
+        detailedMsg.append(errorMsg);
+        return detailedMsg.toString();
+    }
+
+    /**
+     * Creates a GpadParseException with position information.
+     * @param t error/exception
+     * @param line line number (1-based), or -1 if unknown
+     * @param column column number (1-based), or -1 if unknown
+     * @param checkExistingPosition if true, checks if errorMsg already contains position info
+     * @return GpadParseException with detailed message and position
+     */
+    private GpadParseException createGpadParseException(Throwable t,
+            String fallbackMsg, int line, int column, boolean checkExistingPosition) {
+        String errorMsg = t.getLocalizedMessage();
+        if (errorMsg==null)
+            errorMsg = fallbackMsg;
+        String detailedMsg = buildDetailedErrorMessage(errorMsg, line, column, checkExistingPosition);
+        return new GpadParseException(detailedMsg, line, column);
+    }
+
+    /**
+     * Creates a GpadParseException with ParseException.
+     * @param e ParseException
+     * @return GpadParseException with detailed message and position
+     */
+    private GpadParseException createGpadParseException(ParseException e) {
+        int[] pos = extractPositionFromToken(e.currentToken);
+        return createGpadParseException(e, "Parse error", pos[0], pos[1], true);
+    }
+
+    /**
+     * Creates a ParseException with position information extracted from a Token.
+     * @param errorMsg the base error message
+     * @param token the token to extract position from (can be null)
+     * @return ParseException with detailed message and currentToken set
+     */
+    private ParseException createParseException(String errorMsg, Token token) {
+        int[] pos = extractPositionFromToken(token);
+        String detailedMsg = buildDetailedErrorMessage(errorMsg, pos[0], pos[1], false);
+        ParseException pe = new ParseException(detailedMsg);
+        pe.currentToken = token;
+        return pe;
+    }
+
+    private void applyGeoStyleSheet(GeoElement geo, GpadStyleSheet styleSheet, int line, int column) {
+        java.util.ArrayList<String> errors = GpadStyleXMLApplier.apply(styleSheet, geo);
+        // Merge all errors into a single warning - allow parsing to continue
+        if (errors != null && !errors.isEmpty()) {
+            StringBuilder warningMsg = new StringBuilder();
+            warningMsg.append("Failed to apply style sheet to ").append(geo.getLabelSimple()).append(": ");
+            boolean first = true;
+            for (String errorMsg : errors) {
+                if (!first)
+                    warningMsg.append("; ");
+                first = false;
+                warningMsg.append(errorMsg);
+            }
+            // Use command expression position for warning
+            addGpadWarning(warningMsg.toString(), line, column);
+        }
+    }
 }
 PARSER_END(Parser)
 
 
 // Note: includes all Unicode whitespaces (incl. non-breaking), separators and ZWSP
-SKIP : { <(["\u0009" - "\u000E", // ASCII spaces, \u000E added to work around JavaCC bug
+<*> SKIP : {
+  <(["\u0009" - "\u000E", // ASCII spaces, \u000E added to work around JavaCC bug
   "\u001C" - "\u0020", // separators
   "\u1680",
   "\u2000" - "\u200B", "\u2028" , "\u2029", "\u205F", // various width spaces, including ZWSP
   "\u00A0", "\u202F", // non-breaking spaces
   "\u3000", // ideographic space
   "\uFEFF" // BOM
-  ])> }
+  ])> 
+  | <SINGLE_LINE_COMMENT: "//" (~["\n","\r"])* ("\n"|"\r"|"\r\n")?> // Single-line comment for Gpad
+}
+
+<*> TOKEN: {
+   < #GLABEL:
+    <LETTER> ( <INDEX> | <LETTER> | <DIGIT> | "'" | "‘" | "’" )* ("." <GINTEGER>)?>
+ |  < #INDEX:  "_" (  <CHAR>  | ("{" (~["}"])+ "}" ) )  >
+ | < #GINTEGER: ( <DIGIT> )+ >
+ | < #LETTER:  // unicode letters
+       [
+        "$",                    // for absolute references in the spreadsheet
+        "\u0041"-"\u005a",      // upper case (A-Z)
+        "\u0061"-"\u007a",      // lower case (a-z)
+        "\u00b7",               // middle dot (for Catalan)
+        "\u00a5"-"\u00aa",      // for CAS labels
+        "\u00c0"-"\u00d6",      // accentuated letters
+        "\u00d8"-"\u00f6",      // accentuated letters
+        "\u00f8"-"\u01bf",      // accentuated letters
+        "\u01c4"-"\u02a8",      // accentuated letters
+        "\u038e"-"\u03f5",      // Greek
+        "\u0401"-"\u0481",      // Cyrillic
+        "\u0490"-"\u04f9",      // Cyrillic
+        "\u0531"-"\u167F", "\u1681"-"\u1ffc",      // a lot of signs (Arabic, accentuated, ...)
+        "\u3041"-"\u3357",      // Asian letters
+        "\u4e00"-"\ud7a3",      // Asian letters
+        "\uf71d"-"\ufa2d",      // Asian letters
+        "\ufb13"-"\ufdfb",      // Armenian, Hebrew, Arabic
+        "\ufe80"-"\ufefc",      // Arabic
+        "\uff66"-"\uff9d",      // Katakana
+        "\uffa1"-"\uffdc"       // Hangul
+       ] >
+ | < #DIGIT:                                     // unicode digits
+         [
+          "\u0030"-"\u0039", // Arabic (=Latin)
+          "\u0660"-"\u0669", // Arabic-Indic
+          "\u06f0"-"\u06f9", // Extended Arabic-Indic
+          "\u0966"-"\u096f", // Devanagari (Hindi)
+          "\u09e6"-"\u09ef", // Bengali
+          "\u0a66"-"\u0a6f", // Gurmukhi (Punjabi)
+          "\u0ae6"-"\u0aef", // Gujurati
+          "\u0b66"-"\u0b6f", // Oryia
+          "\u0be6"-"\u0bef", // Tamil
+          "\u0c66"-"\u0c6f", // Telugu
+          "\u0ce6"-"\u0cef", // Kannada
+          "\u0d66"-"\u0d6f", // Malayalam
+          "\u0e50"-"\u0e59", // Thai
+          "\u0ed0"-"\u0ed9", // Lao
+          "\u1040"-"\u1049", // Myanmar (Burmese)
+          "\u0f20"-"\u0f29", // Tibetan
+          "\u1b50"-"\u1b59", // Balinese
+          "\u1bb0"-"\u1bb9", // Sudanese
+          "\u1c40"-"\u1c49", // Lepcha
+          "\u1c50"-"\u1c59", // Ol Chiki
+          "\u17e0"-"\u17e9", // Khmer
+          "\u1810"-"\u1819", // Mongolian
+          "\ua8d0"-"\ua8d9"  // Saurashtra
+         ]
+    >
+ | < #CHAR: ["\u0000"-"\u0021", "\u0023"-"\uffff"]  >
+ | < #PRINTABLE_CHAR: ["\u0020" - "\u007E", "\u0080" - "\uFFFF"] >
+ | < #RGBA_HEX_COLOR: "#" (["0"-"9","A"-"F","a"-"f"])+ >
+}
 
 /* OPERATORS */
 TOKEN :  {
@@ -364,6 +824,7 @@ TOKEN :  {
   | < POWER:    ("^" | "**" | "\u02C6") >
     // dot operators for multiplication sign
   | < MULTIPLY: ("*" | "\u22c5" | "\u2219" | "\u00D7") >
+  | < TILDE: "~" >
   | < VECTORPRODUCT: "\u2297" >
   | < DIVIDE:   ("/" | "\u00f7") >
   | < INVISIBLE_PLUS: "\u2064" >
@@ -411,34 +872,7 @@ TOKEN : {
   |     < FLOAT:  (<INTEGER> | <DECIMAL_POINT>)+ > //deliberately trap eg 1.2.3.4 , 1..2 here, error then thrown in MyDouble.parseDouble()
   |     < EFLOAT: <FLOAT> ("E") (<PLUS> | <MINUS>)? <INTEGER> >
   |     < RECURRING_DIGITS: <OVERLINE> (<DIGIT> <OVERLINE>)* >
-  |     < INTEGER: ( <DIGIT> )+ >
-  |     < #DIGIT:                                     // unicode digits
-         [
-          "\u0030"-"\u0039", // Arabic (=Latin)
-          "\u0660"-"\u0669", // Arabic-Indic
-          "\u06f0"-"\u06f9", // Extended Arabic-Indic
-          "\u0966"-"\u096f", // Devanagari (Hindi)
-          "\u09e6"-"\u09ef", // Bengali
-          "\u0a66"-"\u0a6f", // Gurmukhi (Punjabi)
-          "\u0ae6"-"\u0aef", // Gujurati
-          "\u0b66"-"\u0b6f", // Oryia
-          "\u0be6"-"\u0bef", // Tamil
-          "\u0c66"-"\u0c6f", // Telugu
-          "\u0ce6"-"\u0cef", // Kannada
-          "\u0d66"-"\u0d6f", // Malayalam
-          "\u0e50"-"\u0e59", // Thai
-          "\u0ed0"-"\u0ed9", // Lao
-          "\u1040"-"\u1049", // Myanmar (Burmese)
-          "\u0f20"-"\u0f29", // Tibetan
-          "\u1b50"-"\u1b59", // Balinese
-          "\u1bb0"-"\u1bb9", // Sudanese
-          "\u1c40"-"\u1c49", // Lepcha
-          "\u1c50"-"\u1c59", // Ol Chiki
-          "\u17e0"-"\u17e9", // Khmer
-          "\u1810"-"\u1819", // Mongolian
-          "\ua8d0"-"\ua8d9"  // Saurashtra
-         ]
-    >
+  |     < INTEGER: <GINTEGER> >
 }
 
 TOKEN : {
@@ -446,32 +880,8 @@ TOKEN : {
    <SPREADSHEET_LABEL: ("$")?(["A"-"Z"]|["a"-"z"])+("$")?(["0"-"9"])+ > // e.g. B12
  |
    // standard case: labels for GeoElements and command names
-   < LABEL:
-    <LETTER> ( <INDEX> | <LETTER> | <DIGIT> | "'" | "‘" | "’" )* ("." <INTEGER>)?>
- |  < #INDEX:  "_" (  <CHAR>  | ("{" (~["}"])+ "}" ) )  >
- | < #LETTER:  // unicode letters
-       [
-        "$",                    // for absolute references in the spreadsheet
-        "\u0041"-"\u005a",      // upper case (A-Z)
-        "\u0061"-"\u007a",      // lower case (a-z)
-        "\u00b7",               // middle dot (for Catalan)
-        "\u00a5"-"\u00aa",      // for CAS labels
-        "\u00c0"-"\u00d6",      // accentuated letters
-        "\u00d8"-"\u00f6",      // accentuated letters
-        "\u00f8"-"\u01bf",      // accentuated letters
-        "\u01c4"-"\u02a8",      // accentuated letters
-        "\u038e"-"\u03f5",      // Greek
-        "\u0401"-"\u0481",      // Cyrillic
-        "\u0490"-"\u04f9",      // Cyrillic
-        "\u0531"-"\u167F", "\u1681"-"\u1ffc",      // a lot of signs (Arabic, accentuated, ...)
-        "\u3041"-"\u3357",      // Asian letters
-        "\u4e00"-"\ud7a3",      // Asian letters
-        "\uf71d"-"\ufa2d",      // Asian letters
-        "\ufb13"-"\ufdfb",      // Armenian, Hebrew, Arabic
-        "\ufe80"-"\ufefc",      // Arabic
-        "\uff66"-"\uff9d",      // Katakana
-        "\uffa1"-"\uffdc"       // Hangul
-       ] >
+   < LABEL: <GLABEL> >
+ | < GSSLABEL: "@"<GLABEL> >
 
 }
 
@@ -483,15 +893,263 @@ TOKEN : {
 |  < Y_FUNC:  ("y" | "ycoord")   ("("|"[")>
 |  < Z_FUNC:  ("z" | "zcoord")   ("("|"[")>
 |  < RANDOM_FUNC:  "random()"  >
-|   < POLAR_SEPARATOR: ( "\u2221" | ";" ) > // separator used by Giac instead of ;
 |    < SQRT_SHORT: "\u221a" >
 |   < FUNCTION_LABEL: (<SPREADSHEET_LABEL> | <LABEL> ) ("("|"[") >
 |   < FUNCTION_POWER_LABEL: (<SPREADSHEET_LABEL> | <LABEL> ) (< POWERN > )("("|"[") >
+|   < LBRACE: "{" >
 }
 
-TOKEN : {
- < TEXT: "\""  (<CHAR>)* "\"" > |
- < #CHAR: ["\u0000"-"\u0021", "\u0023"-"\uffff"]  >
+<*> TOKEN : {
+   < RBRACE: "}" >
+|   < POLAR_SEPARATOR: ( "\u2221" | ";" ) > // separator used by Giac instead of ;
+|   < GPAD_MACRO: "@@macro" >
+|   < GPAD_RETURN: "@@return" >
+|   < GPAD_SET: "@@set" >
+}
+
+<DEFAULT, GK_STR_BLOCK, GK_animation_BLOCK, GK_EXPR_BLOCK> TOKEN : {
+ < TEXT: "\""  (<CHAR>)* "\"" >
+}
+
+<GK_BLOCK> TOKEN : {
+ < GK_animation: "animation" > |
+ < GK_allowReflexAngle: "allowReflexAngle" > |
+ < GK_boundingBox: "boundingBox" > |
+ < GK_barTag: "barTag" > |
+ < GK_casMap: "casMap" > |
+ < GK_checkbox: "checkbox" > |
+ < GK_coefficients: "coefficients" > |
+ < GK_contentSize: "contentSize" > |
+ < GK_coords: "coords" > |
+ < GK_cropBox: "cropBox" > |
+ < GK_dimensions: "dimensions" > |
+ < GK_eigenvectors: "eigenvectors" > |
+ < GK_embed: "embed" > |
+ < GK_embedSettings: "embedSettings" > |
+ < GK_eqnStyle: "eqnStyle" > |
+ < GK_font: "font" > |
+ < GK_forceReflexAngle: "forceReflexAngle" > |
+ < GK_lineStyle: "lineStyle" > |
+ < GK_listener: "listener" > |
+ < GK_listType: "listType" > |
+ < GK_matrix: "matrix" > |
+ < GK_objColor: "objColor" > |
+ < GK_parent: "parent" > |
+ < GK_show: "show" > |
+ < GK_slider: "slider" > |
+ < GK_spreadsheetTrace: "spreadsheetTrace" > |
+ < GK_startPoint: "startPoint" > |
+ < GK_strokeCoords: "strokeCoords" > |
+ < GK_tableview: "tableview" > |
+ < GK_tag: "tag" > |
+ < GK_tempUserInput: "tempUserInput" > |
+ < GK_value: "value" > |
+ < GK_variables: "variables" > |
+ < GK_BOOL: "autocolor" |
+    "auxiliary" |
+    "breakpoint" |
+    "centered" |
+    "comboBox" |
+    "contentSerif" |
+    "fixed" |
+    "hideLabelInAlgebra" |
+    "inBackground" |
+    "interpolate" |
+    "isLaTeX" |
+    "isMask" |
+    "keepTypeOnTransform" |
+    "levelOfDetailQuality" |
+    "outlyingIntersections" |
+    "random" |
+    "selectionAllowed" |
+    "showGeneralAngle" |
+    "showOnAxis" |
+    "showTrimmed" |
+    "symbolic" |
+    "trace" |
+    "userinput"> |
+ < GK_INT: "arcSize" |
+    "decimals" |
+    "layer" |
+    "length" |
+    "selectedIndex" |
+    "significantfigures" |
+    "slopeTriangleSize" > |
+ < GK_FLOAT: "fading" |
+    "ordering" |
+    "pointSize" > |
+ < GK_STR: "angleStyle" |
+    "audio" |
+    "caption" |
+    "content" |
+    "coordStyle" |
+    "curveParam" |
+    "decoration" |
+    "dynamicCaption" |
+    "endStyle" |
+    "filename" |
+    "headStyle" |
+    "incrementY" |
+    "javascript" |
+    "jsClickFunction" |
+    "jsUpdateFunction" |
+    "labelMode" |
+    "linkedGeo" |
+    "parentLabel" |
+    "pointStyle" |
+    "showIf" |
+    "startStyle" |
+    "textAlign" |
+    "tooltipMode" |
+    "verticalAlign" |
+    "video" > |
+ < GK_SCRIPT: "ggbClick" |
+    "ggbUpdate" |
+    "ggbDragEnd" |
+    "ggbChange" |
+    "jsClick" |
+    "jsUpdate" |
+    "jsDragEnd" |
+    "jsChange" > |
+ < GK_XYCOORDS: "@screen" | "labelOffset" > |
+ < GK_RGBA: "bgColor" | "borderColor" > |
+ < GK_DELETE: "~"((["A"-"Z"]|["a"-"z"]|"@")+) > |
+ < GK_COLON: ":" >
+}
+
+<GK_animation_BLOCK> TOKEN : {
+ < GK_animation_play: "play" > |
+ < GK_animation_tilde_play: "~play" > |
+ < GK_animation_plus: "+" > |
+ < GK_animation_minus: "-" > |
+ < GK_animation_equal: "=" > |
+ < GK_animation_speed: "speed" > |
+ < GK_number: (["0"-"9"])+("." (["0"-"9"])+)? >
+}
+
+<GK_EXPR_BLOCK> TOKEN : {
+ < GK_objColor_rgb: "rgb" > |
+ < GK_objColor_hsv: "hsv" > |
+ < GK_objColor_hsl: "hsl" > |
+ < GK_objColor_inverse: "inverse" > |
+ < GK_objColor_tilde_inverse: "~inverse" > |
+ < GK_startPoint_absolute: "absolute" > |
+ < GK_startPoint_tilde_absolute: "~absolute" > |
+ < GK_startPoint_pipe: "|" > |
+ < GK_EXPR_comma: "," > |
+ < GK_EXPR_lparen: "(" > |
+ < GK_EXPR_rparen: ")" > |
+ < GK_EXPR_plus: "+" > |
+ < GK_EXPR_minus: "-" > |
+ < GK_EXPR_multiply: "*" > |
+ < GK_EXPR_divide: "/" > |
+ < GK_EXPR_power: "^" > |
+ < GK_objColor_RGBA_HEX_COLOR: <RGBA_HEX_COLOR> > |
+ // slider attribute names (must come before GK_EXPR_LABEL to avoid conflicts)
+ < GK_slider_min: "min" > |
+ < GK_slider_max: "max" > |
+ < GK_slider_width: "width" > |
+ < GK_slider_x: "x" > |
+ < GK_slider_y: "y" > |
+ < GK_slider_equal: "=" > |
+ // slider boolean flags
+ < GK_slider_vertical: "vertical" > |
+ < GK_slider_tilde_vertical: "~vertical" > |
+ < GK_slider_algebra: "algebra" > |
+ < GK_slider_tilde_algebra: "~algebra" > |
+ < GK_slider_constant: "constant" > |
+ < GK_slider_tilde_constant: "~constant" > |
+ < GK_slider_screen: "@screen" > |
+ < GK_slider_tilde_screen: "~@screen" > |
+ < GK_slider_fixed: "fixed" > |
+ < GK_slider_tilde_fixed: "~fixed" > |
+ < GK_tempUserInput_eval: "eval" > |
+ < GK_tempUserInput_display: "display" > |
+ < GK_EXPR_LABEL: <GLABEL> > |
+ < GK_EXPR_FLOAT: ("-")? <GINTEGER> ("." <GINTEGER>)? > |
+ < GK_objColor_fill_equals_value: "fill" ([" ", "\t"])* "=" ([" ", "\t"])* (["a"-"z"])+ > |
+ < GK_objColor_angle_equals_value: "angle" ([" ", "\t"])* "=" ([" ", "\t"])* (["0"-"9"])+ > |
+ < GK_objColor_dist_equals_value: "dist" ([" ", "\t"])* "=" ([" ", "\t"])* (["0"-"9"])+ > |
+ // symbol=xxx where xxx is double quoted string or single printable unicode character
+ < GK_objColor_symbol_equals_value: "symbol" ([" ", "\t"])* "=" ([" ", "\t"])* (("\"" (<CHAR>)* "\"") | <PRINTABLE_CHAR>) > |
+ // image=xxx where xxx is doubele quoted string or characters excluding some special
+ < GK_objColor_image_equals_value: "image" ([" ", "\t"])* "=" ([" ", "\t"])* (("\"" (<CHAR>)* "\"") | (~["\u0000"-"\u001F", ";", "}", " ", "\t", "\u007F", "\""])+) > |
+ // bar=xxx where xxx is digits only (required for barTag)
+ < GK_barTag_bar_equals_value: "bar" ([" ", "\t"])* "=" ([" ", "\t"])* (["0"-"9"])+ >
+}
+
+<GK_STR_BLOCK> TOKEN : {
+ < GK_STR_TRIPLE_TEXT: "\"\"\"" (<CHAR>)* "\"\"\"" > |
+ < GK_STR_UNQUOTED: (~["\"", ";", "}", " ", "\t", "\r", "\n"]) >
+}
+
+<GK_VALUE_BLOCK> TOKEN : {
+ < GK_RGBA_HEX_COLOR: <RGBA_HEX_COLOR> > |
+ < GK_lineStyle_thickness: "thickness" > |
+ < GK_lineStyle_hidden: "hidden" > |
+ < GK_lineStyle_opacity: "opacity" > |
+ < GK_lineStyle_arrow: "arrow" > |
+ < GK_lineStyle_tilde_arrow: "~arrow" > |
+ < GK_lineStyle_type_pointwise: "pointwise" > |
+ < GK_lineStyle_type_full: "full" > |
+ < GK_lineStyle_type_dashedshort: "dashedshort" > |
+ < GK_lineStyle_type_dashedlong: "dashedlong" > |
+ < GK_lineStyle_type_dotted: "dotted" > |
+ < GK_lineStyle_type_dasheddotted: "dasheddotted" > |
+ < GK_lineStyle_dashed: "dashed" > |
+ < GK_lineStyle_show: "show" > |
+ < GK_cropBox_x: "x" > |
+ < GK_cropBox_y: "y" > |
+ < GK_cropBox_cropped: "cropped" > |
+ < GK_cropBox_tilde_cropped: "~cropped" > |
+ < GK_dimensions_angle: "angle" > |
+ < GK_dimensions_scaled: "scaled" > |
+ < GK_dimensions_tilde_scaled: "~scaled" > |
+ < GK_font_serif: "serif" > |
+ < GK_font_tilde_serif: "~serif" > |
+ < GK_font_plain: "plain" > |
+ < GK_font_bold: "bold" > |
+ < GK_font_italic: "italic" > |
+ < GK_show_object: "object" > |
+ < GK_show_tilde_object: "~object" > |
+ < GK_show_ev1: "ev1" > |
+ < GK_show_tilde_ev1: "~ev1" > |
+ < GK_show_ev2: "ev2" > |
+ < GK_show_tilde_ev2: "~ev2" > |
+ < GK_show_3d: "3d" > |
+ < GK_show_tilde_3d: "~3d" > |
+ < GK_show_plane: "plane" > |
+ < GK_show_tilde_plane: "~plane" > |
+ // tableview boolean flags
+ < GK_tableview_points: "points" > |
+ < GK_tableview_tilde_points: "~points" > |
+ // spreadsheetTrace boolean flags
+ < GK_spreadsheetTrace_trace: "trace" > |
+ < GK_spreadsheetTrace_tilde_trace: "~trace" > |
+ < GK_spreadsheetTrace_column: "column" > |
+ < GK_spreadsheetTrace_row: "row" > |
+ < GK_spreadsheetTrace_reset: "reset" > |
+ < GK_spreadsheetTrace_tilde_reset: "~reset" > |
+ < GK_spreadsheetTrace_list: "list" > |
+ < GK_spreadsheetTrace_tilde_list: "~list" > |
+ < GK_spreadsheetTrace_copy: "copy" > |
+ < GK_spreadsheetTrace_tilde_copy: "~copy" > |
+ < GK_spreadsheetTrace_pause: "pause" > |
+ < GK_spreadsheetTrace_tilde_pause: "~pause" > |
+ < GK_VALUE_label: "label" > |
+ < GK_VALUE_tilde_label: "~label" > |
+ < GK_VALUE_width: "width" > |
+ < GK_VALUE_height: "height" > |
+ < GK_VALUE_equal: "=" > |
+ < GK_VALUE_star: "*" > |
+ < GK_VALUE_slash: "/" > |
+ < GK_coords_v: "v" > |
+ < GK_coords_w: "w" > |
+ < GK_VALUE_float: ("-")? (["0"-"9"])+("." (["0"-"9"])+)? >
+}
+
+<GK_BLOCK, GK_animation_BLOCK, GK_STR_BLOCK, GK_VALUE_BLOCK, GK_EXPR_BLOCK> TOKEN : {
+ < GK_INVALID: (~[";", "}"]) >
 }
 
 /**
@@ -1910,4 +2568,2301 @@ ValidExpression vectorSpecial():
 			return ifStructuresEnabled(en);
 		}
 	}
+}
+
+/**
+ * Gpad program = (statement)*
+ */
+void buildGpadProgram() throws GpadParseException :
+{
+}
+{
+    (gpadStatement())* (<EOF>)?
+}
+
+void gpadStatement() throws GpadParseException :
+{
+}
+{(
+    gpadStatementInMacro() |
+    gpadMacroDefinition()
+)}
+
+void gpadStatementInMacro() throws GpadParseException :
+{
+}
+{(
+    gpadStyleSheetDefinition() |
+    gpadCommandExpression() |
+    gpadSetStatement()
+)}
+
+/**
+ * Style sheet definition: @name = { property: value; ... }
+ */
+void gpadStyleSheetDefinition() :
+{
+    Token name;
+    GpadStyleSheet styleSheet;
+}
+{
+    name = <GSSLABEL> <EQUAL>
+    styleSheet = gpadStyleSheetBody(name.image.substring(1))
+    { gpadStyleSheets.put(name.image.substring(1), styleSheet); }
+}
+
+/**
+ * Style sheet body: { property1: value1; ...; }
+ */
+GpadStyleSheet gpadStyleSheetBody(String name) :
+{
+    GpadStyleSheet styleSheet = new GpadStyleSheet(name);
+}
+{
+    <LBRACE> { token_source.SwitchTo(GK_BLOCK); }
+    [(
+        gpadStyleSheetKeyValue(styleSheet)
+        (
+            LOOKAHEAD( { getToken(1).kind == POLAR_SEPARATOR && getToken(2).kind != RBRACE } )
+            <POLAR_SEPARATOR>
+            gpadStyleSheetKeyValue(styleSheet)
+        )*
+        [<POLAR_SEPARATOR>]
+    )]
+    <RBRACE> { token_source.SwitchTo(DEFAULT); return styleSheet; }
+}
+
+void gpadStyleSheetKeyValue(GpadStyleSheet styleSheet) :
+{
+}
+{
+    try {
+        (
+        gpadStyleSheetPropertyDelete(styleSheet) | // ~key (delete)
+        gpadStyleSheetPropertyBoolean(styleSheet) | // Boolean key
+        gpadStyleSheetPropertyInt(styleSheet) | // Integer key
+        gpadStyleSheetPropertyFloat(styleSheet) | // Float key
+        gpadStyleSheetPropertyStr(styleSheet) | // String key
+        gpadStyleSheetPropertyScript(styleSheet) | // Script key (ggbClick, jsClick, etc.)
+        gpadStyleSheetPropertyXYCoords(styleSheet) | // XYCoords key
+        gpadStyleSheetPropertyCoords(styleSheet) | // coords key
+        gpadStyleSheetPropertyRGBA(styleSheet) | // rgba key #rrggbbaa
+        gpadStyleSheetPropertyAnimation(styleSheet) | // animation key
+        gpadStyleSheetPropertyCheckbox(styleSheet) | // checkbox key
+        gpadStyleSheetPropertyEqnStyle(styleSheet) | // eqnStyle key
+        gpadStyleSheetPropertyLineStyle(styleSheet) | // lineStyle key
+        gpadStyleSheetPropertyBoundingBox(styleSheet) | // boundingBox key
+        gpadStyleSheetPropertyContentSize(styleSheet) | // contentSize key
+        gpadStyleSheetPropertyCropBox(styleSheet) | // cropBox key
+        gpadStyleSheetPropertyDimensions(styleSheet) | // dimensions key
+        gpadStyleSheetPropertyFont(styleSheet) | // font key
+        gpadStyleSheetPropertyShow(styleSheet) | // show key
+        gpadStyleSheetPropertyObjColor(styleSheet) | // objColor key
+        gpadStyleSheetPropertyBarTag(styleSheet) | // barTag key
+        gpadStyleSheetPropertySlider(styleSheet) | // slider key
+        gpadStyleSheetPropertyTableView(styleSheet) | // tableview key
+        gpadStyleSheetPropertySpreadsheetTrace(styleSheet) | // spreadsheetTrace key
+        gpadStyleSheetPropertyStartPoint(styleSheet) | // startPoint key
+        gpadStyleSheetPropertyTempUserInput(styleSheet) // tempUserInput key
+        )
+        { token_source.SwitchTo(GK_BLOCK); }
+    }
+    catch(ParseException e) {
+        // Extract position information from exception
+        int[] pos = extractPositionFromToken(e.currentToken);
+        if (pos[0] < 0 || pos[1] < 0)
+            pos = extractPositionFromToken(token);
+        
+        String errorMsg = e.getMessage();
+        if (errorMsg == null)
+            errorMsg = "Invalid property syntax";
+        
+        // Add warning for recoverable errors (can skip)
+        addGpadWarning("Style property error: " + errorMsg, pos[0], pos[1]);
+        gpadSkipToSync();
+    }
+}
+
+/**
+ * Unified handler for ~key (reset operation)
+ * Syntax: ~key;
+ * Sets a reset marker on the property, indicating it should be cleared first.
+ * The reset marker can coexist with normal attributes, allowing "clear then set" semantics.
+ */
+void gpadStyleSheetPropertyDelete(GpadStyleSheet styleSheet) :
+{
+    Token keyToken;
+    String propertyName;
+}
+{
+    keyToken = <GK_DELETE>
+    {
+        // Convert the property name (check gkNameMaps), but no attribute conversion needed
+        String originalKey = keyToken.image.substring(1);
+        propertyName = gkNameMaps.getOrDefault(originalKey, originalKey);
+        styleSheet.resetProperty(propertyName);
+        if ("fixed".equals(originalKey)) {
+            java.util.LinkedHashMap<String, String> attrsCheckbox = styleSheet.getProperty("checkbox");
+            if(attrsCheckbox != null)
+                attrsCheckbox.put("fixed", "false");
+        }
+    }
+}
+
+/**
+ * Unified handler for boolean keys (set to true)
+ * Syntax: key;
+ * Only works for boolean type keys (no value part)
+ */
+void gpadStyleSheetPropertyBoolean(GpadStyleSheet styleSheet) :
+{
+    Token keyToken;
+}
+{
+    keyToken = <GK_BOOL>
+    {
+        String key = keyToken.image;
+        setPropertyWithValueConversion(styleSheet, key, "true");
+        if ("fixed".equals(key)) {
+            java.util.LinkedHashMap<String, String> attrsCheckbox = styleSheet.getProperty("checkbox");
+            if(attrsCheckbox != null)
+                attrsCheckbox.put("fixed", "true");
+        }
+    }
+}
+
+/**
+ * Parses integer property
+ * Syntax: key: <integer>;
+ */
+void gpadStyleSheetPropertyInt(GpadStyleSheet styleSheet) :
+{
+    Token keyToken;
+    Token valueToken;
+    String[] converted;
+}
+{
+    keyToken = <GK_INT> <GK_COLON> { token_source.SwitchTo(DEFAULT); }
+    valueToken = <FLOAT>
+    {
+        converted = convertPropertyKey(keyToken.image);
+        java.util.LinkedHashMap<String, String> attrs = new java.util.LinkedHashMap<>();
+        attrs.put(converted[1], extractIntegerPart(valueToken.image));
+        styleSheet.setProperty(converted[0], attrs);
+    }
+}
+
+/**
+ * Parses float property
+ * Syntax: key: <float>;
+ */
+void gpadStyleSheetPropertyFloat(GpadStyleSheet styleSheet) :
+{
+    Token keyToken;
+    Token valueToken;
+    String[] converted;
+}
+{
+    keyToken = <GK_FLOAT> <GK_COLON> { token_source.SwitchTo(DEFAULT); }
+    valueToken = <FLOAT>
+    {
+        converted = convertPropertyKey(keyToken.image);
+        java.util.LinkedHashMap<String, String> attrs = new java.util.LinkedHashMap<>();
+        attrs.put(converted[1], valueToken.image);
+        styleSheet.setProperty(converted[0], attrs);
+    }
+}
+
+String gpadStyleSheetStringValue() :
+{
+    Token valueToken;
+    StringBuilder sb = new StringBuilder();
+    String val;
+}
+{
+    (
+        valueToken = <GK_STR_TRIPLE_TEXT> {
+            val = valueToken.image;
+            val = val.substring(3, val.length() - 3);
+            sb.append(val);
+        }
+    |
+         valueToken = <TEXT> {
+            val = valueToken.image;
+            val = unescapeString(val.substring(1, val.length() - 1));
+            sb.append(val);
+        }
+    |
+        valueToken = <GK_STR_UNQUOTED> { sb.append(valueToken.image); }
+    )+
+    { return sb.toString(); }
+}
+
+/**
+ * Parses string property
+ * Syntax: key: <string>;
+ */
+void gpadStyleSheetPropertyStr(GpadStyleSheet styleSheet) :
+{
+    Token keyToken;
+    String val;
+}
+{
+    keyToken = <GK_STR> <GK_COLON> { token_source.SwitchTo(GK_STR_BLOCK); }
+    val = gpadStyleSheetStringValue()
+    { setPropertyWithValueConversion(styleSheet, keyToken.image, val); }
+}
+
+/**
+ * Parses script property (GK_SCRIPT)
+ * Syntax: key: <string>;
+ * Value: same as GK_STR (supports mixed unquoted, quoted, and triple-quoted strings)
+ * Converts gpad script properties to ggbscript/javascript XML elements
+ */
+void gpadStyleSheetPropertyScript(GpadStyleSheet styleSheet) :
+{
+    Token keyToken;
+    String scriptValue;
+    String xmlElementName;
+    String xmlAttrName;
+    java.util.LinkedHashMap<String, String> attrs;
+}
+{
+    keyToken = <GK_SCRIPT> <GK_COLON> { token_source.SwitchTo(GK_STR_BLOCK); }
+    scriptValue = gpadStyleSheetStringValue()
+    {
+        if (scriptValue == null || scriptValue.isEmpty())
+            return;
+        
+        String propName = keyToken.image;
+        if (propName.startsWith("ggb")) {
+            xmlElementName = "ggbscript";
+            if ("ggbClick".equals(propName))
+                xmlAttrName = "val";
+            else if ("ggbUpdate".equals(propName))
+                xmlAttrName = "onUpdate";
+            else if ("ggbDragEnd".equals(propName))
+                xmlAttrName = "onDragEnd";
+            else if ("ggbChange".equals(propName))
+                xmlAttrName = "onChange";
+            else
+                return; // Unknown property
+        } else if (propName.startsWith("js")) {
+            xmlElementName = "javascript";
+            if ("jsClick".equals(propName))
+                xmlAttrName = "val";
+            else if ("jsUpdate".equals(propName))
+                xmlAttrName = "onUpdate";
+            else if ("jsDragEnd".equals(propName))
+                xmlAttrName = "onDragEnd";
+            else if ("jsChange".equals(propName))
+                xmlAttrName = "onChange";
+            else
+                return; // Unknown property
+        } else
+            return; // Unknown property
+        
+        // Merge with existing attributes (important: same XML element may have multiple attributes)
+        attrs = styleSheet.getProperty(xmlElementName);
+        if (attrs == null) {
+            attrs = new java.util.LinkedHashMap<>();
+            attrs.put(xmlAttrName, scriptValue);
+            styleSheet.setProperty(xmlElementName, attrs);
+        } else
+            attrs.put(xmlAttrName, scriptValue);
+    }
+}
+
+/**
+ * Parses xycoords property
+ * Syntax: key: <double> <double>;
+ * Value: two double values separated by space (x and y coordinates)
+ */
+void gpadStyleSheetPropertyXYCoords(GpadStyleSheet styleSheet) :
+{
+    Token keyToken;
+    Token xToken, yToken;
+    String[] converted;
+}
+{
+    keyToken = <GK_XYCOORDS> <GK_COLON> { token_source.SwitchTo(GK_VALUE_BLOCK); }
+    xToken = <GK_VALUE_float> yToken = <GK_VALUE_float>
+    {
+        converted = convertPropertyKey(keyToken.image);
+        java.util.LinkedHashMap<String, String> attrs = new java.util.LinkedHashMap<>();
+        attrs.put("x", xToken.image);
+        attrs.put("y", yToken.image);
+        styleSheet.setProperty(converted[0], attrs);
+    }
+}
+
+/**
+ * Parses coords property
+ * Syntax: coords: x y [z];
+ * Only for points constrained on a Path.
+ * Defaults: z=1.0
+ */
+void gpadStyleSheetPropertyCoords(GpadStyleSheet styleSheet) :
+{
+    Token keyToken;
+    Token xToken, yToken, zToken = null;
+    String[] converted;
+}
+{
+    keyToken = <GK_coords> <GK_COLON> { token_source.SwitchTo(GK_VALUE_BLOCK); }
+    // x y [z]
+    xToken = <GK_VALUE_float> 
+    yToken = <GK_VALUE_float>
+    (zToken = <GK_VALUE_float>)?
+    
+    {
+        converted = convertPropertyKey(keyToken.image);
+        java.util.LinkedHashMap<String, String> attrs = new java.util.LinkedHashMap<>();
+        
+        // x, y, z (default 1.0)
+        attrs.put("x", xToken.image);
+        attrs.put("y", yToken.image);
+        attrs.put("z", zToken != null ? zToken.image : "1.0");
+        
+        styleSheet.setProperty(converted[0], attrs);
+    }
+}
+
+/**
+ * Parses RGBA color property
+ * Syntax: key: #rrggbb; or key: #rrggbbaa;
+ * Hex values are case-insensitive.
+ */
+void gpadStyleSheetPropertyRGBA(GpadStyleSheet styleSheet) :
+{
+    Token keyToken;
+    Token colorToken;
+}
+{
+    keyToken = <GK_RGBA> <GK_COLON> { token_source.SwitchTo(GK_VALUE_BLOCK); }
+    colorToken = <GK_RGBA_HEX_COLOR>
+    {
+        java.util.LinkedHashMap<String, String> attrs = new java.util.LinkedHashMap<>();
+        // Only set property if color format is valid, otherwise silently ignore
+        if (parseHexColor(colorToken.image, attrs))
+            styleSheet.setProperty(keyToken.image, attrs);
+    }
+}
+
+/**
+ * Parses animation property
+ * Syntax: animation: [play|~play] [type step] [speed x];
+ * Three parts separated by whitespace, any order, any can be omitted
+ */
+void gpadStyleSheetPropertyAnimation(GpadStyleSheet styleSheet) :
+{
+    Token keyToken;
+    String playing = null;
+    String type = "0";
+    String step = null;
+    String speed = null;
+    Token stepToken = null;
+    Token speedToken = null;
+}
+{
+    keyToken = <GK_animation> <GK_COLON>{ token_source.SwitchTo(GK_animation_BLOCK); }
+    ( (
+        <GK_animation_play> { playing = "true"; } |
+        <GK_animation_tilde_play> { playing = "false"; }
+    ) | (
+        <GK_animation_speed> <GK_animation_equal> (
+        speedToken = <TEXT> { speed = speedToken.image.substring(1, speedToken.image.length() - 1); } |
+        speedToken = <GK_number> { speed = speedToken.image; }
+        )
+    ) | ( (
+        <GK_animation_plus> { type = "1"; } |
+        <GK_animation_minus> { type = "2"; } |
+        <GK_animation_equal> { type = "3"; }
+        )
+        (
+        stepToken = <TEXT> { step = stepToken.image.substring(1, stepToken.image.length() - 1); } |
+        stepToken = <GK_number> { step = stepToken.image; }
+        )?
+    ) | (
+        stepToken = <TEXT> { step = stepToken.image.substring(1, stepToken.image.length() - 1); } |
+        stepToken = <GK_number> { step = stepToken.image; }
+    ) )*
+    {
+        java.util.LinkedHashMap<String, String> attrs = new java.util.LinkedHashMap<>();
+        if (playing != null)
+            attrs.put("playing", playing);
+        if (step != null) {
+            attrs.put("type", type);
+            attrs.put("step", step);
+        }
+        if (speed != null)
+            attrs.put("speed", speed);
+        styleSheet.setProperty(keyToken.image, attrs);
+    }
+}
+
+/**
+ * Parses checkbox property
+ * Syntax: checkbox;
+ */
+void gpadStyleSheetPropertyCheckbox(GpadStyleSheet styleSheet) :
+{
+    Token keyToken;
+}
+{
+    keyToken = <GK_checkbox>
+    {
+        java.util.LinkedHashMap<String, String> attrs = new java.util.LinkedHashMap<>();
+        java.util.LinkedHashMap<String, String> attrsFixed = styleSheet.getProperty("fixed");
+        String fixed = attrsFixed != null? attrsFixed.getOrDefault("val", "false"): "false";
+        attrs.put("fixed", fixed);
+        styleSheet.setProperty(keyToken.image, attrs);
+    }
+}
+
+/**
+ * Parses slider property
+ * Syntax: slider: [min=<表达式>] [max=<表达式>] [width=<浮点数>] [x=<浮点数>] [y=<浮点数>] [vertical|~vertical] [algebra|~algebra] [constant|~constant] [@screen|~@screen] [fixed|~fixed];
+ * Note: @screen and fixed are independent properties for the slider, not linked to object-level properties
+ */
+void gpadStyleSheetPropertySlider(GpadStyleSheet styleSheet) :
+{
+    Token keyToken;
+    Token widthToken;
+    Token xToken, yToken;
+    String minValue = null;
+    String maxValue = null;
+    String widthValue = null;
+    String xValue = null;
+    String yValue = null;
+    boolean vertical = false;
+    boolean algebra = false;
+    boolean constant = false;
+    boolean screen = false;
+    boolean fixed = false;
+    boolean hasVertical = false;
+    boolean hasAlgebra = false;
+    boolean hasConstant = false;
+    boolean hasScreen = false;
+    boolean hasFixed = false;
+}
+{
+    keyToken = <GK_slider> <GK_COLON> { token_source.SwitchTo(GK_EXPR_BLOCK); }
+    (
+        // Parse min=<表达式>
+        <GK_slider_min> <GK_slider_equal> { minValue = gpadExpr(); }
+    |
+        // Parse max=<表达式>
+        <GK_slider_max> <GK_slider_equal> { maxValue = gpadExpr(); }
+    |
+        // Parse width=<浮点数>
+        <GK_slider_width> <GK_slider_equal> widthToken = <GK_EXPR_FLOAT> { widthValue = widthToken.image; }
+    |
+        // Parse x=<浮点数>
+        <GK_slider_x> <GK_slider_equal> xToken = <GK_EXPR_FLOAT> { xValue = xToken.image; }
+    |
+        // Parse y=<浮点数>
+        <GK_slider_y> <GK_slider_equal> yToken = <GK_EXPR_FLOAT> { yValue = yToken.image; }
+    |
+        // Parse vertical flag
+        <GK_slider_vertical>
+        {
+            vertical = true;
+            hasVertical = true;
+        }
+    |
+        // Parse ~vertical flag
+        <GK_slider_tilde_vertical>
+        {
+            vertical = false;
+            hasVertical = true;
+        }
+    |
+        // Parse algebra flag
+        <GK_slider_algebra>
+        {
+            algebra = true;
+            hasAlgebra = true;
+        }
+    |
+        // Parse ~algebra flag
+        <GK_slider_tilde_algebra>
+        {
+            algebra = false;
+            hasAlgebra = true;
+        }
+    |
+        // Parse constant flag
+        <GK_slider_constant>
+        {
+            constant = true;
+            hasConstant = true;
+        }
+    |
+        // Parse ~constant flag
+        <GK_slider_tilde_constant>
+        {
+            constant = false;
+            hasConstant = true;
+        }
+    |
+        // Parse @screen flag
+        <GK_slider_screen>
+        {
+            screen = true;
+            hasScreen = true;
+        }
+    |
+        // Parse ~@screen flag
+        <GK_slider_tilde_screen>
+        {
+            screen = false;
+            hasScreen = true;
+        }
+    |
+        // Parse fixed flag
+        <GK_slider_fixed>
+        {
+            fixed = true;
+            hasFixed = true;
+        }
+    |
+        // Parse ~fixed flag
+        <GK_slider_tilde_fixed>
+        {
+            fixed = false;
+            hasFixed = true;
+        }
+    )*
+    {
+        java.util.LinkedHashMap<String, String> attrs = new java.util.LinkedHashMap<>();
+        
+        // Set fixed property (independent from object-level fixed)
+        if (hasFixed)
+            attrs.put("fixed", String.valueOf(fixed));
+        
+        // Set absoluteScreenLocation based on @screen flag (independent from object-level @screen)
+        if (hasScreen) {
+            attrs.put("absoluteScreenLocation", String.valueOf(screen));
+        } else if (xValue != null && yValue != null) {
+            // If x/y are provided but @screen is not set, default to relative coordinates
+            attrs.put("absoluteScreenLocation", "false");
+        }
+        
+        // x/y coordinates: always use from slider attributes if provided
+        if (xValue != null)
+            attrs.put("x", xValue);
+        if (yValue != null)
+            attrs.put("y", yValue);
+        
+        if (minValue != null)
+            attrs.put("min", minValue);
+        if (maxValue != null)
+            attrs.put("max", maxValue);
+        if (widthValue != null)
+            attrs.put("width", widthValue);
+        
+        // Set horizontal (inverse of vertical)
+        attrs.put("horizontal", String.valueOf(!(hasVertical&&vertical)));
+        
+        // Set showAlgebra (mapped from algebra)
+        if (hasAlgebra)
+            attrs.put("showAlgebra", String.valueOf(algebra));
+        
+        // Set arbitraryConstant (mapped from constant)
+        if (hasConstant)
+            attrs.put("arbitraryConstant", String.valueOf(constant));
+
+        styleSheet.setProperty(keyToken.image, attrs);
+    }
+}
+
+/**
+ * Parses tableview property
+ * Syntax: tableview: [<整数>] [points|~points];
+ * Examples:
+ *   tableview: 2 points;     // column=2, points=true
+ *   tableview: 1 ~points;    // column=1, points=false
+ *   tableview: points;       // no column, points=true
+ *   tableview: 3;            // column=3, no points
+ *   tableview: ~points;      // no column, points=false
+ */
+void gpadStyleSheetPropertyTableView(GpadStyleSheet styleSheet) :
+{
+    Token keyToken;
+    Token columnToken = null;
+    String columnValue = null;
+    boolean points = true;
+    boolean hasPoints = false;
+}
+{
+    keyToken = <GK_tableview> <GK_COLON> { token_source.SwitchTo(GK_VALUE_BLOCK); }
+    (
+        // Parse column number (integer)
+        columnToken = <GK_VALUE_float> { columnValue = extractIntegerPart(columnToken.image); }
+    |
+        // Parse points flag
+        <GK_tableview_points>
+        {
+            points = true;
+            hasPoints = true;
+        }
+    |
+        // Parse ~points flag
+        <GK_tableview_tilde_points>
+        {
+            points = false;
+            hasPoints = true;
+        }
+    )*
+    {
+        java.util.LinkedHashMap<String, String> attrs = new java.util.LinkedHashMap<>();
+        
+        // Set column if provided
+        if (columnValue != null)
+            attrs.put("column", columnValue);
+        
+        // Set points if provided (default is true, so only set if explicitly false)
+        if (hasPoints)
+            attrs.put("points", String.valueOf(points));
+        
+        styleSheet.setProperty(keyToken.image, attrs);
+    }
+}
+
+/**
+ * Parses spreadsheetTrace property
+ * Syntax: spreadsheetTrace: [trace|~trace] [column=<int>] [row=<int>[/<int>]] 
+ *         [reset|~reset] [label|~label] [list|~list] [copy|~copy] [pause|~pause];
+ * 
+ * row format:
+ *   row=12/30    -> traceRow1=12, numRows=30, doRowLimit=true
+ *   row=12       -> traceRow1=12, doRowLimit=false, numRows not set
+ * 
+ * All attributes are optional and can appear in any order.
+ */
+void gpadStyleSheetPropertySpreadsheetTrace(GpadStyleSheet styleSheet) :
+{
+    Token keyToken;
+    Token intToken = null;
+    Token intToken2 = null;
+    String column = null;
+    String traceRow1 = null;
+    String numRows = null;
+    boolean trace = false;
+    boolean doRowLimit = false;
+    boolean reset = false;
+    boolean label = true;
+    boolean list = false;
+    boolean copy = false;
+    boolean pause = false;
+    boolean hasTrace = false;
+    boolean hasReset = false;
+    boolean hasLabel = false;
+    boolean hasList = false;
+    boolean hasCopy = false;
+    boolean hasPause = false;
+}
+{
+    keyToken = <GK_spreadsheetTrace> <GK_COLON> { token_source.SwitchTo(GK_VALUE_BLOCK); }
+    (
+        // Parse trace flag
+        <GK_spreadsheetTrace_trace>
+        {
+            trace = true;
+            hasTrace = true;
+        }
+    |
+        // Parse ~trace flag
+        <GK_spreadsheetTrace_tilde_trace>
+        {
+            trace = false;
+            hasTrace = true;
+        }
+    |
+        // Parse column=<int>
+        <GK_spreadsheetTrace_column> <GK_VALUE_equal> intToken = <GK_VALUE_float>
+        {
+            column = extractIntegerPart(intToken.image);
+        }
+    |
+        // Parse row=<int> or row=<int>/<int>
+        <GK_spreadsheetTrace_row> <GK_VALUE_equal> intToken = <GK_VALUE_float>
+        (
+            // Optional: /<int> for row limit
+            <GK_VALUE_slash> intToken2 = <GK_VALUE_float>
+            {
+                // Format: row=12/30 -> traceRow1=12, numRows=30, doRowLimit=true
+                traceRow1 = extractIntegerPart(intToken.image);
+                numRows = extractIntegerPart(intToken2.image);
+                doRowLimit = true;
+            }
+        |
+            {
+                // Format: row=12 -> traceRow1=12, doRowLimit=false, numRows not set
+                traceRow1 = extractIntegerPart(intToken.image);
+                doRowLimit = false;
+            }
+        )
+    |
+        // Parse reset flag
+        <GK_spreadsheetTrace_reset>
+        {
+            reset = true;
+            hasReset = true;
+        }
+    |
+        // Parse ~reset flag
+        <GK_spreadsheetTrace_tilde_reset>
+        {
+            reset = false;
+            hasReset = true;
+        }
+    |
+        // Parse label flag
+        <GK_VALUE_label>
+        {
+            label = true;
+            hasLabel = true;
+        }
+    |
+        // Parse ~label flag
+        <GK_VALUE_tilde_label>
+        {
+            label = false;
+            hasLabel = true;
+        }
+    |
+        // Parse list flag
+        <GK_spreadsheetTrace_list>
+        {
+            list = true;
+            hasList = true;
+        }
+    |
+        // Parse ~list flag
+        <GK_spreadsheetTrace_tilde_list>
+        {
+            list = false;
+            hasList = true;
+        }
+    |
+        // Parse copy flag
+        <GK_spreadsheetTrace_copy>
+        {
+            copy = true;
+            hasCopy = true;
+        }
+    |
+        // Parse ~copy flag
+        <GK_spreadsheetTrace_tilde_copy>
+        {
+            copy = false;
+            hasCopy = true;
+        }
+    |
+        // Parse pause flag
+        <GK_spreadsheetTrace_pause>
+        {
+            pause = true;
+            hasPause = true;
+        }
+    |
+        // Parse ~pause flag
+        <GK_spreadsheetTrace_tilde_pause>
+        {
+            pause = false;
+            hasPause = true;
+        }
+    )*
+    {
+        java.util.LinkedHashMap<String, String> attrs = new java.util.LinkedHashMap<>();
+        
+        // Set trace (optional, only if explicitly set)
+        if (hasTrace)
+            attrs.put("val", String.valueOf(trace));
+        
+        // Set column (traceColumn1)
+        if (column != null)
+            attrs.put("traceColumn1", column);
+        
+        // Set row-related attributes
+        if (traceRow1 != null) {
+            attrs.put("traceRow1", traceRow1);
+            attrs.put("doRowLimit", String.valueOf(doRowLimit));
+            if (numRows != null)
+                attrs.put("numRows", numRows);
+        }
+        
+        // Set boolean attributes (only if explicitly set)
+        if (hasReset)
+            attrs.put("doColumnReset", String.valueOf(reset));
+        if (hasLabel)
+            attrs.put("showLabel", String.valueOf(label));
+        if (hasList)
+            attrs.put("showTraceList", String.valueOf(list));
+        if (hasCopy)
+            attrs.put("doTraceGeoCopy", String.valueOf(copy));
+        if (hasPause)
+            attrs.put("pause", String.valueOf(pause));
+        
+        // Only set property if at least one attribute is provided
+        if (!attrs.isEmpty())
+            styleSheet.setProperty(keyToken.image, attrs);
+    }
+}
+
+/**
+ * Parses eqnStyle property
+ * Syntax: eqnStyle: <style>; or eqnStyle: parametric=<letter>;
+ * Style values: implicit, explicit, specific, parametric, general, vertex, conic, user
+ * When style is "parametric", can optionally specify parameter with =<letter>
+ */
+void gpadStyleSheetPropertyEqnStyle(GpadStyleSheet styleSheet) :
+{
+    Token keyToken;
+    Token styleToken;
+    Token paramToken = null;
+    String styleValue;
+    String paramValue = null;
+}
+{
+    keyToken = <GK_eqnStyle> <GK_COLON> { token_source.SwitchTo(DEFAULT); }
+    styleToken = <LABEL>
+    {
+        styleValue = styleToken.image;
+        // Validate style value
+        if (!gkEqnStyleValues.containsKey(styleValue)) {
+            // Invalid style value, skip this property
+            return;
+        }
+    }
+    (
+        <EQUAL> (paramToken = <LABEL> | paramToken = <FLOAT>)
+        {
+            // Only allow parameter for parametric style
+            if ("parametric".equals(styleValue)) {
+                String paramStr = paramToken.image;
+                // Validate parameter is a single letter (case-insensitive)
+                if (paramStr.length() == 1) {
+                    char paramChar = paramStr.charAt(0);
+                    if ((paramChar >= 'a' && paramChar <= 'z') ||
+                        (paramChar >= 'A' && paramChar <= 'Z')) {
+                        paramValue = String.valueOf(paramChar);
+                    }
+                    // If not a letter, paramValue remains null (parameter is ignored)
+                }
+            }
+        }
+    )?
+    {
+        java.util.LinkedHashMap<String, String> attrs = new java.util.LinkedHashMap<>();
+        attrs.put("style", styleValue);
+        if (paramValue != null)
+            attrs.put("parameter", paramValue);
+        styleSheet.setProperty(keyToken.image, attrs);
+    }
+}
+
+/**
+ * Parses lineStyle property
+ * Syntax: lineStyle: [type] [thickness=value] [hidden[=dashed|show]] [opacity=value] [arrow|~arrow];
+ * Five parts separated by whitespace, any order, any can be omitted
+ * type: one of gkLineStyleTypeValues keys (pointwise, full, dashedshort, dashedlong, dotted, dasheddotted)
+ * thickness: FLOAT value (decimal part ignored)
+ * typeHidden: hidden (default), hidden=dashed, or hidden=show
+ * opacity: FLOAT value (decimal part ignored)
+ * drawArrow: arrow or ~arrow
+ */
+void gpadStyleSheetPropertyLineStyle(GpadStyleSheet styleSheet) :
+{
+    Token keyToken;
+    String type = null;
+    String thickness = null;
+    String typeHidden = null;
+    String opacity = null;
+    String drawArrow = null;
+    Token floatToken = null;
+}
+{
+    keyToken = <GK_lineStyle> <GK_COLON> { token_source.SwitchTo(GK_VALUE_BLOCK); }
+    ( (
+        // Parse type (no prefix)
+        <GK_lineStyle_type_pointwise> { type = "pointwise"; } |
+        <GK_lineStyle_type_full> { type = "full"; } |
+        <GK_lineStyle_type_dashedshort> { type = "dashedshort"; } |
+        <GK_lineStyle_type_dashedlong> { type = "dashedlong"; } |
+        <GK_lineStyle_type_dotted> { type = "dotted"; } |
+        <GK_lineStyle_type_dasheddotted> { type = "dasheddotted"; }
+    ) | (
+        // Parse thickness=value
+        <GK_lineStyle_thickness> <GK_VALUE_equal> floatToken = <GK_VALUE_float>
+        {
+            thickness = extractIntegerPart(floatToken.image);
+        }
+    ) | (
+        // Parse hidden[=dashed|show]
+        <GK_lineStyle_hidden>
+        (
+            <GK_VALUE_equal> (
+                <GK_lineStyle_dashed> { typeHidden = "dashed"; } |
+                <GK_lineStyle_show> { typeHidden = "show"; }
+            )
+        )?
+        {
+            // If no value specified, default to empty string (which maps to "0")
+            if (typeHidden == null) {
+                typeHidden = "";
+            }
+        }
+    ) | (
+        // Parse opacity=value
+        <GK_lineStyle_opacity> <GK_VALUE_equal> floatToken = <GK_VALUE_float>
+        {
+            opacity = extractIntegerPart(floatToken.image);
+        }
+    ) | (
+        // Parse arrow or ~arrow
+        <GK_lineStyle_arrow> { drawArrow = "true"; } |
+        <GK_lineStyle_tilde_arrow> { drawArrow = "false"; }
+    )     )*
+    {
+        java.util.LinkedHashMap<String, String> attrs = new java.util.LinkedHashMap<>();
+        
+        // Set default values if not provided
+        // Default type: 0 (full), default thickness: 5
+        if (type != null) {
+            // Convert type key to XML value using gkLineStyleTypeValues
+            String typeValue = gkLineStyleTypeValues.get(type);
+            if (typeValue != null) {
+                attrs.put("type", typeValue);
+            } else {
+                // If type not found in map, use default
+                attrs.put("type", "0");
+            }
+        } else {
+            // Default line type: full (0)
+            attrs.put("type", "0");
+        }
+        
+        if (thickness != null) {
+            attrs.put("thickness", thickness);
+        } else {
+            // Default line thickness: 5
+            attrs.put("thickness", "5");
+        }
+        
+        if (typeHidden != null) {
+            // Convert typeHidden to XML value using gkLineStyleTypeHiddenValues
+            String typeHiddenValue = gkLineStyleTypeHiddenValues.get(typeHidden);
+            if (typeHiddenValue != null) {
+                attrs.put("typeHidden", typeHiddenValue);
+            }
+        }
+        if (opacity != null) {
+            attrs.put("opacity", opacity);
+        }
+        if (drawArrow != null) {
+            attrs.put("drawArrow", drawArrow);
+        }
+        // Always set property since we now always have type and thickness
+        styleSheet.setProperty(keyToken.image, attrs);
+    }
+}
+
+/**
+ * Parses boundingBox property
+ * Syntax: boundingBox: width=<value> height=<value>;
+ * Both width and height are integers (FLOAT matched, decimal part ignored)
+ */
+void gpadStyleSheetPropertyBoundingBox(GpadStyleSheet styleSheet) :
+{
+    Token keyToken;
+    String width = null;
+    String height = null;
+    Token floatToken = null;
+}
+{
+    keyToken = <GK_boundingBox> <GK_COLON> { token_source.SwitchTo(GK_VALUE_BLOCK); }
+    ( (
+        // Parse width=value
+        <GK_VALUE_width> <GK_VALUE_equal> floatToken = <GK_VALUE_float>
+        {
+            width = extractIntegerPart(floatToken.image);
+        }
+    ) | (
+        // Parse height=value
+        <GK_VALUE_height> <GK_VALUE_equal> floatToken = <GK_VALUE_float>
+        {
+            height = extractIntegerPart(floatToken.image);
+        }
+    ) )*
+    {
+        java.util.LinkedHashMap<String, String> attrs = new java.util.LinkedHashMap<>();
+        if (width != null)
+            attrs.put("width", width);
+        if (height != null)
+            attrs.put("height", height);
+        if (!attrs.isEmpty())
+            styleSheet.setProperty(keyToken.image, attrs);
+    }
+}
+
+/**
+ * Parses contentSize property
+ * Syntax: contentSize: width=<value> height=<value>;
+ * Both width and height are floats
+ */
+void gpadStyleSheetPropertyContentSize(GpadStyleSheet styleSheet) :
+{
+    Token keyToken;
+    String width = null;
+    String height = null;
+    Token floatToken = null;
+}
+{
+    keyToken = <GK_contentSize> <GK_COLON> { token_source.SwitchTo(GK_VALUE_BLOCK); }
+    ( (
+        // Parse width=value
+        <GK_VALUE_width> <GK_VALUE_equal> floatToken = <GK_VALUE_float>
+        {
+            width = floatToken.image;
+        }
+    ) | (
+        // Parse height=value
+        <GK_VALUE_height> <GK_VALUE_equal> floatToken = <GK_VALUE_float>
+        {
+            height = floatToken.image;
+        }
+    ) )*
+    {
+        java.util.LinkedHashMap<String, String> attrs = new java.util.LinkedHashMap<>();
+        if (width != null)
+            attrs.put("width", width);
+        if (height != null)
+            attrs.put("height", height);
+        if (!attrs.isEmpty())
+            styleSheet.setProperty(keyToken.image, attrs);
+    }
+}
+
+/**
+ * Parses tempUserInput property
+ * Syntax: tempUserInput: eval="<string>" display="<string>";
+ * Both eval and display are quoted strings (required to be quoted)
+ * Order can be arbitrary, both are optional
+ */
+void gpadStyleSheetPropertyTempUserInput(GpadStyleSheet styleSheet) :
+{
+    Token keyToken;
+    String eval = null;
+    String display = null;
+    Token textToken;
+}
+{
+    keyToken = <GK_tempUserInput> <GK_COLON> { token_source.SwitchTo(GK_EXPR_BLOCK); }
+    ( (
+        // Parse eval="<string>"
+        <GK_tempUserInput_eval> <GK_slider_equal> 
+        textToken = <TEXT>
+        {
+            eval = unescapeString(textToken.image.substring(1, textToken.image.length() - 1));
+        }
+    ) | (
+        // Parse display="<string>"
+        <GK_tempUserInput_display> <GK_slider_equal>
+        textToken = <TEXT>
+        {
+            display = unescapeString(textToken.image.substring(1, textToken.image.length() - 1));
+        }
+    ) )*
+    {
+        java.util.LinkedHashMap<String, String> attrs = new java.util.LinkedHashMap<>();
+        if (eval != null)
+            attrs.put("eval", eval);
+        if (display != null)
+            attrs.put("display", display);
+        if (!attrs.isEmpty())
+            styleSheet.setProperty(keyToken.image, attrs);
+    }
+}
+
+/**
+ * Parses cropBox property
+ * Syntax: cropBox: x=<value> y=<value> width=<value> height=<value> [cropped|~cropped];
+ * x, y, width, height are floats, cropped is boolean (cropped for true, ~cropped for false)
+ */
+void gpadStyleSheetPropertyCropBox(GpadStyleSheet styleSheet) :
+{
+    Token keyToken;
+    String x = null;
+    String y = null;
+    String width = null;
+    String height = null;
+    String cropped = null;
+    Token floatToken = null;
+}
+{
+    keyToken = <GK_cropBox> <GK_COLON> { token_source.SwitchTo(GK_VALUE_BLOCK); }
+    ( (
+        // Parse x=value
+        <GK_cropBox_x> <GK_VALUE_equal> floatToken = <GK_VALUE_float>
+        {
+            x = floatToken.image;
+        }
+    ) | (
+        // Parse y=value
+        <GK_cropBox_y> <GK_VALUE_equal> floatToken = <GK_VALUE_float>
+        {
+            y = floatToken.image;
+        }
+    ) | (
+        // Parse width=value
+        <GK_VALUE_width> <GK_VALUE_equal> floatToken = <GK_VALUE_float>
+        {
+            width = floatToken.image;
+        }
+    ) | (
+        // Parse height=value
+        <GK_VALUE_height> <GK_VALUE_equal> floatToken = <GK_VALUE_float>
+        {
+            height = floatToken.image;
+        }
+    ) | (
+        // Parse cropped or ~cropped
+        <GK_cropBox_cropped> { cropped = "true"; } |
+        <GK_cropBox_tilde_cropped> { cropped = "false"; }
+    ) )*
+    {
+        java.util.LinkedHashMap<String, String> attrs = new java.util.LinkedHashMap<>();
+        if (x != null)
+            attrs.put("x", x);
+        if (y != null)
+            attrs.put("y", y);
+        if (width != null)
+            attrs.put("width", width);
+        if (height != null)
+            attrs.put("height", height);
+        if (cropped != null)
+            attrs.put("cropped", cropped);
+        if (!attrs.isEmpty())
+            styleSheet.setProperty(keyToken.image, attrs);
+    }
+}
+
+/**
+ * Parses dimensions property
+ * Syntax: dimensions: width=<value> height=<value> [angle=<value>] [scaled|~scaled];
+ * width, height, angle are floats, scaled is boolean (scaled for true, ~scaled for false)
+ * Note: unscaled default is true, so we use scaled (inverse) in gpad syntax
+ */
+void gpadStyleSheetPropertyDimensions(GpadStyleSheet styleSheet) :
+{
+    Token keyToken;
+    String width = null;
+    String height = null;
+    String angle = null;
+    String scaled = null;
+    Token floatToken = null;
+}
+{
+    keyToken = <GK_dimensions> <GK_COLON> { token_source.SwitchTo(GK_VALUE_BLOCK); }
+    ( (
+        // Parse width=value
+        <GK_VALUE_width> <GK_VALUE_equal> floatToken = <GK_VALUE_float>
+        {
+            width = floatToken.image;
+        }
+    ) | (
+        // Parse height=value
+        <GK_VALUE_height> <GK_VALUE_equal> floatToken = <GK_VALUE_float>
+        {
+            height = floatToken.image;
+        }
+    ) | (
+        // Parse angle=value
+        <GK_dimensions_angle> <GK_VALUE_equal> floatToken = <GK_VALUE_float>
+        {
+            angle = floatToken.image;
+        }
+    ) | (
+        // Parse scaled or ~scaled
+        <GK_dimensions_scaled> { scaled = "true"; } |
+        <GK_dimensions_tilde_scaled> { scaled = "false"; }
+    ) )*
+    {
+        java.util.LinkedHashMap<String, String> attrs = new java.util.LinkedHashMap<>();
+        if (width != null)
+            attrs.put("width", width);
+        if (height != null)
+            attrs.put("height", height);
+        if (angle != null)
+            attrs.put("angle", angle);
+        if (scaled != null) {
+            // Convert scaled to unscaled (inverse)
+            attrs.put("unscaled", "true".equals(scaled) ? "false" : "true");
+        }
+        if (!attrs.isEmpty())
+            styleSheet.setProperty(keyToken.image, attrs);
+    }
+}
+
+/**
+ * Parses font property
+ * Syntax: font: [serif|~serif] [*sizeM] [plain|bold|italic|bold italic|italic bold];
+ * serif: serif (true) or ~serif (false), default is false
+ * sizeM: multiplier (float), default is 1.0
+ * style: plain (0), bold (1), italic (2), or bold italic/italic bold (3)
+ */
+void gpadStyleSheetPropertyFont(GpadStyleSheet styleSheet) :
+{
+    Token keyToken;
+    String serif = null;
+    String sizeM = null;
+    Token floatToken = null;
+    boolean plain = false;
+    boolean bold = false;
+    boolean italic = false;
+}
+{
+    keyToken = <GK_font> <GK_COLON> { token_source.SwitchTo(GK_VALUE_BLOCK); }
+    ( (
+        // Parse serif or ~serif
+        <GK_font_serif> { serif = "true"; } |
+        <GK_font_tilde_serif> { serif = "false"; }
+    ) | (
+        // Parse *sizeM
+        <GK_VALUE_star> floatToken = <GK_VALUE_float> { sizeM = floatToken.image; }
+    ) | (
+        // Parse style keywords (plain, bold, italic)
+        // Note: plain resets style, but if bold/italic appear after plain, they override
+        <GK_font_plain> { plain = true; bold = false; italic = false; } |
+        <GK_font_bold> { bold = true; } |
+        <GK_font_italic> { italic = true; }
+    ) )*
+    {
+        java.util.LinkedHashMap<String, String> attrs = new java.util.LinkedHashMap<>();
+        if (serif != null)
+            attrs.put("serif", serif);
+        if (sizeM != null)
+            attrs.put("sizeM", sizeM);
+        if (plain || bold || italic) // style = bit-OR of bold(1) and italic(2)
+            attrs.put("style", bold? (italic? "3": "1"): (italic? "2": "0"));
+        
+        if (!attrs.isEmpty())
+            styleSheet.setProperty(keyToken.image, attrs);
+    }
+}
+
+/**
+ * Parses show property
+ * Syntax: show: [object|~object] [label|~label] [ev1|~ev1] [ev2|~ev2] [3d|~3d] [plane|~plane];
+ * object: object (true) or ~object (false), default is true
+ * label: label (true) or ~label (false), default is true
+ * ev1: clear bit 0 (mask=1), ~ev1: set bit 0
+ * ev2: set bit 1 (mask=2), ~ev2: clear bit 1
+ * 3d: set bit 2 (mask=4) and clear bit 3 (mask=8), ~3d: clear bit 2 and set bit 3
+ * plane: set bit 4 (mask=16) and clear bit 5 (mask=32), ~plane: clear bit 4 and set bit 5
+ * ev attribute is calculated as OR of all bitmasks, only set if at least one ev-related flag is present
+ */
+void gpadStyleSheetPropertyShow(GpadStyleSheet styleSheet) :
+{
+    Token keyToken;
+    String object = null;
+    String label = null;
+    int ev = 0;
+    boolean hasEvFlags = false;
+}
+{
+    keyToken = <GK_show> <GK_COLON> { token_source.SwitchTo(GK_VALUE_BLOCK); }
+    ( (
+        // Parse object or ~object
+        <GK_show_object> { object = "true"; } |
+        <GK_show_tilde_object> { object = "false"; }
+    ) | (
+        // Parse label or ~label
+        <GK_VALUE_label> { label = "true"; } |
+        <GK_VALUE_tilde_label> { label = "false"; }
+    ) | (
+        // Parse ev1 or ~ev1 (bit 0, mask=1)
+        <GK_show_ev1> { ev &= ~1; hasEvFlags = true; } |
+        <GK_show_tilde_ev1> { ev |= 1; hasEvFlags = true; }
+    ) | (
+        // Parse ev2 or ~ev2 (bit 1, mask=2)
+        <GK_show_ev2> { ev |= 2; hasEvFlags = true; } |
+        <GK_show_tilde_ev2> { ev &= ~2; hasEvFlags = true; }
+    ) | (
+        // Parse 3d or ~3d (bit 2=4, bit 3=8)
+        <GK_show_3d> { ev |= 4; ev &= ~8; hasEvFlags = true; } |
+        <GK_show_tilde_3d> { ev &= ~4; ev |= 8; hasEvFlags = true; }
+    ) | (
+        // Parse plane or ~plane (bit 4=16, bit 5=32)
+        <GK_show_plane> { ev |= 16; ev &= ~32; hasEvFlags = true; } |
+        <GK_show_tilde_plane> { ev &= ~16; ev |= 32; hasEvFlags = true; }
+    ) )*
+    {
+        java.util.LinkedHashMap<String, String> attrs = new java.util.LinkedHashMap<>();
+        if (object != null)
+            attrs.put("object", object);
+        if (label != null)
+            attrs.put("label", label);
+        if (hasEvFlags)
+            attrs.put("ev", String.valueOf(ev));
+        
+        if (!attrs.isEmpty())
+            styleSheet.setProperty(keyToken.image, attrs);
+    }
+}
+
+/**
+ * Parses startPoint property
+ * Syntax: startPoint: corner [| corner]*;
+ * Each corner consists of three optional parts:
+ *   1. absolute | ~absolute (optional, default ~absolute)
+ *   2. TEXT (quoted expression, optional)
+ *   3. x y [z] (coordinates, optional)
+ * At least one of part 2 or part 3 must be present.
+ */
+void gpadStyleSheetPropertyStartPoint(GpadStyleSheet styleSheet) :
+{
+    Token keyToken;
+    StringBuilder serialized = new StringBuilder();
+    boolean firstCorner = true;
+}
+{
+    keyToken = <GK_startPoint> <GK_COLON> { token_source.SwitchTo(GK_EXPR_BLOCK); }
+    (
+        gpadStartPointCorner(serialized, firstCorner) { firstCorner = false; }
+        (
+            <GK_startPoint_pipe>
+            gpadStartPointCorner(serialized, firstCorner) { firstCorner = false; }
+        )*
+    )
+    {
+        // Store serialized string in a special attribute
+        java.util.LinkedHashMap<String, String> attrs = new java.util.LinkedHashMap<>();
+        attrs.put("_corners", serialized.toString());
+        styleSheet.setProperty(keyToken.image, attrs);
+    }
+}
+
+/**
+ * Parses a single startPoint corner and serializes it directly to the StringBuilder.
+ * Three optional parts (at least one of part 2 or part 3 must be present):
+ *   1. absolute | ~absolute (optional, default ~absolute)
+ *   2. TEXT (quoted expression, optional)
+ *   3. x y [z] (coordinates, optional)
+ * 
+ * Parts can appear in any order, but at least one of part 2 or part 3 must be present.
+ * 
+ * Serialization format: [absolute byte][type byte][content]
+ *   - absolute byte: \u0002=true, \u0003=false
+ *   - type byte: \u0002=exp, \u0003=x/y/z
+ *   - content: if exp, then exp string; if x/y/z, then "x,y,z" (z optional, no trailing comma)
+ */
+void gpadStartPointCorner(StringBuilder serialized, boolean firstCorner) :
+{
+    Boolean absolute1 = null;
+    Boolean absolute2 = null;
+    String[] cornerData = new String[4]; // [0]=exp, [1]=x, [2]=y, [3]=z
+}
+{
+    ( absolute1 = gpadStartPointCornerAbsolute() )?
+    gpadStartPointCornerExpOrXyz(cornerData)
+    ( absolute2 = gpadStartPointCornerAbsolute() )?
+    {
+        Boolean absolute = absolute2 != null? absolute2: absolute1;
+        boolean isAbsolute = absolute != null && absolute;
+        
+        // Serialize corner using helper class
+        GpadSerializer.serializeStartPointCorner(serialized, firstCorner, isAbsolute, cornerData);
+    }
+}
+
+/**
+ * Parses `absolue` of a single startPoint corner.
+ *   absolute | ~absolute
+ */
+boolean gpadStartPointCornerAbsolute() :
+{
+    boolean result = false;
+}
+{
+    (
+        <GK_startPoint_absolute> { result = true; }
+        |
+        <GK_startPoint_tilde_absolute> { result = false; }
+    )
+    {
+        return result;
+    }
+}
+
+void gpadStartPointCornerExpOrXyz(String[] cornerData) :
+{
+    Token textToken;
+    Token xToken;
+    Token yToken;
+    Token zToken = null;
+}
+{
+    // cornerData[0] = exp, [1] = x, [2] = y, [3] = z
+    textToken = <TEXT>
+    {
+        cornerData[0] = unescapeString(textToken.image.substring(1, textToken.image.length() - 1));
+    }
+    |
+    xToken = <GK_EXPR_FLOAT>
+    yToken = <GK_EXPR_FLOAT>
+    ( zToken = <GK_EXPR_FLOAT> )?
+    {
+        cornerData[1] = xToken.image;
+        cornerData[2] = yToken.image;
+        cornerData[3] = zToken != null? zToken.image: "1";
+    }
+}
+
+/**
+ * Helper rule to parse an expression (either TEXT or full expression)
+ * Returns the parsed string value with escape sequences processed
+ * Supports GLABEL, numbers, some operations, and function calls
+ */
+String gpadExpr() :
+{
+    Token textToken = null;
+    StringBuilder sb = new StringBuilder();
+    String exprValue = null;
+}
+{
+    (
+        textToken = <TEXT>
+        {
+            String text = textToken.image;
+            exprValue = unescapeString(text.substring(1, text.length() - 1));
+        }
+    |
+        { sb = new StringBuilder(); }
+        gpadExprTerm(sb)
+        { exprValue = sb.toString(); }
+    )
+    { return exprValue; }
+}
+
+/**
+ * Parse a label that can be either a keyword (such as rgb...) or a regular label
+ * This allows these keywords to be used as variable names in expressions
+ * Note: @screen is not included as it contains @ symbol and is not a valid identifier
+ */
+Token gpadExprLabel() :
+{
+    Token labelToken = null;
+}
+{
+    (
+        labelToken = <GK_objColor_rgb> |
+        labelToken = <GK_objColor_hsv> |
+        labelToken = <GK_objColor_hsl> |
+        labelToken = <GK_objColor_inverse> |
+        labelToken = <GK_startPoint_absolute> |
+        labelToken = <GK_slider_min> |
+        labelToken = <GK_slider_max> |
+        labelToken = <GK_slider_width> |
+        labelToken = <GK_slider_x> |
+        labelToken = <GK_slider_y> |
+        labelToken = <GK_slider_vertical> |
+        labelToken = <GK_slider_algebra> |
+        labelToken = <GK_slider_constant> |
+        labelToken = <GK_slider_fixed> |
+        labelToken = <GK_tempUserInput_eval> |
+        labelToken = <GK_tempUserInput_display> |
+        labelToken = <GK_EXPR_LABEL>
+    )
+    { return labelToken; }
+}
+
+/**
+ * Parse expression term (handles + and - operations, lowest priority)
+ * term = factor (("+" | "-") factor)*
+ */
+void gpadExprTerm(StringBuilder sb) :
+{
+    Token opToken = null;
+}
+{
+    gpadExprFactor(sb)
+    (
+        (opToken = <GK_EXPR_plus> | opToken = <GK_EXPR_minus>)
+        {
+            sb.append(opToken.image);
+        }
+        gpadExprFactor(sb)
+    )*
+}
+
+/**
+ * Parse expression factor (handles * and / operations, higher priority)
+ * factor = power (("*" | "/") power)*
+ */
+void gpadExprFactor(StringBuilder sb) :
+{
+    Token opToken = null;
+}
+{
+    gpadExprPower(sb)
+    (
+        (opToken = <GK_EXPR_multiply> | opToken = <GK_EXPR_divide>)
+        {
+            sb.append(opToken.image);
+        }
+        gpadExprPower(sb)
+    )*
+}
+
+/**
+ * Parse expression power (handles ^ operation, highest priority, right-associative)
+ * power = atom ("^" power)?
+ */
+void gpadExprPower(StringBuilder sb) :
+{
+    Token opToken = null;
+}
+{
+    gpadExprAtom(sb)
+    (
+        opToken = <GK_EXPR_power>
+        {
+            sb.append(opToken.image);
+        }
+        gpadExprPower(sb)
+    )?
+}
+
+/**
+ * Parse expression atom (highest priority, handles labels, numbers, function calls, parentheses, unary minus)
+ * atom = GLABEL | INTEGER | FLOAT | functionCall | "(" term ")" | "-" atom
+ */
+void gpadExprAtom(StringBuilder sb) :
+{
+    Token labelToken = null;
+    Token intToken = null;
+    Token floatToken = null;
+    Token funcNameToken = null;
+    Token opToken = null;
+    Token lparenToken = null;
+    Token rparenToken = null;
+}
+{
+    (
+        // Function call: gpadExprLabel "(" [arg1] ["," arg2] ... ")"
+        // Use LOOKAHEAD to distinguish function call from plain label
+        LOOKAHEAD(gpadExprLabel() <GK_EXPR_lparen>)
+        funcNameToken = gpadExprLabel()
+        lparenToken = <GK_EXPR_lparen>
+        {
+            sb.append(funcNameToken.image);
+            sb.append(lparenToken.image);
+        }
+        (
+            gpadExprTerm(sb)
+            (
+                <GK_EXPR_comma> { sb.append(","); }
+                gpadExprTerm(sb)
+            )*
+        )?
+        rparenToken = <GK_EXPR_rparen> { sb.append(rparenToken.image); }
+    |
+        // gpadExprLabel (label, not a function call, includes x, y, z, rgb, min, max, etc.)
+        labelToken = gpadExprLabel() { sb.append(labelToken.image); }
+    |
+        // NUMBER (integer or float)
+        floatToken = <GK_EXPR_FLOAT> { sb.append(floatToken.image); }
+    |
+        // Parenthesized expression: "(" term ")"
+        lparenToken = <GK_EXPR_lparen> { sb.append(lparenToken.image); }
+        gpadExprTerm(sb)
+        rparenToken = <GK_EXPR_rparen> { sb.append(rparenToken.image); }
+    |
+        // Unary minus: "-" atom
+        opToken = <GK_EXPR_minus> { sb.append(opToken.image); }
+        gpadExprAtom(sb)
+    )
+}
+
+/**
+ * Parses objColor property
+ * Syntax: objColor: [#rrggbbaa | rgb(...) | hsv(...) | hsl(...)] [fill=...] [angle=...] [dist=...] [image=...] [symbol=...] [inverse|~inverse]
+ */
+void gpadStyleSheetPropertyObjColor(GpadStyleSheet styleSheet) :
+{
+    Token keyToken;
+    Token colorToken = null;
+    Token exprToken = null;
+    Token textToken = null;
+    String colorSpace = "0";
+    String dynamicr = null;
+    String dynamicg = null;
+    String dynamicb = null;
+    String dynamica = null;
+    String fillType = null;
+    String hatchAngle = null;
+    String hatchDistance = null;
+    String image = null;
+    String fillSymbol = null;
+    String inverseFill = null;
+    String value = null;
+}
+{
+    keyToken = <GK_objColor> <GK_COLON> { token_source.SwitchTo(GK_EXPR_BLOCK); }
+    (
+        // Parse static color: #rrggbb or #rrggbbaa
+        colorToken = <GK_objColor_RGBA_HEX_COLOR>
+    | 
+        // Parse dynamic color: rgb(...), hsv(...), or hsl(...)
+        (
+            // 0:COLORSPACE_RGB (default), 1:COLORSPACE_HSB, 2:COLORSPACE_HSL
+            <GK_objColor_rgb> { colorSpace = "0"; } |
+            <GK_objColor_hsv> { colorSpace = "1"; } |
+            <GK_objColor_hsl> { colorSpace = "2"; }
+        )
+        <GK_EXPR_lparen>
+        // First parameter (r/h/s)
+        dynamicr = gpadExpr()
+        <GK_EXPR_comma>
+        // Second parameter (g/s/s)
+        dynamicg = gpadExpr()
+        <GK_EXPR_comma>
+        // Third parameter (b/v/l)
+        dynamicb = gpadExpr()
+        [
+            <GK_EXPR_comma>
+            // Fourth parameter (alpha, optional)
+            dynamica = gpadExpr()
+        ]
+        <GK_EXPR_rparen>
+    )?
+    (
+        // Parse fill=xxx (fillType is lowercase letters only)
+        exprToken = <GK_objColor_fill_equals_value>
+        {
+            fillType = extractValueAfterEquals(exprToken.image);
+        }
+    |
+        // Parse angle=xxx (hatchAngle is digits only)
+        exprToken = <GK_objColor_angle_equals_value>
+        {
+            hatchAngle = extractValueAfterEquals(exprToken.image);
+        }
+    |
+        // Parse dist=xxx (hatchDistance is digits only)
+        exprToken = <GK_objColor_dist_equals_value>
+        {
+            hatchDistance = extractValueAfterEquals(exprToken.image);
+        }
+    |
+        exprToken = <GK_objColor_image_equals_value>
+        {
+            value = extractValueAfterEquals(exprToken.image);
+            if (value != null) {
+                // Check if it's a quoted string (starts and ends with ")
+                if (value.startsWith("\"") && value.endsWith("\"")) {
+                    // Handle quoted string with escape sequences
+                    String quoted = value.substring(1, value.length() - 1); // Remove surrounding quotes
+                    image = unescapeString(quoted);
+                } else {
+                    // Unquoted string, use as-is
+                    image = value;
+                }
+            }
+        }
+    |
+        // Parse symbol=x (fillSymbol is a single printable unicode character)
+        exprToken = <GK_objColor_symbol_equals_value>
+        {
+            value = extractValueAfterEquals(exprToken.image);
+            if (value != null) {
+                // Check if it's a quoted string (starts and ends with ")
+                if (value.startsWith("\"") && value.endsWith("\"")) {
+                    // Handle quoted string: take first character only, no escape processing
+                    String quoted = value.substring(1, value.length() - 1); // Remove surrounding quotes
+                    if (quoted.length() > 0) {
+                        fillSymbol = quoted.substring(0, 1); // Take first character only
+                    }
+                } else {
+                    // Unquoted string, use as-is (should be single character)
+                    fillSymbol = value;
+                }
+            }
+        }
+    |
+        // Parse inverse or ~inverse
+        <GK_objColor_inverse> { inverseFill = "true"; } |
+        <GK_objColor_tilde_inverse> { inverseFill = "false"; }
+    )*
+    {
+        java.util.LinkedHashMap<String, String> attrs = new java.util.LinkedHashMap<>();
+        
+        // Handle static color
+        if (colorToken != null)
+            parseHexColor(colorToken.image, attrs);
+        
+        if (dynamicr != null && dynamicg != null && dynamicb != null) {
+            attrs.put("dynamicr", dynamicr);
+            attrs.put("dynamicg", dynamicg);
+            attrs.put("dynamicb", dynamicb);
+            if (dynamica != null)
+                attrs.put("dynamica", dynamica);
+            attrs.put("colorSpace", colorSpace);
+        }
+        
+        // Handle fillType and its constraints
+        if (fillType != null) {
+            String fillTypeXML = GpadStyleMaps.FILL_TYPE_MAP.get(fillType);
+            if (fillTypeXML != null) {
+                attrs.put("fillType", fillTypeXML);
+                // Check if fillType is a HATCH type (1-8, excluding 0=STANDARD and 9=IMAGE)
+                // HATCH types require hatchAngle and hatchDistance
+                try {
+                    int fillTypeInt = Integer.parseInt(fillTypeXML);
+                    if (fillTypeInt >= 1 && fillTypeInt <= 8) {
+                        // HATCH type, ensure angle and dist are set
+                        if (hatchAngle == null) {
+                            hatchAngle = "45"; // Default hatch angle
+                        }
+                        if (hatchDistance == null) {
+                            hatchDistance = "10"; // Default hatch distance
+                        }
+                    }
+                } catch (NumberFormatException e) {
+                    // Ignore parsing errors
+                }
+            }
+        }
+        
+        // If symbol is set but fillType is not explicitly set, set fillType = SYMBOLS
+        // Note: If fillType is already set (e.g., fill=crosshatch), don't override it
+        if (fillSymbol != null && fillType == null) {
+            // Set fillType to SYMBOLS (which is a HATCH type)
+            String symbolsFillType = GpadStyleMaps.FILL_TYPE_MAP.get("symbols");
+            if (symbolsFillType != null) {
+                fillType = "symbols";
+                attrs.put("fillType", symbolsFillType);
+                // SYMBOLS is a HATCH type, ensure angle and dist are set
+                if (hatchAngle == null) {
+                    hatchAngle = "45";
+                }
+                if (hatchDistance == null) {
+                    hatchDistance = "10";
+                }
+            }
+        }
+        
+        // Handle hatchAngle and hatchDistance constraints
+        if (hatchAngle != null) {
+            attrs.put("hatchAngle", hatchAngle);
+            // If angle is set but distance is not, set default distance to 10
+            // (required by ConsElementXMLHandler.java line 1931-1932)
+            if (hatchDistance == null) {
+                hatchDistance = "10";
+            }
+        }
+        if (hatchDistance != null)
+            attrs.put("hatchDistance", hatchDistance);
+        
+        if (image != null)
+            attrs.put("image", image);
+        if (fillSymbol != null)
+            attrs.put("fillSymbol", fillSymbol);
+        if (inverseFill != null)
+            attrs.put("inverseFill", inverseFill);
+        
+        if (!attrs.isEmpty())
+            styleSheet.setProperty(keyToken.image, attrs);
+    }
+}
+
+/**
+ * Parses barTag property
+ * Syntax: barTag: bar=<number> [#rrggbbaa] [fill=...] [angle=...] [dist=...] [image=...] [symbol=...] | bar=<number> ...
+ * Multiple bar styles separated by |
+ */
+void gpadStyleSheetPropertyBarTag(GpadStyleSheet styleSheet) :
+{
+    Token keyToken;
+    StringBuilder serialized = new StringBuilder();
+}
+{
+    keyToken = <GK_barTag> <GK_COLON> { token_source.SwitchTo(GK_EXPR_BLOCK); }
+    (
+        gpadBarTagBar(serialized)
+        (
+            <GK_startPoint_pipe>
+            gpadBarTagBar(serialized)
+        )*
+    )
+    {
+        // Store serialized string in a special attribute
+        java.util.LinkedHashMap<String, String> attrs = new java.util.LinkedHashMap<>();
+        attrs.put("_barTags", serialized.toString());
+        styleSheet.setProperty(keyToken.image, attrs);
+    }
+}
+
+/**
+ * Parses a single barTag bar and serializes it directly to the StringBuilder.
+ * Syntax: [bar=<number>] [#rrggbbaa] [fill=...] [angle=...] [dist=...] [image=...] [symbol=...]
+ * All attributes can appear in any order. bar=<number> is required (checked at end).
+ * 
+ * Serialization format: [length char][barNumber char][flags char][属性值序列]
+ *   - length: total length of barNumber + flags + 属性值序列 (excluding length itself)
+ *   - barNumber: 1 char (0-65535)
+ *   - flags: 1 char, bit flags
+ *     bit 0 (0x01): barColor (r, g, b)
+ *     bit 1 (0x02): barAlpha
+ *     bit 2 (0x04): barFillType
+ *     bit 3 (0x08): barHatchAngle
+ *     bit 4 (0x10): barHatchDistance
+ *     bit 5 (0x20): barImage (字符串，以 ETX 结尾)
+ *     bit 6 (0x40): barSymbol
+ *   - 属性值序列（按 flags 顺序）
+ */
+void gpadBarTagBar(StringBuilder serialized) :
+{
+    Token exprToken = null;
+    Token colorToken = null;
+    String barNumber = null;
+    int[] rgba = { -1, -1, -1, -1};
+    String fillType = null;
+    String hatchAngle = null;
+    String hatchDistance = null;
+    String image = null;
+    String fillSymbol = null;
+    String value = null;
+}
+{
+    (
+        // Parse bar=<number> (required, but can appear anywhere)
+        exprToken = <GK_barTag_bar_equals_value>
+        {
+            barNumber = extractValueAfterEquals(exprToken.image);
+        }
+    |
+        // Parse color: #rrggbb or #rrggbbaa (optional, can appear anywhere)
+        colorToken = <GK_objColor_RGBA_HEX_COLOR>
+        {
+            parseHexColorToArray(colorToken.image, rgba);
+        }
+    |
+        // Parse fill=xxx
+        exprToken = <GK_objColor_fill_equals_value>
+        {
+            fillType = extractValueAfterEquals(exprToken.image);
+        }
+    |
+        // Parse angle=xxx
+        exprToken = <GK_objColor_angle_equals_value>
+        {
+            hatchAngle = extractValueAfterEquals(exprToken.image);
+        }
+    |
+        // Parse dist=xxx
+        exprToken = <GK_objColor_dist_equals_value>
+        {
+            hatchDistance = extractValueAfterEquals(exprToken.image);
+        }
+    |
+        // Parse image=xxx
+        exprToken = <GK_objColor_image_equals_value>
+        {
+            value = extractValueAfterEquals(exprToken.image);
+            if (value != null) {
+                if (value.startsWith("\"") && value.endsWith("\"")) {
+                    String quoted = value.substring(1, value.length() - 1);
+                    image = unescapeString(quoted);
+                } else {
+                    image = value;
+                }
+            }
+        }
+    |
+        // Parse symbol=xxx
+        exprToken = <GK_objColor_symbol_equals_value>
+        {
+            value = extractValueAfterEquals(exprToken.image);
+            if (value != null) {
+                if (value.startsWith("\"") && value.endsWith("\"")) {
+                    if (value.length() > 2)
+                        fillSymbol = value.substring(1, 2);
+                }
+                else if (value.length() > 0)
+                    fillSymbol = value.substring(0, 1);
+            }
+        }
+    )*
+    
+    {
+        if (barNumber == null || barNumber.isEmpty()) // barNumber is required, skip this bar
+            return;
+        
+        // Handle fillType and its constraints (similar to objColor)
+        String fillTypeXML = null;
+        if (fillType != null) {
+            fillTypeXML = GpadStyleMaps.FILL_TYPE_MAP.get(fillType);
+            if (fillTypeXML != null) {
+                // Check if fillType is a HATCH type (1-8, excluding 0=STANDARD and 9=IMAGE)
+                try {
+                    int fillTypeInt = Integer.parseInt(fillTypeXML);
+                    if (fillTypeInt >= 1 && fillTypeInt <= 8) {
+                        // HATCH type, ensure angle and dist are set
+                        if (hatchAngle == null)
+                            hatchAngle = "45"; // Default hatch angle
+                        if (hatchDistance == null)
+                            hatchDistance = "10"; // Default hatch distance
+                    }
+                } catch (NumberFormatException e) {
+                    // Ignore parsing errors
+                }
+            }
+        }
+        
+        // If symbol is set but fillType is not explicitly set, set fillType = SYMBOLS
+        if (fillSymbol != null && fillTypeXML == null) {
+            fillTypeXML = GpadStyleMaps.FILL_TYPE_MAP.get("symbols");
+            if (fillTypeXML != null) {
+                if (hatchAngle == null)
+                    hatchAngle = "45";
+                if (hatchDistance == null)
+                    hatchDistance = "10";
+            }
+        }
+        
+        // Handle hatchAngle and hatchDistance constraints
+        if (hatchAngle != null && hatchDistance == null)
+            hatchDistance = "10";
+        
+        // Serialize this bar using helper class
+        if (!GpadSerializer.serializeBarTagBar(serialized, barNumber, rgba, fillTypeXML,
+                hatchAngle, hatchDistance, image, fillSymbol)) {
+            // Serialization failed, skip this bar
+            return;
+        }
+    }
+}
+
+/**
+ * Command/Expression statement: label1* @style { inline_styles } ..., label2~ ... = ValidExpression
+ * Function definition statement: f(var1, var2, ...)* @style1 {...} ... = expressionnode
+ * * = hide both object and label
+ * ~ = show object, hide label
+ */
+void gpadCommandExpression() throws GpadParseException :
+{
+    java.util.List<String> names = new java.util.ArrayList<>();
+    Token equalToken = null;
+    int[] pos = null;
+    EvalInfo info;
+    ValidExpression ve;
+    GeoElement[] geos;
+
+    java.util.List<GpadStyleSheet> styleSheets = new java.util.ArrayList<>();
+
+    ExpressionNode rhs;
+    ExpressionNode cond = null;
+    Token funName = null;
+    Token varName = null;
+    Token assignmentOp = null;
+    GpadStyleSheet styleSheet;
+}
+{
+    try {
+    (
+        gpadLabelStyleSheets(names, styleSheets)
+        ( <COMMA> gpadLabelStyleSheets(names, styleSheets) )*
+        equalToken = <EQUAL> { pos = extractPositionFromToken(equalToken); }
+        ve = expressionOrEquation() [<POLAR_SEPARATOR>]
+        {
+            ve.addLabel(names);
+            info = new EvalInfo(true);
+            geos = kernel.getAlgebraProcessor().processValidExpression(ve, info);
+            for(int i=0; i<geos.length; i++) {
+                GeoElement geo = geos[i];
+                if (i >= 0 && i < styleSheets.size())
+                    applyGeoStyleSheet(geo, styleSheets.get(i), pos[0], pos[1]);
+                gpadResults.add(geo);
+            }
+        }
+    )
+    |
+    (
+        // single or multi-variable function definition
+        // f(a) =  a^2 + 3
+        // g(x,y) := x * y
+        (
+            funName = <FUNCTION_LABEL> |  // includes "(" at end
+            funName = <Z_FUNC> // includes "(" at end
+        )
+            // local variables, allow function of y and deal with it in GeoFunction constructor
+            (( varName =  <VARX> | varName =  <VARY> | varName = label() )
+            { names.add(varName.image);
+            kernel.getConstruction().registerFunctionVariable(varName.image);} )
+            // optional second variable
+            (<COMMA> ( varName = casVar() )
+            {
+                names.add(varName.image);
+                kernel.getConstruction().registerFunctionVariable(varName.image);
+            } )*
+            // closing ) and assignment with expressionnode
+        ")"
+        styleSheet = gpadApplyStyleSheets()
+        ( equalToken = <EQUAL > | assignmentOp = <ASSIGNMENT> )
+        {
+            if (equalToken == null)
+                equalToken = assignmentOp;
+            pos = extractPositionFromToken(equalToken);
+        }
+        rhs = expressionnode() (cond = conditions())? [<POLAR_SEPARATOR>]
+        {
+            String funLabel = funName.image.substring(0, funName.image.length() - 1);
+            ve = functionParser.assignment(rhs, funLabel, names, cond, assignmentOp != null);
+            info = new EvalInfo(true);
+            geos = kernel.getAlgebraProcessor().processValidExpression(ve, info);
+            if (geos.length >= 1) {
+                if (styleSheet != null)
+                    applyGeoStyleSheet(geos[0], styleSheet, pos[0], pos[1]);
+                gpadResults.add(geos[0]);
+            }
+        }
+    )
+    } catch (CircularDefinitionException e) {
+        // Catch CircularDefinitionException from expressionOrEquation() or processValidExpression()
+        // Use equalToken position if available, otherwise try to get from current token
+        if (pos == null || pos[0] < 0 || pos[1] < 0)
+            pos = extractPositionFromToken(token);
+        throw createGpadParseException(e, "Circular definition", pos[0], pos[1], false);
+    } catch (org.geogebra.common.main.MyError e) {
+        // Catch MyError from expressionOrEquation() or processValidExpression()
+        // Use equalToken position if available, otherwise try to get from current token
+        if (pos == null || pos[0] < 0 || pos[1] < 0)
+            pos = extractPositionFromToken(token);
+        throw createGpadParseException(e, "Error", pos[0], pos[1], false);
+    } catch (ParseException e) {
+        // Catch ParseException from expressionOrEquation()
+        throw createGpadParseException(e);
+    }
+}
+
+void gpadLabelStyleSheets(java.util.List<String> labels, java.util.List<GpadStyleSheet> styleSheets) :
+{
+    String label;
+    GpadStyleSheet styleSheet;
+}
+{
+    label = gpadGeoLabel()
+    styleSheet = gpadApplyStyleSheets()
+    {
+        labels.add(label);
+        styleSheets.add(styleSheet);
+    }
+}
+
+String gpadGeoLabel() :
+{
+    Token tok;
+}
+{
+    ( tok = <SPREADSHEET_LABEL> | tok = <LABEL> ) { return tok.image; }
+}
+
+GpadStyleSheet gpadApplyStyleSheets() :
+{
+    Token visibilityFlag = null;
+    Token styleName;
+    GpadStyleSheet styleSheet = new GpadStyleSheet(""), styleSheet2;
+}
+{
+    ( visibilityFlag = <MULTIPLY> | visibilityFlag = <TILDE> )?
+    (
+        (
+        (styleName = <GSSLABEL> { styleSheet2 = gpadStyleSheets.get(styleName.image.substring(1)); })
+        | (styleSheet2 = gpadStyleSheetBody(""))
+        )
+        { styleSheet.mergeFrom(styleSheet2); }
+    )*
+    {
+        styleSheet2 = new GpadStyleSheet("");
+        java.util.LinkedHashMap<String, String> attrs = new java.util.LinkedHashMap<>();
+        boolean visibilityNull = (visibilityFlag == null);
+        attrs.put("object", (!visibilityNull && visibilityFlag.kind==MULTIPLY)? "false": "true");
+        attrs.put("label", visibilityNull? "true": "false");
+        styleSheet2.setProperty("show", attrs);
+        styleSheet.mergeFrom(styleSheet2);
+        return styleSheet;
+    }
+}
+
+/**
+ * Set statement: @@set label @style { ... } @style2 ... ;
+ * Applies one or more style sheets to an existing GeoElement.
+ */
+void gpadSetStatement() throws GpadParseException :
+{
+    Token setToken;
+    String label;
+    GpadStyleSheet styleSheet = null;
+    GpadStyleSheet styleSheet2;
+    Token styleName;
+    GeoElement geo;
+    int[] pos = null;
+}
+{
+    try {
+        setToken = <GPAD_SET> { pos = extractPositionFromToken(setToken); }
+        label = gpadGeoLabel()
+        (
+            (
+            (styleName = <GSSLABEL> { styleSheet2 = gpadStyleSheets.get(styleName.image.substring(1)); })
+            | (styleSheet2 = gpadStyleSheetBody(""))
+            )
+            {
+                if (styleSheet==null)
+                    styleSheet = styleSheet2;
+                else
+                    styleSheet.mergeFrom(styleSheet2);
+            }
+        )*
+        <POLAR_SEPARATOR>
+        {
+            if (styleSheet == null)
+                return;
+            
+            // Look up the GeoElement by label
+            geo = kernel.lookupLabel(label);
+            if (geo == null) // Also try CAS cell label
+                geo = kernel.lookupCasCellLabel(label);
+            
+            if (geo == null)
+                new GpadParseException("Object '" + label + "' not found", pos[0], pos[1]);
+
+            applyGeoStyleSheet(geo, styleSheet, pos[0], pos[1]);
+        }
+    }
+    catch (org.geogebra.common.main.MyError e) {
+        // Catch MyError from applyGeoStyleSheet
+        // Use setToken position if available, otherwise try to get from current token
+        if (pos == null || pos[0] < 0 || pos[1] < 0)
+            pos = extractPositionFromToken(token);
+        throw createGpadParseException(e, "Error", pos[0], pos[1], false);
+    }
+}
+
+/**
+ * Macro definition: @@macro name(input1, input2, ...) { gpadStatementInMacro* @@return output1, output2, ... }
+ */
+void gpadMacroDefinition() throws GpadParseException :
+{
+    Token macroNameToken;
+    String macroName;
+    java.util.List<String> inputLabels = new java.util.ArrayList<>();
+    java.util.List<String> outputLabels = new java.util.ArrayList<>();
+    Macro macro;
+    MacroKernel macroKernel;
+    org.geogebra.common.kernel.Construction macroCons;
+    Kernel savedKernel;
+    FunctionParser savedFunctionParser;
+    java.util.List<GeoElement> savedResults;
+    java.util.Map<String, GpadStyleSheet> savedStyleSheets;
+}
+{
+    <GPAD_MACRO>
+    macroNameToken = <FUNCTION_LABEL>
+    {
+        macroName = macroNameToken.image;
+        macroName = macroName.substring(0, macroName.length() - 1);
+        
+        // Check for name conflict
+        if (kernel.getMacro(macroName) != null) {
+            String errorMsg = "Macro '" + macroName + "' already exists";
+            org.geogebra.common.util.debug.Log.error("Gpad macro definition failed: " + errorMsg);
+            throw createParseException(errorMsg, macroNameToken);
+        }
+        
+        // Create MacroKernel
+        macroKernel = kernel.newMacroKernel();
+        macroKernel.setContinuous(false);
+        macroCons = macroKernel.getConstruction();
+        
+        // Create Macro object
+        macro = new Macro(kernel, macroName);
+        
+        // Save current context
+        savedKernel = kernel;
+        savedFunctionParser = functionParser;
+        savedResults = gpadResults;
+        savedStyleSheets = gpadStyleSheets;
+        
+        // Switch to macro kernel
+        // Note: Create a new, isolated gpadStyleSheets map for the macro definition.
+        // Stylesheets defined inside the macro will only be available within the macro,
+        // and the macro can only reference stylesheets defined within itself.
+        // The parser (this) will use the switched kernel automatically.
+        kernel = macroKernel;
+        // Update functionParser to use the new macroKernel
+        functionParser = new FunctionParser(kernel, undecided);
+        gpadResults = new java.util.ArrayList<>();
+        gpadStyleSheets = new java.util.HashMap<>();
+    }
+    [ gpadMacroLabelList(inputLabels) ] ")"
+    <LBRACE> ( gpadStatementInMacro() )*
+    <GPAD_RETURN> gpadMacroLabelList(outputLabels) <RBRACE>
+    {
+        // Restore original context
+        // The macro's isolated gpadStyleSheets is discarded here,
+        // ensuring stylesheets defined in the macro don't affect the global scope.
+        kernel = savedKernel;
+        // Restore functionParser to use the original kernel
+        functionParser = savedFunctionParser;
+        gpadResults = savedResults;
+        gpadStyleSheets = savedStyleSheets;
+        
+        // Verify input labels exist in macro construction
+        String[] inputLabelsArray = inputLabels.toArray(new String[0]);
+        for (String inputLabel : inputLabelsArray) {
+            if (macroCons.lookupLabel(inputLabel) == null) {
+                String errorMsg = "Input object '" + inputLabel + "' not found in macro body";
+                throw createParseException(errorMsg, token);
+            }
+        }
+        
+        // Verify output labels exist in macro construction
+        String[] outputLabelsArray = outputLabels.toArray(new String[0]);
+        for (String outputLabel : outputLabelsArray) {
+            if (macroCons.lookupLabel(outputLabel) == null) {
+                String errorMsg = "Output object '" + outputLabel + "' not found in macro body";
+                throw createParseException(errorMsg, token);
+            }
+        }
+        
+        // Initialize macro
+        try {
+            macro.initMacro(macroCons, inputLabelsArray, outputLabelsArray);
+        } catch (Exception e) {
+            org.geogebra.common.util.debug.Log.error("Gpad macro initialization failed: " + e.getMessage());
+            String errorMsg = "Failed to initialize macro: " + e.getMessage();
+            throw createParseException(errorMsg, token);
+        }
+        
+        // Register macro to kernel
+        kernel.addMacro(macro);
+    }
+}
+
+/**
+ * Parses macro label list: label1, label2, ...
+ */
+void gpadMacroLabelList(java.util.List<String> labels) :
+{
+    String label;
+}
+{
+    label = gpadGeoLabel() { labels.add(label); }
+    ( <COMMA> label = gpadGeoLabel() { labels.add(label); } )*
 }

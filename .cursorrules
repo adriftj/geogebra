@@ -1,0 +1,41 @@
+# GeoGebra 项目开发规则和上下文
+
+## 项目概述
+- 项目名称：GeoGebra
+- 项目类型：数学教育软件（桌面版和网页版）
+- 主要技术栈：Java, GWT, Gradle
+
+## 代码规范
+- 语言：Java（主要）
+- 代码风格：遵循项目现有代码风格
+- 注释：关键逻辑需要添加中文或英文注释
+
+## 重要约定
+
+## 开发环境
+- Java 版本：Java 11
+- 构建工具：Gradle
+
+## 关键信息
+- [在此记录需要记住的关键信息]
+- [例如：特定的业务逻辑、架构决策等]
+
+## 常见问题
+- [在此记录常见问题和解决方案]
+
+## 注意事项
+- 当前项目的根目录是 d:\mwork\geogebra
+- 现在的操作系统是windows，终端是powershell，不要使用bash语法和命令
+- gradlew.bat在当前项目的根目录里
+- 对gpad进行全面测试可以在当前项目根目录下执行 .\gradlew.bat :shared:common-jre:test --tests "*.gpad.*test*"
+
+## 文件结构说明
+- `source/desktop/` - 桌面版代码
+- `source/web/` - 网页版代码
+- `source/shared/` - 共享代码
+- `doc/` - 文档目录
+
+## 其他
+- [在此添加其他需要记住的信息]
+
+

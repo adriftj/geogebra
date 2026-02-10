@@ -15,6 +15,7 @@ import org.geogebra.common.kernel.geos.GeoElement;
 import org.geogebra.common.kernel.geos.GeoImage;
 import org.geogebra.common.kernel.geos.GeoText;
 import org.geogebra.common.kernel.geos.properties.FillType;
+import org.geogebra.common.main.App;
 import org.geogebra.common.util.FileExtensions;
 import org.geogebra.common.util.ImageManager;
 import org.geogebra.common.util.MD5Checksum;
@@ -46,6 +47,18 @@ public class ImageManagerW extends ImageManager {
 
 	private boolean preventAuxImage;
 	protected int imagesLoaded = 0;
+	
+	// Reference to App for updating GeoImages when URL images load
+	// This is set by AppW.initImageManager()
+	private App app;
+
+	/**
+	 * Set the App reference for updating GeoImages when URL images load
+	 * @param app the App instance
+	 */
+	public void setApp(App app) {
+		this.app = app;
+	}
 
 	/**
 	 * Clear all lists
@@ -135,7 +148,7 @@ public class ImageManagerW extends ImageManager {
 	 * Image inserted by user as img element.
 	 * 
 	 * @param fileName
-	 *            filename
+	 *            filename or URL
 	 * @param md5fallback
 	 *            whether to accept partial match where md5 is OK and rest of
 	 *            filename is not
@@ -162,7 +175,79 @@ public class ImageManagerW extends ImageManager {
 				}
 			}
 		}
+		// If no match found and fileName is a URL, create and load it dynamically
+		if (match == null && isURL(fileName))
+			match = getOrCreateURLImage(fileName);
 		return match;
+	}
+
+	/**
+	 * Check if the given string is a URL
+	 * @param fileName filename or URL to check
+	 * @return true if it's a URL (starts with http:// or https://)
+	 */
+	private boolean isURL(String fileName) {
+		return fileName != null && 
+				(fileName.startsWith("http://") || fileName.startsWith("https://"));
+	}
+
+	/**
+	 * Get or create an HTMLImageElement for a URL
+	 * @param url the URL to load
+	 * @return HTMLImageElement for the URL
+	 */
+	private HTMLImageElement getOrCreateURLImage(String url) {
+		String fn = StringUtil.removeLeadingSlash(url);
+		HTMLImageElement img = externalImageTable.get(fn);
+		
+		if (img == null) {
+			// Create new image element and add to tables
+			img = Dom.createImage();
+			// Store URL as ArchiveEntry with URL string
+			ArchiveEntry urlEntry = new ArchiveEntry(fn, url);
+			externalImageSrcs.put(fn, urlEntry);
+			externalImageTable.put(fn, img);
+			// Set the image source to the URL
+			img.src = url;
+			
+			// For URL images, add load listener to update all GeoImages using this URL
+			// when the image finishes loading
+			img.addEventListener("load", (event) -> updateAllGeoImagesWithURL(url));
+			img.addEventListener("error", (event) -> {
+				Log.debug("Failed to load image from URL: " + url);
+			});
+		} else if (!img.complete) {
+			// Image exists but not loaded yet, add listener if not already added
+			img.addEventListener("load", (event) -> updateAllGeoImagesWithURL(url));
+		} else {
+			// Image already loaded, immediately update all GeoImages using this URL
+			// This handles the case where the image was loaded before the GeoImage
+			// was created or the filename was set
+			updateAllGeoImagesWithURL(url);
+		}
+		
+		return img;
+	}
+	
+	/**
+	 * Update all GeoImages that use the given URL
+	 * @param url the URL of the image that just finished loading
+	 */
+	private void updateAllGeoImagesWithURL(String url) {
+		if (app == null)
+			return;
+		
+		// Find all GeoImages that use this URL and update them
+		// We iterate through App.images to find matching GeoImages
+		for (int i = 0; i < app.images.size(); i++) {
+			GeoImage geoImage = app.images.get(i);
+			String imageFileName = geoImage.getGraphicsAdapter().getImageFileName();
+			if (url.equals(imageFileName)) {
+				// This GeoImage uses the URL that just finished loading
+				// Update it to trigger repaint
+				geoImage.updateRepaint();
+			}
+		}
 	}
 
 	private HTMLImageElement getMatch(String fileName) {
