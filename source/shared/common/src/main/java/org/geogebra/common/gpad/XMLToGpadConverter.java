@@ -568,20 +568,17 @@ public class XMLToGpadConverter implements DocHandler {
 	
 	/**
 	 * Get visibility flags string from show element attributes.
-	 * * flag: when object attribute is false
-	 * ~ flag: when label attribute is false (only meaningful when object is true)
+	 * Only * flag is supported, indicating object is not shown.
 	 * 
 	 * @param objectAttr object attribute value ("true" or "false")
-	 * @param labelAttr label attribute value ("true" or "false")
-	 * @return visibility flags string (* and/or ~), or empty string if none
+	 * @param labelAttr label attribute value (unused, kept for compatibility)
+	 * @return "*" if object is hidden, empty string otherwise
 	 */
 	private static String getVisibilityFlags(String objectAttr, String labelAttr) {
-		// * flag: when object is false
+		// * flag: when object is false (hidden in EuclidianView)
+		// This is the final authority - cannot be overridden by stylesheets
 		if ("false".equals(objectAttr))
 			return "*";
-		// ~ flag: when label is false and object is true
-		if ("false".equals(labelAttr))
-			return "~";
 		return "";
 	}
 

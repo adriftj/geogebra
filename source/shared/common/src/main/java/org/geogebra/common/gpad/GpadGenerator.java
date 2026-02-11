@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -17,7 +18,8 @@ import org.geogebra.common.util.debug.Log;
  */
 public class GpadGenerator {
 	// Shared state for stylesheet generation and dependency extraction
-	private final Map<String, String> styleSheetContentMap = new HashMap<>();
+	private final Map<String, String> styleSheetContentMap = new HashMap<>(); // content -> name (for merging)
+	private final Map<String, String> styleSheetNameToContent = new LinkedHashMap<>(); // name -> content (for output)
 	private final Set<String> generatedStyleSheets = new HashSet<>();
 	private final Set<String> allLabels = new HashSet<>();
 	private final List<CollectedItem> collectedItems = new ArrayList<>();
@@ -145,31 +147,23 @@ public class GpadGenerator {
 	 * Output all stylesheet definitions in generation order.
 	 */
 	private void outputStyleSheetDefinitions(List<CollectedItem> items, StringBuilder sb) {
-		// Output stylesheets in the order they were generated
-		// We need to collect all unique stylesheet contents and output them
-		Map<String, String> contentToName = new LinkedHashMap<>();
-		
-		// Collect all stylesheet contents from collected items
+		// Collect all used stylesheet names from collected items (in order of first use)
+		Set<String> usedStyleSheets = new LinkedHashSet<>();
 		for (CollectedItem item : items) {
 			for (SingleElementInfo element : item.elements) {
 				if (element.styleSheetName != null) {
-					// Find stylesheet content from styleSheetContentMap
-					for (Map.Entry<String, String> entry : styleSheetContentMap.entrySet()) {
-						if (entry.getValue().equals(element.styleSheetName)) {
-							contentToName.putIfAbsent(entry.getKey(), element.styleSheetName);
-							break;
-						}
-					}
+					usedStyleSheets.add(element.styleSheetName);
 				}
 			}
 		}
 		
-		// Output each stylesheet definition
-		for (Map.Entry<String, String> entry : contentToName.entrySet()) {
-			String content = entry.getKey();
-			String name = entry.getValue();
-			if (inMacroConstruction) sb.append("    ");
-			sb.append("@").append(name).append(" = ").append(content).append("\n");
+		// Output each stylesheet definition using nameToContent mapping
+		for (String name : usedStyleSheets) {
+			String content = styleSheetNameToContent.get(name);
+			if (content != null) {
+				if (inMacroConstruction) sb.append("    ");
+				sb.append("@").append(name).append(" = ").append(content).append("\n");
+			}
 		}
 	}
 	
@@ -710,6 +704,9 @@ public class GpadGenerator {
 			generatedStyleSheets.add(styleSheetName);
 		}
 		
+		// Always store name -> content mapping for output (even in non-merge mode)
+		styleSheetNameToContent.put(styleSheetName, content);
+		
 		return styleSheetName;
 	}
 	
@@ -781,26 +778,10 @@ public class GpadGenerator {
 	);
 	
 	/**
-	 * Set of style properties that should be removed for objects that are not
-	 * shown in the EuclidianView (geometry view).
-	 * These styles are only relevant for visual display in the geometry view.
-	 */
-	private static final Set<String> EUCLIDIAN_DISPLAY_STYLES = Set.of(
-		"angleStyle",
-		"animation",
-		"arcSize",
-		"bgColor",
-		"labelMode",
-		"layer",
-		"lineStyle",
-		"objColor"
-	);
-	
-	/**
 	 * Filters style map before conversion to Gpad format.
-	 * - Removes object and label attributes from show style
-	 * - Removes EuclidianView display styles for objects that are not shown in geometry view
-	 * - Removes file style for independent GeoImage objects (filename is already in Image command)
+	 * - Removes object attribute from show style (controlled by * flag with final authority)
+	 * - Keeps label attribute in show style (label visibility is managed by stylesheet)
+	 * - Removes file style (already included in the command)
 	 * 
 	 * @param styleMap style map to filter (modified in place)
 	 * @param type element type from XML (e.g., "point", "numeric", "image")
@@ -809,40 +790,19 @@ public class GpadGenerator {
 		if (styleMap == null)
 			return;
 		
-		// Remove object and label attributes from show style
+		// Remove object attribute from show style
+		// Object visibility is controlled by * flag with final authority, not by stylesheet
+		// Keep label attribute as it controls labelVisible property (managed by stylesheet)
 		LinkedHashMap<String, String> showAttrs = styleMap.get("show");
-		// check before removing attributes
-		boolean isEuclidianShowable = showAttrs != null;
 		if (showAttrs != null) {
 			showAttrs.remove("object");
-			showAttrs.remove("label");
+			// Note: we keep "label" attribute as it controls labelVisible property
 			// If show style becomes empty after removal, remove it from styleMap
 			if (showAttrs.isEmpty())
 				styleMap.remove("show");
 		}
 		
-		// Filter EuclidianView display styles for objects not shown in geometry view
-		// Different object types use different elements to indicate visibility in geometry view:
-		// - numeric/angle: slider element
-		// - boolean: checkbox element
-		// - list: combo element
-		// - others: show element
-		if (isEuclidianShowable) {
-			if ("numeric".equals(type) || "angle".equals(type))
-				isEuclidianShowable = styleMap.containsKey("slider");
-			else if ("boolean".equals(type))
-				isEuclidianShowable = styleMap.containsKey("checkbox");
-			else if ("list".equals(type))
-				isEuclidianShowable = styleMap.containsKey("combo");
-		}
-		
-		if (!isEuclidianShowable) {
-			// Remove EuclidianView display styles
-			for (String styleKey : EUCLIDIAN_DISPLAY_STYLES)
-				styleMap.remove(styleKey);
-		}
-		
-		// Remove file,slider,... style(already included in the command)
+		// Remove file style (already included in the command)
 		styleMap.remove("file");
 	}
 }

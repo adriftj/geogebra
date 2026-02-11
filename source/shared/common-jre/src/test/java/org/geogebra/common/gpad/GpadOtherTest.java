@@ -69,7 +69,7 @@ public class GpadOtherTest extends BaseUnitTest {
 			"    @allPointsStyle = { show: 3d; objColor: #00640000; lineStyle: full thickness=5 hidden=dashed }\n" +
 			"    allPoints @allPointsStyle = {A + vSpace, A - vSpace, B - vSpace, B + vSpace};\n" +
 			"    @newPolyStyle = { lineStyle: full thickness=5 hidden=dashed opacity=178; objColor: #9933001A }\n" +
-			"    newPoly~ @newPolyStyle = Polygon[allPoints];\n" +
+			"    newPoly @newPolyStyle = Polygon[allPoints];\n" +
 			"    @@return newPoly\n" +
 			"}\n" +
 			"\n" +
@@ -171,10 +171,10 @@ public class GpadOtherTest extends BaseUnitTest {
 			"@moveBoxStyle = { lineStyle: full thickness=7 hidden=dashed; show: 3d; objColor: #1565C01A; layer: 4 }\n" +
 			"moveBox* @moveBoxStyle = Polygon[{(-9, -10), (9, -10), (9, 10), (-9, 10)}];\n" +
 			"@PVertexStyle = { show: 3d; objColor: #6557D200; layer: 3; animation: +1; pointSize: 7; pointStyle: no_outline; coords: 0.0 0.0 }\n" +
-			"PVertex~ @PVertexStyle = PointIn[moveBox];\n" +
+			"PVertex @PVertexStyle = PointIn[moveBox];\n" +
 			"xPosition = x(PVertex);\n" +
 			"@PDilateStyle = { show: 3d; objColor: #DA257000; layer: 5; animation: +1; pointSize: 7; pointStyle: no_outline; coords: 1.0 1.0 }\n" +
-			"PDilate~ @PDilateStyle = (1, 1);\n" +
+			"PDilate @PDilateStyle = (1, 1);\n" +
 			"@scriptResetAppStyle = { objColor: #1565C000; bgColor: #FFFFFFFF; layer: 3; labelOffset: 569 1; fixed; auxiliary; caption: \"Reset app\"; font: bold }\n" +
 			"scriptResetApp* @scriptResetAppStyle = Button(\"Reset app\");\n" +
 			"@helpTextHintTypicalErrorStyle = { show: ~3d; objColor: #4D4D4D00; layer: 3; isLaTeX; @screen: 11 247 }\n" +
@@ -260,34 +260,34 @@ public class GpadOtherTest extends BaseUnitTest {
 			"@onboardingPositionsStyle = { caption: \"(Element 1, element 2) = pixel location of text, element 3: text direction for x: 1=right of point, -1=left of point, 0=centered. element 4: text direction for y (-1,0,1)\" }\n" +
 			"onboardingPositions @onboardingPositionsStyle = Element[{{onboardingX + 24, onboardingY - 12, 1, 0}, {onboardingX, onboardingY - 12, -1, 0}, {onboardingX - 18, onboardingY + 18, 0, -1}, {onboardingX + 18, onboardingY - 36, 0, 0}}, onboardingCase];\n" +
 			"@viewboxStyle = { lineStyle: full thickness=0 hidden=dashed opacity=0; show: 3d; objColor: #FFFFFF inverse; layer: 3 }\n" +
-			"viewbox~ @viewboxStyle = Polygon[{(-11, 11), (-11, -11), (11, -11), (11, 11)}];\n" +
+			"viewbox @viewboxStyle = Polygon[{(-11, 11), (-11, -11), (11, -11), (11, 11)}];\n" +
 			"@pulsingPointStyle = { show: 3d; showIf: onboarding; objColor: rgb(0.396078431372549,0.3411764705882353,0.8235294117647058,\"1 - pulsing\"); layer: 4; lineStyle: full thickness=1 hidden=dashed opacity=0; eqnStyle: implicit }\n" +
-			"pulsingPoint~ @pulsingPointStyle = expandCircle[PVertex, 7 + 7pulsing, (xMin, yMin), (xMax, yMax), (800, 500)];\n" +
+			"pulsingPoint @pulsingPointStyle = expandCircle[PVertex, 7 + 7pulsing, (xMin, yMin), (xMax, yMax), (800, 500)];\n" +
 			"@onboardingBackgroundStyle = { lineStyle: full thickness=0 hidden=dashed opacity=0; show: 3d; showIf: onboarding; objColor: #FFFFFF; layer: 2 }\n" +
-			"onboardingBackground~ @onboardingBackgroundStyle = Polygon[{(-0.9, -3.5), (0.9, -3.5), (0.9, -1.5), (-0.9, -1.5)}];\n" +
+			"onboardingBackground @onboardingBackgroundStyle = Polygon[{(-0.9, -3.5), (0.9, -3.5), (0.9, -1.5), (-0.9, -1.5)}];\n" +
 			"@axisXStyle = { show: 3d; objColor: #25252500; layer: 1; lineStyle: full thickness=4 hidden=dashed; eqnStyle: implicit; keepTypeOnTransform; startStyle: arrow; endStyle: arrow; coords: 0.0 21.9 -0.0 }\n" +
-			"axisX~ @axisXStyle = Segment[(-10.95, 0), (10.95, 0)];\n" +
+			"axisX @axisXStyle = Segment[(-10.95, 0), (10.95, 0)];\n" +
 			"@axisYStyle = { show: 3d; objColor: #25252500; layer: 1; lineStyle: full thickness=4 hidden=dashed; eqnStyle: implicit; keepTypeOnTransform; startStyle: arrow; endStyle: arrow; coords: -21.9 0.0 0.0 }\n" +
-			"axisY~ @axisYStyle = Segment[(0, -10.95), (0, 10.95)];\n" +
+			"axisY @axisYStyle = Segment[(0, -10.95), (0, 10.95)];\n" +
 			"@textQuestionStyle = { symbolic; show: ~3d; objColor: #25252500; layer: 3; fixed; isLaTeX; font: serif; @screen: 11 20 }\n" +
 			"textQuestion @textQuestionStyle = \"\\textsf{Drag the points to change the graph of }f(x)\\textsf{ and observe how the equation is affected.}\";\n" +
 			"@onboardingTextStyle = { show: ~3d; showIf: onboarding; objColor: #6557D200; bgColor: #FFFFFFFF; layer: 4; isLaTeX; startPoint: 0.0 -3.0 1.0 }\n" +
-			"onboardingText~ @onboardingTextStyle = Text[\"\\text{Drag to start}\", (0, -3), true, true, 0, -1];\n" +
+			"onboardingText @onboardingTextStyle = Text[\"\\text{Drag to start}\", (0, -3), true, true, 0, -1];\n" +
 			"dilationAmount = 1;\n" +
 			"@studentFuncStyle = { show: 3d; objColor: #5145A800; labelOffset: 52 61; fixed; lineStyle: full thickness=7 hidden=dashed }\n" +
-			"studentFunc(x)~ @studentFuncStyle = dilationAmount abs(x - x(PVertex)) + y(PVertex);\n" +
+			"studentFunc(x) @studentFuncStyle = dilationAmount abs(x - x(PVertex)) + y(PVertex);\n" +
 			"@commonLatexStyle = { show: ~3d; objColor: #00000000; layer: 5; isLaTeX; font: serif; startPoint: 11.272839506172842 3.9505903490759753 1.0 }\n" +
 			"commonLatex* @commonLatexStyle = \"\" + (LaTeX[If[x(PVertex) ≟ 0, \"x\", \"(x\" addColoredConstant[-x(PVertex), colorPurpleButton] \")\"]]) + \" \" + (LaTeX[If[y(PVertex) ≠ 0, addColoredConstant[y(PVertex), colorPurpleButton], \"\"]]) + \"\";\n" +
 			"@noAbsValueStyle = { show: ~3d; showIf: \"y(PDilate) ≟ y(PVertex)\"; objColor: #00000000; layer: 5; isLaTeX; font: serif; labelOffset: 400 77; startPoint: absolute \"(layoutX, layoutY)\" }\n" +
 			"noAbsValue @noAbsValueStyle = \"\\(f(x)=\" + (LaTeX[x(PVertex)]) + \"\\)\\textsf{ is a line, }\\\\\\textsf{not an absolute value function.}\";\n" +
 			"@gridBorderStyle = { lineStyle: full thickness=2 hidden=dashed; show: 3d; objColor: #94949400 }\n" +
-			"gridBorder~ @gridBorderStyle = Polygon[{(-11, 11), (-11, -11), (11, -11), (11, 11)}];\n" +
+			"gridBorder @gridBorderStyle = Polygon[{(-11, 11), (-11, -11), (11, -11), (11, 11)}];\n" +
 			"@lblXStyle = { show: ~3d; objColor: #25252500; layer: 5; isLaTeX; font: serif bold; startPoint: 11.0 0.1 1.0 }\n" +
-			"lblX~ @lblXStyle = Text[\"x\", (11, 0.1), true, true, 1, 0];\n" +
+			"lblX @lblXStyle = Text[\"x\", (11, 0.1), true, true, 1, 0];\n" +
 			"@lblYStyle = { show: ~3d; objColor: #25252500; layer: 5; isLaTeX; font: serif bold; startPoint: 0.0 11.0 1.0 }\n" +
-			"lblY~ @lblYStyle = Text[\"y\", (0, 11), true, true, 0, 1];\n" +
+			"lblY @lblYStyle = Text[\"y\", (0, 11), true, true, 0, 1];\n" +
 			"@studentEqnStyle = { symbolic; show: ~3d; showIf: \"y(PDilate) ≠ y(PVertex)\"; objColor: #00000000; layer: 5; fixed; isLaTeX; font: serif; labelOffset: 450 250; startPoint: absolute \"(layoutX, layoutY)\" }\n" +
-			"studentEqn~ @studentEqnStyle = \"f(x)=\\begin{cases}\" + (LaTeX[If[-dilationAmount < 0, \"-\", \"\"] If[abs(dilationAmount) > 1, \"\\textcolor{\" colorPink \"}{\" abs(dilationAmount) \"}\", \"\"]]) + \"\" + (LaTeX[commonLatex]) + \", &x\\lt \" + (LaTeX[x(PVertex)]) + \"\\\\\\textcolor{\" + (LaTeX[colorPink]) + \"}{\" + (LaTeX[If[dilationAmount < 0, \"-\", \"\"] If[abs(dilationAmount) > 1, \"\" abs(dilationAmount), \"\"]]) + \"}\" + (LaTeX[commonLatex]) + \", &x\\ge \" + (LaTeX[x(PVertex)]) + \"\n" +
+			"studentEqn @studentEqnStyle = \"f(x)=\\begin{cases}\" + (LaTeX[If[-dilationAmount < 0, \"-\", \"\"] If[abs(dilationAmount) > 1, \"\\textcolor{\" colorPink \"}{\" abs(dilationAmount) \"}\", \"\"]]) + \"\" + (LaTeX[commonLatex]) + \", &x\\lt \" + (LaTeX[x(PVertex)]) + \"\\\\\\textcolor{\" + (LaTeX[colorPink]) + \"}{\" + (LaTeX[If[dilationAmount < 0, \"-\", \"\"] If[abs(dilationAmount) > 1, \"\" abs(dilationAmount), \"\"]]) + \"}\" + (LaTeX[commonLatex]) + \", &x\\ge \" + (LaTeX[x(PVertex)]) + \"\n" +
 			"\\end{cases}\";\n" +
 			"@tabOrderStyle = { objColor: #00640000; layer: 5; lineStyle: full thickness=5 hidden=dashed; symbolic }\n" +
 			"tabOrder* @tabOrderStyle = {textQuestion, PVertex, PDilate, studentEqn};\n";
@@ -552,16 +552,11 @@ public class GpadOtherTest extends BaseUnitTest {
 		
 		// pointGap should appear before curveFunction (due to dependency)
 		// We need to find the actual definition lines, not just any occurrence
-		// Look for "pointGap" followed by "=" and "curveFunction" followed by "*" or "="
-		int pointGapDefIndex = gpad.indexOf("pointGap* =");
+		// Look for "pointGap*" (definition with visibility flag) and "curveFunction*" (definition with visibility flag)
+		// Note: there may be a stylesheet reference between the label and "="
+		int pointGapDefIndex = gpad.indexOf("pointGap*");
 		
 		int curveFunctionDefIndex = gpad.indexOf("curveFunction*");
-		if (curveFunctionDefIndex < 0) {
-			curveFunctionDefIndex = gpad.indexOf("curveFunction =");
-		}
-		if (curveFunctionDefIndex < 0) {
-			curveFunctionDefIndex = gpad.indexOf("curveFunction=");
-		}
 		
 		assertTrue("pointGap definition should be present", pointGapDefIndex >= 0);
 		assertTrue("curveFunction definition should be present", curveFunctionDefIndex >= 0);

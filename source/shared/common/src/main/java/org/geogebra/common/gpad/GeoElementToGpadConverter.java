@@ -4,11 +4,11 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.geogebra.common.io.XMLStringBuilder;
 import org.geogebra.common.kernel.StringTemplate;
 import org.geogebra.common.kernel.arithmetic.FunctionalNVar;
+import org.geogebra.common.kernel.arithmetic.EquationValue;
 import org.geogebra.common.kernel.geos.GeoBoolean;
 import org.geogebra.common.kernel.geos.GeoButton;
 import org.geogebra.common.kernel.geos.GeoElement;
@@ -26,22 +26,6 @@ import org.geogebra.common.util.debug.Log;
  */
 public class GeoElementToGpadConverter {
 	static final StringTemplate myTPL = StringTemplate.noLocalDefault;
-	
-	/**
-	 * Set of style properties that should be removed for objects that are not
-	 * shown in the EuclidianView (geometry view).
-	 * These styles are only relevant for visual display in the geometry view.
-	 */
-	private static final Set<String> EUCLIDIAN_DISPLAY_STYLES = Set.of(
-		"angleStyle",
-		"animation",
-		"bgColor",
-		"labelMode",
-		"layer",
-		"lineStyle",
-		"objColor"
-	);
-
 	private int styleSheetCounter = 0;
 	private Map<GeoElement, String> styleSheetMap = new HashMap<>();
 
@@ -87,10 +71,13 @@ public class GeoElementToGpadConverter {
 
 	/**
 	 * Filters style map before conversion to Gpad format.
-	 * - Removes object and label attributes from show style
-	 * - Removes EuclidianView display styles for objects that are not shown in geometry view
+	 * - Removes object attribute from show style (controlled by * flag, not stylesheet)
+	 * - Keeps label attribute in show style (label visibility is managed by stylesheet)
 	 * - Removes file style for independent GeoImage objects (filename is already in Image command)
 	 * - Removes coords style for points that are not constrained on a Path
+	 * 
+	 * Note: The * flag controls object visibility with final authority (cannot be overridden
+	 * by stylesheet). Label visibility is fully managed by stylesheet's show.label attribute.
 	 * 
 	 * @param styleMap style map to filter (modified in place)
 	 * @param geo GeoElement to check visibility
@@ -99,11 +86,13 @@ public class GeoElementToGpadConverter {
 		if (styleMap == null)
 			return;
 		
-		// Remove object and label attributes from show style
+		// Remove object attribute from show style
+		// Object visibility is controlled by * flag with final authority, not by stylesheet
+		// Keep label attribute as it controls labelVisible property (managed by stylesheet)
 		LinkedHashMap<String, String> showAttrs = styleMap.get("show");
 		if (showAttrs != null) {
 			showAttrs.remove("object");
-			showAttrs.remove("label");
+			// Note: we keep "label" attribute as it controls labelVisible property
 			// If show style becomes empty after removal, remove it from styleMap
 			if (showAttrs.isEmpty())
 				styleMap.remove("show");
@@ -118,10 +107,42 @@ public class GeoElementToGpadConverter {
 		if (!( geo instanceof GeoPointND && ((GeoPointND)geo).isPointOnPath() ))
 			styleMap.remove("coords");
 		
-		// Remove EuclidianView display styles for objects not shown in geometry view
-		if (!geo.isEuclidianShowable()) {
-			for (String styleKey : EUCLIDIAN_DISPLAY_STYLES)
-				styleMap.remove(styleKey);
+		// For EquationValue objects (line, function, etc.) that are not fixed,
+		// we need to explicitly output ~fixed to prevent gpad parser from
+		// applying isObjectDraggingRestricted() default behavior
+		if (geo instanceof EquationValue && !geo.isLocked()) {
+			// Check if fixed tag is not present in styleMap (meaning original is not fixed)
+			if (!styleMap.containsKey("fixed")) {
+				// Add a marker to indicate ~fixed should be output
+				// The "val" attribute with value "false" will be converted to "~fixed" by StyleMapToGpadConverter
+				LinkedHashMap<String, String> fixedAttrs = new LinkedHashMap<>();
+				fixedAttrs.put("val", "false");
+				styleMap.put("fixed", fixedAttrs);
+			}
+		}
+		
+		// Save labelMode if it's not the default (0=name)
+		// Different object types may have different runtime default labelMode values
+		// (e.g., GeoNumeric uses LABEL_VALUE when not visible)
+		int labelMode = geo.getLabelMode();
+		if (labelMode != 0 && !styleMap.containsKey("labelMode")) {
+			LinkedHashMap<String, String> labelModeAttrs = new LinkedHashMap<>();
+			labelModeAttrs.put("val", String.valueOf(labelMode));
+			styleMap.put("labelMode", labelModeAttrs);
+		}
+		
+		// Ensure labelVisible (show.label) is preserved if object has a label
+		// Even if show tag was removed, we need to preserve label visibility info
+		if (geo.isLabelSet() && geo.getLabelVisible()) {
+			LinkedHashMap<String, String> showAttrsForLabel = styleMap.get("show");
+			if (showAttrsForLabel == null) {
+				showAttrsForLabel = new LinkedHashMap<>();
+				styleMap.put("show", showAttrsForLabel);
+			}
+			// Add label="true" to show attrs (will be converted to "label" in gpad)
+			if (!showAttrsForLabel.containsKey("label")) {
+				showAttrsForLabel.put("label", "true");
+			}
 		}
 	}
 
@@ -253,11 +274,9 @@ public class GeoElementToGpadConverter {
 			sb.append(label);
 
 		if (outputVisibility) {
-			// Determine visibility flags
+			// * flag: object is hidden in EuclidianView (final authority)
 			if (!geo.isSetEuclidianVisible())
 				sb.append("*");
-			else if (!geo.isLabelVisible())
-				sb.append("~");
 		}
 
 		return true;

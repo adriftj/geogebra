@@ -285,17 +285,16 @@ public class GgbToGpadConverter {
 	
 	/**
 	 * Gets visibility flags from a GeoElement.
+	 * Only * flag is supported, indicating object is not shown in EuclidianView.
 	 * 
 	 * @param geo the geo element
-	 * @return visibility flags string (* and/or ~), or empty string if none
+	 * @return "*" if object is hidden, empty string otherwise
 	 */
 	private String getVisibilityFlags(GeoElement geo) {
-		// * flag: when object is not shown
+		// * flag: when object is not shown in EuclidianView
+		// This is the final authority - cannot be overridden by stylesheets
 		if (!geo.isSetEuclidianVisible())
 			return "*";
-		// ~ flag: when label is not shown (only meaningful when object is shown)
-		if (!geo.getLabelVisible())
-			return "~";
 		return "";
 	}
 	

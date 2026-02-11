@@ -808,8 +808,17 @@ public class StyleMapToGpadConverter {
 				value = convertedValue;
 		}
 
-		if (gkType == GpadStyleMaps.GK_BOOL) // 省略布尔false值(不出现默认就是false)
-			return "true".equals(value)? gpadName: "";
+		if (gkType == GpadStyleMaps.GK_BOOL) {
+			// For most boolean properties, false value is omitted (default)
+			// But for "fixed", we need to output "~fixed" explicitly for EquationValue objects
+			// to prevent gpad parser from applying isObjectDraggingRestricted() default behavior
+			if ("true".equals(value))
+				return gpadName;
+			else if ("fixed".equals(gpadName) && "false".equals(value))
+				return "~fixed"; // Explicitly output ~fixed for equation/function objects
+			else
+				return ""; // Omit false value for other boolean properties
+		}
 
 		// 现在只能是字符串值，转换为 Gpad 格式（如果有特殊字符，需要用引号括起来并转义）
 		// Special handling for javascript: always quote the value to avoid parsing issues

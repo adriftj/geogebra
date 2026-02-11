@@ -431,11 +431,12 @@ public class GpadEnvTest extends BaseUnitTest {
 	}
 
 	/**
-	 * Test @@env with pen tools property.
+	 * Test @@env with pen tools at top level.
 	 */
 	@Test
 	public void testParsePenTools() {
-		String gpad = "@@env {\n  ev1 {\n    penTools: {\n      pen {\n        color: #FF0000;\n        thickness: 10;\n      }\n      highlighter {\n        color: #00FF00;\n        thickness: 25;\n      }\n      eraser {\n        size: 60;\n      }\n    }\n  }\n}";
+		// pen, highlighter, eraser are now at @@env top level (not nested in ev blocks)
+		String gpad = "@@env {\n  pen {\n    color: #FF0000;\n    thickness: 10;\n  }\n  highlighter {\n    color: #00FF00;\n    thickness: 25;\n  }\n  eraser {\n    size: 60;\n  }\n}";
 		GpadParser parser = new GpadParser(getKernel());
 		
 		try {
@@ -461,6 +462,23 @@ public class GpadEnvTest extends BaseUnitTest {
 			
 			// Check eraser settings
 			assertEquals(60, penSettings.getDeleteToolSize());
+		} catch (GpadParseException e) {
+			throw new AssertionError("Parse failed: " + e.getMessage(), e);
+		}
+	}
+
+	/**
+	 * Test @@env with rightAngleStyle at top level.
+	 */
+	@Test
+	public void testParseRightAngleStyleTopLevel() {
+		// rightAngleStyle is now at @@env top level (not nested in ev blocks)
+		String gpad = "@@env {\n  rightAngleStyle: dot;\n}";
+		GpadParser parser = new GpadParser(getKernel());
+		
+		try {
+			parser.parse(gpad);
+			assertEquals(EuclidianStyleConstants.RIGHT_ANGLE_STYLE_DOT, getApp().rightAngleStyle);
 		} catch (GpadParseException e) {
 			throw new AssertionError("Parse failed: " + e.getMessage(), e);
 		}

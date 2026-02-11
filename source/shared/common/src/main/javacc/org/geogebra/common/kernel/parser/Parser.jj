@@ -1192,15 +1192,14 @@ TOKEN : {
  < EV_pointCapturing: "pointCapturing" > |
  < EV_rightAngleStyle: "rightAngleStyle" > |
  < EV_toolTips: "toolTips" > |
- // Property names - style
- < EV_lineStyle: "lineStyle" > |
- < EV_axesStyle: "axesStyle" > |
- < EV_labelStyle: "labelStyle" > |
- < EV_rulerType: "rulerType" > |
- < EV_rulerColor: "rulerColor" > |
- // Property names - pen tools
- < EV_penTools: "penTools" > |
- < EV_pen: "pen" > |
+// Property names - style
+< EV_lineStyle: "lineStyle" > |
+< EV_axesStyle: "axesStyle" > |
+< EV_labelStyle: "labelStyle" > |
+< EV_rulerType: "rulerType" > |
+< EV_rulerColor: "rulerColor" > |
+// Property names - pen tools (at @@env top level)
+< EV_pen: "pen" > |
  < EV_highlighter: "highlighter" > |
  < EV_eraser: "eraser" > |
  < EV_color: "color" > |
@@ -4781,10 +4780,10 @@ void gpadBarTagBar(StringBuilder serialized) :
 }
 
 /**
- * Command/Expression statement: label1* @style { inline_styles } ..., label2~ ... = ValidExpression
+ * Command/Expression statement: label1* @style { inline_styles } ... = ValidExpression
  * Function definition statement: f(var1, var2, ...)* @style1 {...} ... = expressionnode
- * * = hide both object and label
- * ~ = show object, hide label
+ * * = hide object in EuclidianView (final authority, cannot be overridden by stylesheet)
+ * Label visibility is controlled by stylesheet's show.label attribute
  */
 void gpadCommandExpression() throws GpadParseException :
 {
@@ -4911,7 +4910,7 @@ GpadStyleSheet gpadApplyStyleSheets() :
     GpadStyleSheet styleSheet = new GpadStyleSheet(""), styleSheet2;
 }
 {
-    ( visibilityFlag = <MULTIPLY> | visibilityFlag = <TILDE> )?
+    ( visibilityFlag = <MULTIPLY> )?
     (
         (
         (styleName = <GSSLABEL> { styleSheet2 = gpadStyleSheets.get(styleName.image.substring(1)); })
@@ -4920,13 +4919,16 @@ GpadStyleSheet gpadApplyStyleSheets() :
         { styleSheet.mergeFrom(styleSheet2); }
     )*
     {
-        styleSheet2 = new GpadStyleSheet("");
-        java.util.LinkedHashMap<String, String> attrs = new java.util.LinkedHashMap<>();
-        boolean visibilityNull = (visibilityFlag == null);
-        attrs.put("object", (!visibilityNull && visibilityFlag.kind==MULTIPLY)? "false": "true");
-        attrs.put("label", visibilityNull? "true": "false");
-        styleSheet2.setProperty("show", attrs);
-        styleSheet.mergeFrom(styleSheet2);
+        // Apply visibility flag LAST with final authority
+        // * means object is hidden (object=false), cannot be overridden by stylesheets
+        // No * means object is visible (object=true), also final authority
+        // Only update the object attribute, preserve other show attributes (like label)
+        java.util.LinkedHashMap<String, String> showAttrs = styleSheet.getProperty("show");
+        if (showAttrs == null) {
+            showAttrs = new java.util.LinkedHashMap<>();
+            styleSheet.setProperty("show", showAttrs);
+        }
+        showAttrs.put("object", (visibilityFlag != null) ? "false" : "true");
         return styleSheet;
     }
 }
@@ -5104,8 +5106,8 @@ void gpadMacroLabelList(java.util.List<String> labels) :
 // ====================================
 
 /**
- * Environment statement: @@env { ev1 { ... } ev2 { ... } ev3d { ... } }
- * Sets EuclidianView and EuclidianView3D properties.
+ * Environment statement: @@env { ev1 { ... } ev2 { ... } ev3d { ... } rightAngleStyle: ...; pen { ... } ... }
+ * Sets EuclidianView and EuclidianView3D properties, plus global settings.
  */
 void gpadEnvStatement() throws GpadParseException :
 {
@@ -5116,7 +5118,11 @@ void gpadEnvStatement() throws GpadParseException :
     envToken = <GPAD_ENV> { pos = extractPositionFromToken(envToken); }
     <LBRACE> { token_source.SwitchTo(EV_BLOCK); }
     (
+        LOOKAHEAD( <EV_ev1> | <EV_ev2> | <EV_ev3d> )
         gpadEvBlock()
+        |
+        LOOKAHEAD( <EV_rightAngleStyle> | <EV_pen> | <EV_highlighter> | <EV_eraser> )
+        gpadEnvGlobalProperty()
     )*
     <RBRACE> { token_source.SwitchTo(DEFAULT); }
 }
@@ -5149,11 +5155,10 @@ void gpadEvBlock() throws GpadParseException :
         LOOKAHEAD( <EV_bgColor> | <EV_axesColor> | <EV_gridColor> | <EV_size> | <EV_coordSystem> |
                    <EV_gridDist> | <EV_xAxis> | <EV_yAxis> | <EV_zAxis> | <EV_axes> | <EV_TILDE> |
                    <EV_grid> | <EV_gridBold> | <EV_mouseCoords> | <EV_plane> | <EV_light> | <EV_yAxisUp> | <EV_coloredAxes> |
-                   <EV_gridType> | <EV_pointCapturing> | <EV_toolTips> | <EV_rightAngleStyle> |
+                   <EV_gridType> | <EV_pointCapturing> | <EV_toolTips> |
                    <EV_lockedAxesRatio> | <EV_scale> | <EV_xscale> | <EV_yscale> | <EV_zscale> |
                    <EV_clipping> | <EV_projection> |
-                   <EV_lineStyle> | <EV_axesStyle> | <EV_labelStyle> | <EV_rulerType> | <EV_rulerColor> |
-                   <EV_penTools> )
+                   <EV_lineStyle> | <EV_axesStyle> | <EV_labelStyle> | <EV_rulerType> | <EV_rulerColor> )
         gpadEvProperty(evSettings, is3D)
     )*
     <RBRACE>
@@ -5178,14 +5183,13 @@ void gpadEvProperty(org.geogebra.common.main.settings.EuclidianSettings evSettin
         gpadEvGridDistProperty(evSettings) |
         gpadEvAxisProperty(evSettings, is3D) |
         gpadEvBooleanProperty(evSettings, is3D) |
-        gpadEvEnumProperty(evSettings, is3D) |
+        gpadEvEnumProperty(evSettings) |
         gpadEvFloatProperty(evSettings, is3D) |
         gpadEvClippingProperty(evSettings, is3D) |
         gpadEvProjectionProperty(evSettings, is3D) |
         gpadEvLineStyleProperty(evSettings) |
         gpadEvLabelStyleProperty(evSettings) |
-        gpadEvRulerTypeProperty(evSettings) |
-        gpadEvPenToolsProperty()
+        gpadEvRulerTypeProperty(evSettings)
     )
     (<POLAR_SEPARATOR>)?
 }
@@ -5563,7 +5567,7 @@ void gpadEvBooleanProperty(org.geogebra.common.main.settings.EuclidianSettings e
 /**
  * Enum properties: gridType, pointCapturing, rightAngleStyle, toolTips
  */
-void gpadEvEnumProperty(org.geogebra.common.main.settings.EuclidianSettings evSettings, boolean is3D) :
+void gpadEvEnumProperty(org.geogebra.common.main.settings.EuclidianSettings evSettings) :
 {
     String propName;
     int value = 0;
@@ -5590,15 +5594,6 @@ void gpadEvEnumProperty(org.geogebra.common.main.settings.EuclidianSettings evSe
             | <EV_CAPTURE_auto> { value = 3; }
         )
         |
-        <EV_rightAngleStyle> { propName = "rightAngleStyle"; }
-        <EV_COLON>
-        (
-            <EV_GRID_none> { value = 0; }
-            | <EV_RA_square> { value = 1; }
-            | <EV_RA_dot> { value = 2; }
-            | <EV_RA_L> { value = 3; }
-        )
-        |
         <EV_toolTips> { propName = "toolTips"; }
         <EV_COLON>
         (
@@ -5613,8 +5608,6 @@ void gpadEvEnumProperty(org.geogebra.common.main.settings.EuclidianSettings evSe
                 evSettings.setGridType(value);
             } else if ("pointCapturing".equals(propName)) {
                 evSettings.setPointCapturing(value);
-            } else if ("rightAngleStyle".equals(propName)) {
-                kernel.getApplication().setRightAngleStyle(value);
             } else if ("toolTips".equals(propName)) {
                 evSettings.setAllowToolTips(value);
             }
@@ -5863,108 +5856,125 @@ void gpadEvRulerTypeProperty(org.geogebra.common.main.settings.EuclidianSettings
 }
 
 /**
- * Pen tools property: penTools: { pen { color: #xxx; thickness: n; opacity: n; } highlighter { ... } eraser { ... } }
+ * Global properties at @@env top level: rightAngleStyle, pen, highlighter, eraser
  */
-void gpadEvPenToolsProperty() throws GpadParseException :
+void gpadEnvGlobalProperty() throws GpadParseException :
 {
     org.geogebra.common.main.settings.PenToolsSettings penSettings = null;
     Token colorToken;
     Token valToken;
+    int value = 0;
 }
 {
-    <EV_penTools>
-    <EV_COLON>
-    {
-        penSettings = kernel.getApplication().getSettings().getPenTools();
-    }
-    <LBRACE>
     (
+        // rightAngleStyle: none | square | dot | L
+        <EV_rightAngleStyle>
+        <EV_COLON>
         (
-            <EV_pen>
-            <LBRACE>
-            (
-                (
-                    <EV_color> <EV_COLON>
-                    colorToken = <EV_HEX_COLOR>
-                    {
-                        if (penSettings != null) {
-                            org.geogebra.common.awt.GColor color = parseEvHexColor(colorToken.image);
-                            if (color != null) {
-                                penSettings.setLastSelectedPenColor(color);
-                            }
-                        }
-                    }
-                    (<POLAR_SEPARATOR>)?
-                    |
-                    <EV_thickness> <EV_COLON>
-                    valToken = <EV_FLOAT>
-                    {
-                        if (penSettings != null) {
-                            penSettings.setLastPenThickness((int) Double.parseDouble(valToken.image));
-                        }
-                    }
-                    (<POLAR_SEPARATOR>)?
-                    |
-                    <EV_opacity> <EV_COLON>
-                    valToken = <EV_FLOAT>
-                    {
-                        if (penSettings != null) {
-                            penSettings.setLastPenOpacity((int) Double.parseDouble(valToken.image));
-                        }
-                    }
-                    (<POLAR_SEPARATOR>)?
-                )
-            )*
-            <RBRACE>
+            <EV_GRID_none> { value = 0; }
+            | <EV_RA_square> { value = 1; }
+            | <EV_RA_dot> { value = 2; }
+            | <EV_RA_L> { value = 3; }
         )
-        |
+        {
+            kernel.getApplication().setRightAngleStyle(value);
+        }
+        (<POLAR_SEPARATOR>)?
+    )
+    |
+    (
+        <EV_pen>
+        {
+            penSettings = kernel.getApplication().getSettings().getPenTools();
+        }
+        <LBRACE>
         (
-            <EV_highlighter>
-            <LBRACE>
             (
-                (
-                    <EV_color> <EV_COLON>
-                    colorToken = <EV_HEX_COLOR>
-                    {
-                        if (penSettings != null) {
-                            org.geogebra.common.awt.GColor color = parseEvHexColor(colorToken.image);
-                            if (color != null) {
-                                penSettings.setLastSelectedHighlighterColor(color);
-                            }
+                <EV_color> <EV_COLON>
+                colorToken = <EV_HEX_COLOR>
+                {
+                    if (penSettings != null) {
+                        org.geogebra.common.awt.GColor color = parseEvHexColor(colorToken.image);
+                        if (color != null) {
+                            penSettings.setLastSelectedPenColor(color);
                         }
                     }
-                    (<POLAR_SEPARATOR>)?
-                    |
-                    <EV_thickness> <EV_COLON>
-                    valToken = <EV_FLOAT>
-                    {
-                        if (penSettings != null) {
-                            penSettings.setLastHighlighterThickness((int) Double.parseDouble(valToken.image));
-                        }
+                }
+                (<POLAR_SEPARATOR>)?
+                |
+                <EV_thickness> <EV_COLON>
+                valToken = <EV_FLOAT>
+                {
+                    if (penSettings != null) {
+                        penSettings.setLastPenThickness((int) Double.parseDouble(valToken.image));
                     }
-                    (<POLAR_SEPARATOR>)?
-                )
-            )*
-            <RBRACE>
-        )
-        |
+                }
+                (<POLAR_SEPARATOR>)?
+                |
+                <EV_opacity> <EV_COLON>
+                valToken = <EV_FLOAT>
+                {
+                    if (penSettings != null) {
+                        penSettings.setLastPenOpacity((int) Double.parseDouble(valToken.image));
+                    }
+                }
+                (<POLAR_SEPARATOR>)?
+            )
+        )*
+        <RBRACE>
+    )
+    |
+    (
+        <EV_highlighter>
+        {
+            penSettings = kernel.getApplication().getSettings().getPenTools();
+        }
+        <LBRACE>
         (
-            <EV_eraser>
-            <LBRACE>
             (
-                (
-                    <EV_size> <EV_COLON>
-                    valToken = <EV_FLOAT>
-                    {
-                        if (penSettings != null) {
-                            penSettings.setDeleteToolSize((int) Double.parseDouble(valToken.image));
+                <EV_color> <EV_COLON>
+                colorToken = <EV_HEX_COLOR>
+                {
+                    if (penSettings != null) {
+                        org.geogebra.common.awt.GColor color = parseEvHexColor(colorToken.image);
+                        if (color != null) {
+                            penSettings.setLastSelectedHighlighterColor(color);
                         }
                     }
-                    (<POLAR_SEPARATOR>)?
-                )
-            )*
-            <RBRACE>
-        )
-    )*
-    <RBRACE>
+                }
+                (<POLAR_SEPARATOR>)?
+                |
+                <EV_thickness> <EV_COLON>
+                valToken = <EV_FLOAT>
+                {
+                    if (penSettings != null) {
+                        penSettings.setLastHighlighterThickness((int) Double.parseDouble(valToken.image));
+                    }
+                }
+                (<POLAR_SEPARATOR>)?
+            )
+        )*
+        <RBRACE>
+    )
+    |
+    (
+        <EV_eraser>
+        {
+            penSettings = kernel.getApplication().getSettings().getPenTools();
+        }
+        <LBRACE>
+        (
+            (
+                <EV_size> <EV_COLON>
+                valToken = <EV_FLOAT>
+                {
+                    if (penSettings != null) {
+                        penSettings.setDeleteToolSize((int) Double.parseDouble(valToken.image));
+                    }
+                }
+                (<POLAR_SEPARATOR>)?
+            )
+        )*
+        <RBRACE>
+    )
 }

@@ -147,20 +147,9 @@ public class GgbToGpadConverterTest extends BaseUnitTest {
 		assertTrue("Should contain label a", outputGpad.contains("a"));
 		assertTrue("Should contain label c", outputGpad.contains("c"));
 		
-		// Note: Since c is a numeric expression (not drawable in geometry view, no slider created),
-		// lineStyle cannot be applied to it. The stylesheet @cStyle will be empty after conversion
-		// and will be omitted, so @cStyle should NOT be present in the output.
-		// This is expected behavior: lineStyle only applies to drawable objects in geometry view.
-		assertTrue("Should NOT contain @cStyle (lineStyle cannot apply to non-drawable numeric expressions)", 
-			!outputGpad.contains("@cStyle"));
-		
-		// Verify expression is present
-		// Note: Since c is a numeric expression (not drawable in geometry view), it will have "*" suffix
-		// The format is "c* = a + 5" (without stylesheet, since lineStyle was omitted)
-		// So we check for label c, followed by "=" and the expression "a + 5"
-		assertTrue("Should contain expression", 
-			outputGpad.contains("c* =")
-			&& outputGpad.contains("a + 5"));
+		// Verify expression is present with * flag (hidden object)
+		assertTrue("Should contain expression with * flag",
+			outputGpad.contains("c*") && outputGpad.contains("a + 5"));
 	}
 
 	@Test
@@ -245,9 +234,10 @@ public class GgbToGpadConverterTest extends BaseUnitTest {
 	@Test
 	public void testCommandWithVisibilityFlags() {
 		// Create objects with visibility flags
+		// ~ flag was removed; use show: ~label in stylesheet for hidden label
 		String inputGpad = "A = (1, 2);\n"
 				+ "B* = (3, 4);\n"
-				+ "C~ = (5, 6);\n"
+				+ "C { show: ~label } = (5, 6);\n"
 				+ "s = Segment(A, B);";
 		
 		String result = api.evalGpad(inputGpad);
@@ -264,7 +254,7 @@ public class GgbToGpadConverterTest extends BaseUnitTest {
 		assertTrue("Should contain label s", outputGpad.contains("s"));
 		
 		// Verify visibility flags are preserved (if applicable)
-		// Note: visibility flags might be preserved in the output
+		// Note: * flag for hidden objects is preserved in the output
 	}
 
 	@Test

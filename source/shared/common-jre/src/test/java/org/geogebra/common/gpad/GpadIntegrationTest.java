@@ -68,10 +68,11 @@ public class GpadIntegrationTest extends BaseUnitTest {
 
 	@Test
 	public void testComplexGpadExample() {
+		// ~ flag was removed; use show: ~label in stylesheet instead
 		String gpad = "@g = { labelOffset:28 75; lineStyle: thickness=4 opacity=178 }\n"
-				+ "@h = { lineStyle: opacity=178 }\n"
+				+ "@h = { lineStyle: opacity=178; show: ~label }\n"
 				+ "g* @g = Line((0,0), (1,1));\n"
-				+ "h~ @h = Line((0,0), (2,2))";
+				+ "h @h = Line((0,0), (2,2))";
 		GpadParser parser = new GpadParser(getKernel());
 		
 		try {

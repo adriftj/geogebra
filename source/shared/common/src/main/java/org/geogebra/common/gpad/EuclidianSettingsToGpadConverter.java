@@ -47,6 +47,22 @@ public class EuclidianSettingsToGpadConverter {
 		
 		boolean hasContent = false;
 		
+		// Global settings at top level
+		// Right angle style (global, not view-specific)
+		int rightAngleStyle = app.rightAngleStyle;
+		String rightAngleStr = rightAngleStyleToString(rightAngleStyle);
+		if (rightAngleStr != null && !"square".equals(rightAngleStr)) {
+			sb.append("  rightAngleStyle: ").append(rightAngleStr).append(";\n");
+			hasContent = true;
+		}
+		
+		// Pen tools settings (global, at top level)
+		String penToolsContent = convertPenToolsGlobal(app.getSettings().getPenTools());
+		if (penToolsContent != null && !penToolsContent.isEmpty()) {
+			sb.append(penToolsContent);
+			hasContent = true;
+		}
+		
 		// Convert EV1
 		EuclidianSettings ev1Settings = app.getSettings().getEuclidian(1);
 		if (ev1Settings != null) {
@@ -83,16 +99,7 @@ public class EuclidianSettingsToGpadConverter {
 			}
 		}
 		
-		// Convert pen tools settings (global, placed in ev1 block)
-		String penToolsContent = convertPenTools(app.getSettings().getPenTools());
-		if (penToolsContent != null && !penToolsContent.isEmpty()) {
-			sb.append("  ev1 {\n");
-			sb.append(penToolsContent);
-			sb.append("  }\n");
-			hasContent = true;
-		}
-		
-		sb.append("}");
+		sb.append("}\n");
 		
 		return hasContent ? sb.toString() : null;
 	}
@@ -170,13 +177,6 @@ public class EuclidianSettingsToGpadConverter {
 			if (capturingStr != null) {
 				sb.append("    pointCapturing: ").append(capturingStr).append(";\n");
 			}
-		}
-		
-		// Right angle style
-		int rightAngleStyle = app.rightAngleStyle;
-		String rightAngleStr = rightAngleStyleToString(rightAngleStyle);
-		if (rightAngleStr != null && !"square".equals(rightAngleStr)) {
-			sb.append("    rightAngleStyle: ").append(rightAngleStr).append(";\n");
 		}
 		
 		// Tooltips
@@ -797,9 +797,10 @@ public class EuclidianSettingsToGpadConverter {
 	}
 	
 	/**
-	 * Converts PenToolsSettings to Gpad format.
+	 * Converts PenToolsSettings to Gpad format (at @@env top level).
+	 * pen, highlighter, eraser are at @@env top level (not nested in any ev block).
 	 */
-	private static String convertPenTools(PenToolsSettings settings) {
+	private static String convertPenToolsGlobal(PenToolsSettings settings) {
 		if (settings == null) {
 			return null;
 		}
@@ -812,50 +813,46 @@ public class EuclidianSettingsToGpadConverter {
 		// Pen settings
 		GColor penColor = settings.getLastSelectedPenColor();
 		if (penColor != null && !penColor.equals(GColor.BLACK)) {
-			penSb.append("      color: ").append(colorToHex(penColor)).append(";\n");
+			penSb.append("    color: ").append(colorToHex(penColor)).append(";\n");
 		}
 		int penThickness = settings.getLastPenThickness();
 		if (penThickness != 5) { // DEFAULT_PEN_SIZE
-			penSb.append("      thickness: ").append(penThickness).append(";\n");
+			penSb.append("    thickness: ").append(penThickness).append(";\n");
 		}
 		int penOpacity = settings.getLastPenOpacity();
 		if (penOpacity != 255) {
-			penSb.append("      opacity: ").append(penOpacity).append(";\n");
+			penSb.append("    opacity: ").append(penOpacity).append(";\n");
 		}
 		
 		// Highlighter settings
 		GColor highlighterColor = settings.getLastSelectedHighlighterColor();
 		if (highlighterColor != null) {
-			highlighterSb.append("      color: ").append(colorToHex(highlighterColor)).append(";\n");
+			highlighterSb.append("    color: ").append(colorToHex(highlighterColor)).append(";\n");
 		}
 		int highlighterThickness = settings.getLastHighlighterThickness();
 		if (highlighterThickness != 20) { // DEFAULT_HIGHLIGHTER_SIZE
-			highlighterSb.append("      thickness: ").append(highlighterThickness).append(";\n");
+			highlighterSb.append("    thickness: ").append(highlighterThickness).append(";\n");
 		}
 		
 		// Eraser settings
 		int eraserSize = settings.getDeleteToolSize();
 		if (eraserSize != 40) { // DEFAULT_ERASER_SIZE
-			eraserSb.append("      size: ").append(eraserSize).append(";\n");
+			eraserSb.append("    size: ").append(eraserSize).append(";\n");
 		}
 		
-		// Only output if there are non-default settings
+		// Output each tool block at @@env top level
 		boolean hasPen = penSb.length() > 0;
 		boolean hasHighlighter = highlighterSb.length() > 0;
 		boolean hasEraser = eraserSb.length() > 0;
 		
-		if (hasPen || hasHighlighter || hasEraser) {
-			sb.append("    penTools: {\n");
-			if (hasPen) {
-				sb.append("      pen {\n").append(penSb).append("      }\n");
-			}
-			if (hasHighlighter) {
-				sb.append("      highlighter {\n").append(highlighterSb).append("      }\n");
-			}
-			if (hasEraser) {
-				sb.append("      eraser {\n").append(eraserSb).append("      }\n");
-			}
-			sb.append("    }\n");
+		if (hasPen) {
+			sb.append("  pen {\n").append(penSb).append("  }\n");
+		}
+		if (hasHighlighter) {
+			sb.append("  highlighter {\n").append(highlighterSb).append("  }\n");
+		}
+		if (hasEraser) {
+			sb.append("  eraser {\n").append(eraserSb).append("  }\n");
 		}
 		
 		return sb.toString();

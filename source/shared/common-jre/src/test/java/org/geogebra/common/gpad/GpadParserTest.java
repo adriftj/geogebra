@@ -97,8 +97,9 @@ public class GpadParserTest extends BaseUnitTest {
 	}
 
 	@Test
-	public void testParseCommandWithTildeFlag() {
-		String gpad = "A~ = (1, 2)";
+	public void testParseCommandWithHiddenLabel() {
+		// ~ flag was removed; use show: ~label in stylesheet instead
+		String gpad = "A { show: ~label } = (1, 2)";
 		GpadParser parser = new GpadParser(getKernel());
 		
 		try {
@@ -106,7 +107,7 @@ public class GpadParserTest extends BaseUnitTest {
 			assertEquals(1, geos.size());
 			GeoElement geo = geos.get(0);
 			assertEquals("A", geo.getLabelSimple());
-			// ~ flag: show object, hide label
+			// show: ~label means show object, hide label
 			assertTrue(geo.isSetEuclidianVisible());
 			assertTrue(!geo.isLabelVisible());
 		} catch (GpadParseException e) {
