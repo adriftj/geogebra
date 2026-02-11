@@ -531,6 +531,21 @@ public class Parser implements ParserInterface {
     }
 
     /**
+     * Parses a hex color string to GColor for @@env statement.
+     * @param colorHex the hex color string (e.g., "#FF0000" or "#FF0000FF")
+     * @return GColor or null if parsing fails
+     */
+    private org.geogebra.common.awt.GColor parseEvHexColor(String colorHex) {
+        int[] rgba = new int[4];
+        parseHexColorToArray(colorHex, rgba);
+        if (rgba[0] < 0 || rgba[1] < 0 || rgba[2] < 0)
+            return null;
+        if (rgba[3] >= 0)
+            return org.geogebra.common.awt.GColor.newColor(rgba[0], rgba[1], rgba[2], rgba[3]);
+        return org.geogebra.common.awt.GColor.newColor(rgba[0], rgba[1], rgba[2]);
+    }
+
+    /**
      * Extracts the value after "=" in a token string, skipping spaces and tabs.
      * @param tokenImage the full token string (e.g., "fill = hatch" or "angle=30")
      * @return the value after "=" with leading spaces/tabs removed, or null if "=" not found
@@ -885,15 +900,16 @@ TOKEN : {
 |    < SQRT_SHORT: "\u221a" >
 |   < FUNCTION_LABEL: (<SPREADSHEET_LABEL> | <LABEL> ) ("("|"[") >
 |   < FUNCTION_POWER_LABEL: (<SPREADSHEET_LABEL> | <LABEL> ) (< POWERN > )("("|"[") >
-|   < LBRACE: "{" >
 }
 
 <*> TOKEN : {
-   < RBRACE: "}" >
+   < LBRACE: "{" >
+|  < RBRACE: "}" >
 |   < POLAR_SEPARATOR: ( "\u2221" | ";" ) > // separator used by Giac instead of ;
 |   < GPAD_MACRO: "@@macro" >
 |   < GPAD_RETURN: "@@return" >
 |   < GPAD_SET: "@@set" >
+|   < GPAD_ENV: "@@env" >
 }
 
 <DEFAULT, GK_STR_BLOCK, GK_animation_BLOCK, GK_EXPR_BLOCK> TOKEN : {
@@ -1139,6 +1155,172 @@ TOKEN : {
 
 <GK_BLOCK, GK_animation_BLOCK, GK_STR_BLOCK, GK_VALUE_BLOCK, GK_EXPR_BLOCK> TOKEN : {
  < GK_INVALID: (~[";", "}"]) >
+}
+
+// ====================================
+// EV_BLOCK: Tokens for @@env statement
+// ====================================
+<EV_BLOCK> TOKEN : {
+ // View identifiers
+ < EV_ev1: "ev1" > |
+ < EV_ev2: "ev2" > |
+ < EV_ev3d: "ev3d" > |
+ // Property names - colors
+ < EV_bgColor: "bgColor" > |
+ < EV_axesColor: "axesColor" > |
+ < EV_gridColor: "gridColor" > |
+ // Property names - complex
+ < EV_size: "size" > |
+ < EV_coordSystem: "coordSystem" > |
+ < EV_gridDist: "gridDist" > |
+ < EV_xAxis: "xAxis" > |
+ < EV_yAxis: "yAxis" > |
+ < EV_zAxis: "zAxis" > |
+ < EV_clipping: "clipping" > |
+ < EV_projection: "projection" > |
+ // Property names - boolean
+ < EV_axes: "axes" > |
+ < EV_grid: "grid" > |
+ < EV_gridBold: "gridBold" > |
+ < EV_mouseCoords: "mouseCoords" > |
+ < EV_plane: "plane" > |
+ < EV_light: "light" > |
+ < EV_yAxisUp: "yAxisUp" > |
+ < EV_coloredAxes: "coloredAxes" > |
+ // Property names - enum
+ < EV_gridType: "gridType" > |
+ < EV_pointCapturing: "pointCapturing" > |
+ < EV_rightAngleStyle: "rightAngleStyle" > |
+ < EV_toolTips: "toolTips" > |
+ // Property names - style
+ < EV_lineStyle: "lineStyle" > |
+ < EV_axesStyle: "axesStyle" > |
+ < EV_labelStyle: "labelStyle" > |
+ < EV_rulerType: "rulerType" > |
+ < EV_rulerColor: "rulerColor" > |
+ // Property names - pen tools
+ < EV_penTools: "penTools" > |
+ < EV_pen: "pen" > |
+ < EV_highlighter: "highlighter" > |
+ < EV_eraser: "eraser" > |
+ < EV_color: "color" > |
+ < EV_thickness: "thickness" > |
+ < EV_opacity: "opacity" > |
+ // Property names - float
+ < EV_lockedAxesRatio: "lockedAxesRatio" > |
+ < EV_scale: "scale" > |
+ < EV_xscale: "xscale" > |
+ < EV_yscale: "yscale" > |
+ < EV_zscale: "zscale" > |
+ // Enum values - gridType
+ < EV_GRID_none: "none" > |
+ < EV_GRID_cartesian: "cartesian" > |
+ < EV_GRID_isometric: "isometric" > |
+ < EV_GRID_polar: "polar" > |
+ < EV_GRID_cartesianSub: "cartesianSub" > |
+ < EV_GRID_dots: "dots" > |
+ // Enum values - pointCapturing
+ < EV_CAPTURE_off: "off" > |
+ < EV_CAPTURE_snap: "snap" > |
+ < EV_CAPTURE_fixed: "fixed" > |
+ < EV_CAPTURE_auto: "auto" > |
+ // Enum values - rightAngleStyle
+ < EV_RA_square: "square" > |
+ < EV_RA_dot: "dot" > |
+ < EV_RA_L: "L" > |
+ // Enum values - toolTips
+ < EV_TIPS_on: "on" > |
+ // Enum values - tickStyle
+ < EV_TICK_majorMinor: "majorMinor" > |
+ < EV_TICK_major: "major" > |
+ // Enum values - projection
+ < EV_PROJ_orthographic: "orthographic" > |
+ < EV_PROJ_perspective: "perspective" > |
+ < EV_PROJ_glasses: "glasses" > |
+ < EV_PROJ_oblique: "oblique" > |
+ // Enum values - line style (for grid)
+ < EV_LS_full: "full" > |
+ < EV_LS_dashedShort: "dashedShort" > |
+ < EV_LS_dashedLong: "dashedLong" > |
+ < EV_LS_dotted: "dotted" > |
+ < EV_LS_dashedDotted: "dashedDotted" > |
+ // Enum values - axes style
+ < EV_AS_arrow: "arrow" > |
+ < EV_AS_arrowFilled: "arrowFilled" > |
+ < EV_AS_twoArrows: "twoArrows" > |
+ < EV_AS_twoArrowsFilled: "twoArrowsFilled" > |
+ < EV_AS_arrowBold: "arrowBold" > |
+ < EV_AS_arrowFilledBold: "arrowFilledBold" > |
+ < EV_AS_twoArrowsBold: "twoArrowsBold" > |
+ < EV_AS_twoArrowsFilledBold: "twoArrowsFilledBold" > |
+ // Enum values - font style
+ < EV_FS_plain: "plain" > |
+ < EV_FS_bold: "bold" > |
+ < EV_FS_italic: "italic" > |
+ < EV_FS_boldItalic: "boldItalic" > |
+ // Enum values - ruler/background type (reuse EV_GRID_* for shared values)
+ < EV_RT_ruler: "ruler" > |
+ < EV_RT_squareSmall: "squareSmall" > |
+ < EV_RT_squareBig: "squareBig" > |
+ < EV_RT_elementary12: "elementary12" > |
+ < EV_RT_elementary12House: "elementary12House" > |
+ < EV_RT_elementary34: "elementary34" > |
+ < EV_RT_music: "music" > |
+ < EV_RT_svg: "svg" > |
+ < EV_RT_elementary12Colored: "elementary12Colored" > |
+ // Axis property keywords
+ < EV_AXIS_show: "show" > |
+ < EV_AXIS_label: "label" > |
+ < EV_AXIS_unit: "unit" > |
+ < EV_AXIS_numbers: "numbers" > |
+ < EV_AXIS_tickDist: "tickDist" > |
+ < EV_AXIS_tickStyle: "tickStyle" > |
+ < EV_AXIS_cross: "cross" > |
+ < EV_AXIS_crossEdge: "crossEdge" > |
+ < EV_AXIS_positive: "positive" > |
+ < EV_AXIS_selectable: "selectable" > |
+ < EV_AXIS_piUnit: "piUnit" > |
+ // CoordSystem keywords
+ < EV_CS_origin: "origin" > |
+ < EV_CS_xMin: "xMin" > |
+ < EV_CS_xMax: "xMax" > |
+ < EV_CS_yMin: "yMin" > |
+ < EV_CS_yMax: "yMax" > |
+ < EV_CS_zMin: "zMin" > |
+ < EV_CS_zMax: "zMax" > |
+ < EV_CS_xAngle: "xAngle" > |
+ < EV_CS_zAngle: "zAngle" > |
+ // Clipping keywords
+ < EV_CLIP_use: "use" > |
+ // Projection keywords
+ < EV_PROJ_distance: "distance" > |
+ < EV_PROJ_separation: "separation" > |
+ < EV_PROJ_angle: "angle" > |
+ < EV_PROJ_factor: "factor" > |
+ < EV_PROJ_grayScaled: "grayScaled" > |
+ < EV_PROJ_shutDownGreen: "shutDownGreen" > |
+ // GridDist keywords
+ < EV_GD_x: "x" > |
+ < EV_GD_y: "y" > |
+ < EV_GD_theta: "theta" > |
+ // Operators
+ < EV_COLON: ":" > |
+ < EV_EQUAL: "=" > |
+ < EV_COMMA: "," > |
+ < EV_TILDE: "~" > |
+ // Values
+ < EV_HEX_COLOR: "#" (["0"-"9", "a"-"f", "A"-"F"])+ > |
+ < EV_FLOAT: ("-")? (["0"-"9"])+ ("." (["0"-"9"])+)? > |
+ < EV_STRING: "\"" (~["\""])* "\"" >
+}
+
+// Skip whitespace in EV_BLOCK state
+<EV_BLOCK> SKIP : {
+ < [" ", "\t", "\r", "\n"] >
+}
+
+<EV_BLOCK> TOKEN : {
+ < EV_INVALID: (~[";", "}", " ", "\t", "\r", "\n"]) >
 }
 
 /**
@@ -2634,7 +2816,8 @@ void gpadStatement() throws GpadParseException :
 }
 {(
     gpadStatementInMacro() |
-    gpadMacroDefinition()
+    gpadMacroDefinition() |
+    gpadEnvStatement()
 )}
 
 void gpadStatementInMacro() throws GpadParseException :
@@ -4914,4 +5097,874 @@ void gpadMacroLabelList(java.util.List<String> labels) :
 {
     label = gpadGeoLabel() { labels.add(label); }
     ( <COMMA> label = gpadGeoLabel() { labels.add(label); } )*
+}
+
+// ====================================
+// @@env Statement
+// ====================================
+
+/**
+ * Environment statement: @@env { ev1 { ... } ev2 { ... } ev3d { ... } }
+ * Sets EuclidianView and EuclidianView3D properties.
+ */
+void gpadEnvStatement() throws GpadParseException :
+{
+    Token envToken;
+    int[] pos = null;
+}
+{
+    envToken = <GPAD_ENV> { pos = extractPositionFromToken(envToken); }
+    <LBRACE> { token_source.SwitchTo(EV_BLOCK); }
+    (
+        gpadEvBlock()
+    )*
+    <RBRACE> { token_source.SwitchTo(DEFAULT); }
+}
+
+/**
+ * EV block: ev1 { ... } or ev2 { ... } or ev3d { ... }
+ */
+void gpadEvBlock() throws GpadParseException :
+{
+    Token viewToken;
+    int viewId = 1;
+    boolean is3D = false;
+    org.geogebra.common.main.settings.EuclidianSettings evSettings = null;
+}
+{
+    (
+        viewToken = <EV_ev1> { viewId = 1; is3D = false; }
+        | viewToken = <EV_ev2> { viewId = 2; is3D = false; }
+        | viewToken = <EV_ev3d> { viewId = 3; is3D = true; }
+    )
+    {
+        // Get the appropriate EuclidianSettings
+        evSettings = kernel.getApplication().getSettings().getEuclidian(viewId);
+        if (evSettings != null) {
+            evSettings.beginBatch();
+        }
+    }
+    <LBRACE>
+    (
+        LOOKAHEAD( <EV_bgColor> | <EV_axesColor> | <EV_gridColor> | <EV_size> | <EV_coordSystem> |
+                   <EV_gridDist> | <EV_xAxis> | <EV_yAxis> | <EV_zAxis> | <EV_axes> | <EV_TILDE> |
+                   <EV_grid> | <EV_gridBold> | <EV_mouseCoords> | <EV_plane> | <EV_light> | <EV_yAxisUp> | <EV_coloredAxes> |
+                   <EV_gridType> | <EV_pointCapturing> | <EV_toolTips> | <EV_rightAngleStyle> |
+                   <EV_lockedAxesRatio> | <EV_scale> | <EV_xscale> | <EV_yscale> | <EV_zscale> |
+                   <EV_clipping> | <EV_projection> |
+                   <EV_lineStyle> | <EV_axesStyle> | <EV_labelStyle> | <EV_rulerType> | <EV_rulerColor> |
+                   <EV_penTools> )
+        gpadEvProperty(evSettings, is3D)
+    )*
+    <RBRACE>
+    {
+        if (evSettings != null) {
+            evSettings.endBatch();
+        }
+    }
+}
+
+/**
+ * EV property dispatcher
+ */
+void gpadEvProperty(org.geogebra.common.main.settings.EuclidianSettings evSettings, boolean is3D) throws GpadParseException :
+{
+}
+{
+    (
+        gpadEvColorProperty(evSettings) |
+        gpadEvSizeProperty(evSettings) |
+        gpadEvCoordSystemProperty(evSettings, is3D) |
+        gpadEvGridDistProperty(evSettings) |
+        gpadEvAxisProperty(evSettings, is3D) |
+        gpadEvBooleanProperty(evSettings, is3D) |
+        gpadEvEnumProperty(evSettings, is3D) |
+        gpadEvFloatProperty(evSettings, is3D) |
+        gpadEvClippingProperty(evSettings, is3D) |
+        gpadEvProjectionProperty(evSettings, is3D) |
+        gpadEvLineStyleProperty(evSettings) |
+        gpadEvLabelStyleProperty(evSettings) |
+        gpadEvRulerTypeProperty(evSettings) |
+        gpadEvPenToolsProperty()
+    )
+    (<POLAR_SEPARATOR>)?
+}
+
+/**
+ * Color properties: bgColor, axesColor, gridColor
+ */
+void gpadEvColorProperty(org.geogebra.common.main.settings.EuclidianSettings evSettings) :
+{
+    Token propToken;
+    Token colorToken;
+    String propName;
+}
+{
+    (
+        propToken = <EV_bgColor> { propName = "bgColor"; }
+        | propToken = <EV_axesColor> { propName = "axesColor"; }
+        | propToken = <EV_gridColor> { propName = "gridColor"; }
+    )
+    <EV_COLON>
+    colorToken = <EV_HEX_COLOR>
+    {
+        if (evSettings != null) {
+            org.geogebra.common.awt.GColor color = parseEvHexColor(colorToken.image);
+            if (color != null) {
+                if ("bgColor".equals(propName)) {
+                    evSettings.setBackground(color);
+                } else if ("axesColor".equals(propName)) {
+                    evSettings.setAxesColor(color);
+                } else if ("gridColor".equals(propName)) {
+                    evSettings.setGridColor(color);
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Size property: size: width,height;
+ */
+void gpadEvSizeProperty(org.geogebra.common.main.settings.EuclidianSettings evSettings) :
+{
+    Token widthToken, heightToken;
+}
+{
+    <EV_size>
+    <EV_COLON>
+    widthToken = <EV_FLOAT>
+    <EV_COMMA>
+    heightToken = <EV_FLOAT>
+    {
+        if (evSettings != null) {
+            int width = (int) Double.parseDouble(widthToken.image);
+            int height = (int) Double.parseDouble(heightToken.image);
+            if (width > 0 && height > 0) {
+                evSettings.setPreferredSize(
+                    org.geogebra.common.awt.AwtFactory.getPrototype().newDimension(width, height));
+            }
+        }
+    }
+}
+
+/**
+ * CoordSystem property
+ * Formats:
+ *   coordSystem: origin=x,y scale=s [yscale=ys];
+ *   coordSystem: xMin=expr xMax=expr yMin=expr yMax=expr;
+ *   coordSystem: origin=x,y,z scale=s xAngle=a zAngle=b; (3D)
+ */
+void gpadEvCoordSystemProperty(org.geogebra.common.main.settings.EuclidianSettings evSettings, boolean is3D) throws GpadParseException :
+{
+    Double xZero = null, yZero = null, zZero = null;
+    Double scale = null, yscale = null, zscale = null;
+    Double xMin = null, xMax = null, yMin = null, yMax = null, zMin = null, zMax = null;
+    Double xAngle = null, zAngle = null;
+    Token valToken;
+}
+{
+    <EV_coordSystem>
+    <EV_COLON>
+    (
+        (
+            <EV_CS_origin> <EV_EQUAL>
+            valToken = <EV_FLOAT> { xZero = Double.parseDouble(valToken.image); }
+            <EV_COMMA>
+            valToken = <EV_FLOAT> { yZero = Double.parseDouble(valToken.image); }
+            (
+                <EV_COMMA>
+                valToken = <EV_FLOAT> { zZero = Double.parseDouble(valToken.image); }
+            )?
+            |
+            <EV_scale> <EV_EQUAL>
+            valToken = <EV_FLOAT> { scale = Double.parseDouble(valToken.image); }
+            |
+            <EV_xscale> <EV_EQUAL>
+            valToken = <EV_FLOAT> { scale = Double.parseDouble(valToken.image); }
+            |
+            <EV_yscale> <EV_EQUAL>
+            valToken = <EV_FLOAT> { yscale = Double.parseDouble(valToken.image); }
+            |
+            <EV_zscale> <EV_EQUAL>
+            valToken = <EV_FLOAT> { zscale = Double.parseDouble(valToken.image); }
+            |
+            <EV_CS_xMin> <EV_EQUAL>
+            valToken = <EV_FLOAT> { xMin = Double.parseDouble(valToken.image); }
+            |
+            <EV_CS_xMax> <EV_EQUAL>
+            valToken = <EV_FLOAT> { xMax = Double.parseDouble(valToken.image); }
+            |
+            <EV_CS_yMin> <EV_EQUAL>
+            valToken = <EV_FLOAT> { yMin = Double.parseDouble(valToken.image); }
+            |
+            <EV_CS_yMax> <EV_EQUAL>
+            valToken = <EV_FLOAT> { yMax = Double.parseDouble(valToken.image); }
+            |
+            <EV_CS_zMin> <EV_EQUAL>
+            valToken = <EV_FLOAT> { zMin = Double.parseDouble(valToken.image); }
+            |
+            <EV_CS_zMax> <EV_EQUAL>
+            valToken = <EV_FLOAT> { zMax = Double.parseDouble(valToken.image); }
+            |
+            <EV_CS_xAngle> <EV_EQUAL>
+            valToken = <EV_FLOAT> { xAngle = Double.parseDouble(valToken.image); }
+            |
+            <EV_CS_zAngle> <EV_EQUAL>
+            valToken = <EV_FLOAT> { zAngle = Double.parseDouble(valToken.image); }
+        )
+    )+
+    {
+        if (evSettings != null) {
+            if (xZero != null && yZero != null) {
+                // Origin-based coordinate system
+                double s = scale != null ? scale : 50.0;
+                double ys = yscale != null ? yscale : s;
+                if (is3D && evSettings instanceof org.geogebra.common.main.settings.EuclidianSettings3D) {
+                    org.geogebra.common.main.settings.EuclidianSettings3D ev3d = 
+                        (org.geogebra.common.main.settings.EuclidianSettings3D) evSettings;
+                    double zz = zZero != null ? zZero : 0.0;
+                    double zs = zscale != null ? zscale : s;
+                    double xa = xAngle != null ? xAngle : 20.0;
+                    double za = zAngle != null ? zAngle : -60.0;
+                    ev3d.setCoordSystem(xZero, yZero, zz, s, ys, zs, false);
+                    ev3d.setRotXYinDegrees(za, xa);
+                } else {
+                    evSettings.setCoordSystem(xZero, yZero, s, ys, true);
+                }
+            } else if (scale != null) {
+                // Scale-only settings
+                double s = scale;
+                double ys = yscale != null ? yscale : s;
+                if (is3D && evSettings instanceof org.geogebra.common.main.settings.EuclidianSettings3D) {
+                    org.geogebra.common.main.settings.EuclidianSettings3D ev3d = 
+                        (org.geogebra.common.main.settings.EuclidianSettings3D) evSettings;
+                    double zs = zscale != null ? zscale : s;
+                    ev3d.setXscale(s);
+                    ev3d.setYscale(ys);
+                    ev3d.setZscale(zs);
+                } else {
+                    evSettings.setXscale(s);
+                    evSettings.setYscale(ys);
+                }
+            } else if (xMin != null && xMax != null && yMin != null && yMax != null) {
+                // Min/Max based coordinate system
+                org.geogebra.common.kernel.geos.GeoNumeric xMinObj = new org.geogebra.common.kernel.geos.GeoNumeric(kernel.getConstruction(), xMin);
+                org.geogebra.common.kernel.geos.GeoNumeric xMaxObj = new org.geogebra.common.kernel.geos.GeoNumeric(kernel.getConstruction(), xMax);
+                org.geogebra.common.kernel.geos.GeoNumeric yMinObj = new org.geogebra.common.kernel.geos.GeoNumeric(kernel.getConstruction(), yMin);
+                org.geogebra.common.kernel.geos.GeoNumeric yMaxObj = new org.geogebra.common.kernel.geos.GeoNumeric(kernel.getConstruction(), yMax);
+                evSettings.setXminObject(xMinObj, false);
+                evSettings.setXmaxObject(xMaxObj, false);
+                evSettings.setYminObject(yMinObj, false);
+                evSettings.setYmaxObject(yMaxObj, true);
+                if (is3D && evSettings instanceof org.geogebra.common.main.settings.EuclidianSettings3D) {
+                    org.geogebra.common.main.settings.EuclidianSettings3D ev3d = 
+                        (org.geogebra.common.main.settings.EuclidianSettings3D) evSettings;
+                    if (zMin != null && zMax != null) {
+                        org.geogebra.common.kernel.geos.GeoNumeric zMinObj = new org.geogebra.common.kernel.geos.GeoNumeric(kernel.getConstruction(), zMin);
+                        org.geogebra.common.kernel.geos.GeoNumeric zMaxObj = new org.geogebra.common.kernel.geos.GeoNumeric(kernel.getConstruction(), zMax);
+                        ev3d.setZminObject(zMinObj, false);
+                        ev3d.setZmaxObject(zMaxObj, true);
+                    }
+                    if (xAngle != null && zAngle != null) {
+                        ev3d.setRotXYinDegrees(zAngle, xAngle);
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * GridDist property: gridDist: x=1 y=1 [theta=30];
+ */
+void gpadEvGridDistProperty(org.geogebra.common.main.settings.EuclidianSettings evSettings) :
+{
+    Double distX = null, distY = null, distTheta = null;
+    Token valToken;
+}
+{
+    <EV_gridDist>
+    <EV_COLON>
+    (
+        (
+            <EV_GD_x> <EV_EQUAL>
+            valToken = <EV_FLOAT> { distX = Double.parseDouble(valToken.image); }
+            |
+            <EV_GD_y> <EV_EQUAL>
+            valToken = <EV_FLOAT> { distY = Double.parseDouble(valToken.image); }
+            |
+            <EV_GD_theta> <EV_EQUAL>
+            valToken = <EV_FLOAT> { distTheta = Double.parseDouble(valToken.image); }
+        )
+    )+
+    {
+        if (evSettings != null && distX != null && distY != null) {
+            double[] dists = new double[3];
+            dists[0] = distX;
+            dists[1] = distY;
+            dists[2] = distTheta != null ? distTheta : Math.PI / 6;
+            evSettings.setGridDistances(dists);
+        }
+    }
+}
+
+/**
+ * Axis property: xAxis/yAxis/zAxis: [show|~show] [label="str"] ...
+ */
+void gpadEvAxisProperty(org.geogebra.common.main.settings.EuclidianSettings evSettings, boolean is3D) :
+{
+    int axisId = 0;
+    boolean show = true;
+    String label = null;
+    String unitLabel = null;
+    boolean showNumbers = true;
+    Double tickDist = null;
+    Integer tickStyle = null;
+    Double axisCross = null;
+    boolean crossEdge = false;
+    boolean positive = false;
+    boolean selectable = true;
+    boolean piUnit = false;
+    Token strToken;
+    Token valToken;
+}
+{
+    (
+        <EV_xAxis> { axisId = 0; }
+        | <EV_yAxis> { axisId = 1; }
+        | <EV_zAxis> { axisId = 2; }
+    )
+    <EV_COLON>
+    (
+        (
+            <EV_AXIS_show> { show = true; }
+            |
+            LOOKAHEAD(2) <EV_TILDE> <EV_AXIS_show> { show = false; }
+            |
+            <EV_AXIS_label> <EV_EQUAL>
+            strToken = <EV_STRING> { label = strToken.image.substring(1, strToken.image.length() - 1); }
+            |
+            <EV_AXIS_unit> <EV_EQUAL>
+            strToken = <EV_STRING> { unitLabel = strToken.image.substring(1, strToken.image.length() - 1); }
+            |
+            <EV_AXIS_numbers> { showNumbers = true; }
+            |
+            LOOKAHEAD(2) <EV_TILDE> <EV_AXIS_numbers> { showNumbers = false; }
+            |
+            <EV_AXIS_tickDist> <EV_EQUAL>
+            valToken = <EV_FLOAT> { tickDist = Double.parseDouble(valToken.image); }
+            |
+            <EV_AXIS_tickStyle> <EV_EQUAL>
+            (
+                <EV_TICK_majorMinor> { tickStyle = 0; }
+                | <EV_TICK_major> { tickStyle = 1; }
+                | <EV_GRID_none> { tickStyle = 2; }
+            )
+            |
+            <EV_AXIS_cross> <EV_EQUAL>
+            valToken = <EV_FLOAT> { axisCross = Double.parseDouble(valToken.image); }
+            |
+            <EV_AXIS_crossEdge> { crossEdge = true; }
+            |
+            LOOKAHEAD(2) <EV_TILDE> <EV_AXIS_crossEdge> { crossEdge = false; }
+            |
+            <EV_AXIS_positive> { positive = true; }
+            |
+            LOOKAHEAD(2) <EV_TILDE> <EV_AXIS_positive> { positive = false; }
+            |
+            <EV_AXIS_selectable> { selectable = true; }
+            |
+            LOOKAHEAD(2) <EV_TILDE> <EV_AXIS_selectable> { selectable = false; }
+            |
+            <EV_AXIS_piUnit> { piUnit = true; }
+            |
+            LOOKAHEAD(2) <EV_TILDE> <EV_AXIS_piUnit> { piUnit = false; }
+        )
+    )+
+    {
+        if (evSettings != null) {
+            evSettings.setShowAxis(axisId, show);
+            if (label != null) evSettings.setAxisLabel(axisId, label);
+            if (piUnit) {
+                evSettings.setAxisUnitLabel(axisId, org.geogebra.editor.share.util.Unicode.PI_STRING);
+            } else if (unitLabel != null) {
+                evSettings.setAxisUnitLabel(axisId, unitLabel);
+            }
+            evSettings.setShowAxisNumbers(axisId, showNumbers);
+            if (tickDist != null) {
+                org.geogebra.common.kernel.geos.GeoNumeric distNum = 
+                    new org.geogebra.common.kernel.geos.GeoNumeric(kernel.getConstruction(), tickDist);
+                evSettings.setAxesNumberingDistance(distNum, axisId);
+            }
+            if (tickStyle != null) evSettings.setAxisTickStyle(axisId, tickStyle);
+            if (crossEdge) {
+                evSettings.setAxisCross(axisId, 0);
+                evSettings.setDrawBorderAxes(axisId, true);
+            } else if (axisCross != null) {
+                evSettings.setAxisCross(axisId, axisCross);
+                evSettings.setDrawBorderAxes(axisId, false);
+            }
+            evSettings.setPositiveAxis(axisId, positive);
+            evSettings.setSelectionAllowed(axisId, selectable);
+        }
+    }
+}
+
+/**
+ * Boolean properties: axes, grid, gridBold, mouseCoords, plane, light, yAxisUp, coloredAxes
+ */
+void gpadEvBooleanProperty(org.geogebra.common.main.settings.EuclidianSettings evSettings, boolean is3D) :
+{
+    String propName;
+    boolean value = true;
+}
+{
+    (
+        (<EV_TILDE> { value = false; })?
+        (
+            <EV_axes> { propName = "axes"; }
+            | <EV_grid> { propName = "grid"; }
+            | <EV_gridBold> { propName = "gridBold"; }
+            | <EV_mouseCoords> { propName = "mouseCoords"; }
+            | <EV_plane> { propName = "plane"; }
+            | <EV_light> { propName = "light"; }
+            | <EV_yAxisUp> { propName = "yAxisUp"; }
+            | <EV_coloredAxes> { propName = "coloredAxes"; }
+        )
+    )
+    {
+        if (evSettings != null) {
+            if ("axes".equals(propName)) {
+                evSettings.setShowAxes(value, value);
+            } else if ("grid".equals(propName)) {
+                evSettings.showGrid(value);
+            } else if ("gridBold".equals(propName)) {
+                evSettings.setGridIsBold(value);
+            } else if ("mouseCoords".equals(propName)) {
+                evSettings.setAllowShowMouseCoords(value);
+            } else if (is3D && evSettings instanceof org.geogebra.common.main.settings.EuclidianSettings3D) {
+                org.geogebra.common.main.settings.EuclidianSettings3D ev3d = 
+                    (org.geogebra.common.main.settings.EuclidianSettings3D) evSettings;
+                if ("plane".equals(propName)) {
+                    ev3d.setShowPlate(value);
+                } else if ("light".equals(propName)) {
+                    ev3d.setUseLight(value);
+                } else if ("yAxisUp".equals(propName)) {
+                    ev3d.setYAxisVertical(value);
+                } else if ("coloredAxes".equals(propName)) {
+                    ev3d.setHasColoredAxes(value);
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Enum properties: gridType, pointCapturing, rightAngleStyle, toolTips
+ */
+void gpadEvEnumProperty(org.geogebra.common.main.settings.EuclidianSettings evSettings, boolean is3D) :
+{
+    String propName;
+    int value = 0;
+}
+{
+    (
+        <EV_gridType> { propName = "gridType"; }
+        <EV_COLON>
+        (
+            <EV_GRID_none> { value = -1; }
+            | <EV_GRID_cartesian> { value = 0; }
+            | <EV_GRID_isometric> { value = 1; }
+            | <EV_GRID_polar> { value = 2; }
+            | <EV_GRID_cartesianSub> { value = 3; }
+            | <EV_GRID_dots> { value = 4; }
+        )
+        |
+        <EV_pointCapturing> { propName = "pointCapturing"; }
+        <EV_COLON>
+        (
+            <EV_CAPTURE_off> { value = 0; }
+            | <EV_CAPTURE_snap> { value = 1; }
+            | <EV_CAPTURE_fixed> { value = 2; }
+            | <EV_CAPTURE_auto> { value = 3; }
+        )
+        |
+        <EV_rightAngleStyle> { propName = "rightAngleStyle"; }
+        <EV_COLON>
+        (
+            <EV_GRID_none> { value = 0; }
+            | <EV_RA_square> { value = 1; }
+            | <EV_RA_dot> { value = 2; }
+            | <EV_RA_L> { value = 3; }
+        )
+        |
+        <EV_toolTips> { propName = "toolTips"; }
+        <EV_COLON>
+        (
+            <EV_CAPTURE_auto> { value = 0; }
+            | <EV_TIPS_on> { value = 1; }
+            | <EV_CAPTURE_off> { value = 2; }
+        )
+    )
+    {
+        if (evSettings != null) {
+            if ("gridType".equals(propName)) {
+                evSettings.setGridType(value);
+            } else if ("pointCapturing".equals(propName)) {
+                evSettings.setPointCapturing(value);
+            } else if ("rightAngleStyle".equals(propName)) {
+                kernel.getApplication().setRightAngleStyle(value);
+            } else if ("toolTips".equals(propName)) {
+                evSettings.setAllowToolTips(value);
+            }
+        }
+    }
+}
+
+/**
+ * Float properties: lockedAxesRatio, scale, xscale, yscale, zscale
+ */
+void gpadEvFloatProperty(org.geogebra.common.main.settings.EuclidianSettings evSettings, boolean is3D) :
+{
+    String propName;
+    Token valToken;
+    double value;
+}
+{
+    (
+        <EV_lockedAxesRatio> { propName = "lockedAxesRatio"; }
+        | <EV_scale> { propName = "scale"; }
+        | <EV_xscale> { propName = "xscale"; }
+        | <EV_yscale> { propName = "yscale"; }
+        | <EV_zscale> { propName = "zscale"; }
+    )
+    <EV_COLON>
+    valToken = <EV_FLOAT>
+    {
+        value = Double.parseDouble(valToken.image);
+        if (evSettings != null) {
+            if ("lockedAxesRatio".equals(propName)) {
+                evSettings.setLockedAxesRatio(value);
+            } else if ("scale".equals(propName) || "xscale".equals(propName)) {
+                evSettings.setXscale(value);
+            } else if ("yscale".equals(propName)) {
+                evSettings.setYscale(value);
+            } else if ("zscale".equals(propName) && is3D && 
+                       evSettings instanceof org.geogebra.common.main.settings.EuclidianSettings3D) {
+                ((org.geogebra.common.main.settings.EuclidianSettings3D) evSettings).setZscale(value);
+            }
+        }
+    }
+}
+
+/**
+ * Clipping property (3D only): clipping: [use|~use] [show|~show] [size=int];
+ */
+void gpadEvClippingProperty(org.geogebra.common.main.settings.EuclidianSettings evSettings, boolean is3D) :
+{
+    boolean useClipping = true;
+    boolean showClipping = false;
+    Integer size = null;
+    Token valToken;
+}
+{
+    <EV_clipping>
+    <EV_COLON>
+    (
+        (
+            <EV_CLIP_use> { useClipping = true; }
+            | LOOKAHEAD(2) <EV_TILDE> <EV_CLIP_use> { useClipping = false; }
+            | <EV_AXIS_show> { showClipping = true; }
+            | LOOKAHEAD(2) <EV_TILDE> <EV_AXIS_show> { showClipping = false; }
+            | <EV_size> <EV_EQUAL>
+              valToken = <EV_FLOAT> { size = (int) Double.parseDouble(valToken.image); }
+        )
+    )+
+    {
+        if (is3D && evSettings instanceof org.geogebra.common.main.settings.EuclidianSettings3D) {
+            org.geogebra.common.main.settings.EuclidianSettings3D ev3d = 
+                (org.geogebra.common.main.settings.EuclidianSettings3D) evSettings;
+            ev3d.setUseClippingCube(useClipping);
+            ev3d.setShowClippingCube(showClipping);
+            if (size != null) ev3d.setClippingReduction(size);
+        }
+    }
+}
+
+/**
+ * Projection property (3D only): projection: type [distance=int] [separation=int] [angle=float] [factor=float] [grayScaled] [shutDownGreen];
+ */
+void gpadEvProjectionProperty(org.geogebra.common.main.settings.EuclidianSettings evSettings, boolean is3D) :
+{
+    int projType = 0;
+    Integer distance = null;
+    Integer separation = null;
+    Double angle = null;
+    Double factor = null;
+    boolean grayScaled = true;
+    boolean shutDownGreen = false;
+    Token valToken;
+}
+{
+    <EV_projection>
+    <EV_COLON>
+    (
+        (
+            <EV_PROJ_orthographic> { projType = 0; }
+            | <EV_PROJ_perspective> { projType = 1; }
+            | <EV_PROJ_glasses> { projType = 2; }
+            | <EV_PROJ_oblique> { projType = 3; }
+            | <EV_PROJ_distance> <EV_EQUAL>
+              valToken = <EV_FLOAT> { distance = (int) Double.parseDouble(valToken.image); }
+            | <EV_PROJ_separation> <EV_EQUAL>
+              valToken = <EV_FLOAT> { separation = (int) Double.parseDouble(valToken.image); }
+            | <EV_PROJ_angle> <EV_EQUAL>
+              valToken = <EV_FLOAT> { angle = Double.parseDouble(valToken.image); }
+            | <EV_PROJ_factor> <EV_EQUAL>
+              valToken = <EV_FLOAT> { factor = Double.parseDouble(valToken.image); }
+            | <EV_PROJ_grayScaled> { grayScaled = true; }
+            | LOOKAHEAD(2) <EV_TILDE> <EV_PROJ_grayScaled> { grayScaled = false; }
+            | <EV_PROJ_shutDownGreen> { shutDownGreen = true; }
+            | LOOKAHEAD(2) <EV_TILDE> <EV_PROJ_shutDownGreen> { shutDownGreen = false; }
+        )
+    )+
+    {
+        if (is3D && evSettings instanceof org.geogebra.common.main.settings.EuclidianSettings3D) {
+            org.geogebra.common.main.settings.EuclidianSettings3D ev3d = 
+                (org.geogebra.common.main.settings.EuclidianSettings3D) evSettings;
+            ev3d.setProjection(projType);
+            if (distance != null) ev3d.setProjectionPerspectiveEyeDistance(distance);
+            if (separation != null) ev3d.setEyeSep(separation);
+            if (angle != null) ev3d.setProjectionObliqueAngle(angle);
+            if (factor != null) ev3d.setProjectionObliqueFactor(factor);
+            ev3d.setGlassesGrayScaled(grayScaled);
+            ev3d.setGlassesShutDownGreen(shutDownGreen);
+        }
+    }
+}
+
+/**
+ * Line style property: lineStyle/axesStyle: full|dashed|dotted...
+ */
+void gpadEvLineStyleProperty(org.geogebra.common.main.settings.EuclidianSettings evSettings) :
+{
+    String propName;
+    int value = 0;
+}
+{
+    (
+        <EV_lineStyle> { propName = "lineStyle"; }
+        <EV_COLON>
+        (
+            <EV_LS_full> { value = org.geogebra.common.plugin.EuclidianStyleConstants.LINE_TYPE_FULL; }
+            | <EV_LS_dashedShort> { value = org.geogebra.common.plugin.EuclidianStyleConstants.LINE_TYPE_DASHED_SHORT; }
+            | <EV_LS_dashedLong> { value = org.geogebra.common.plugin.EuclidianStyleConstants.LINE_TYPE_DASHED_LONG; }
+            | <EV_LS_dotted> { value = org.geogebra.common.plugin.EuclidianStyleConstants.LINE_TYPE_DOTTED; }
+            | <EV_LS_dashedDotted> { value = org.geogebra.common.plugin.EuclidianStyleConstants.LINE_TYPE_DASHED_DOTTED; }
+        )
+        |
+        <EV_axesStyle> { propName = "axesStyle"; }
+        <EV_COLON>
+        (
+            <EV_LS_full> { value = org.geogebra.common.plugin.EuclidianStyleConstants.AXES_LINE_TYPE_FULL; }
+            | <EV_AS_arrow> { value = org.geogebra.common.plugin.EuclidianStyleConstants.AXES_LINE_TYPE_ARROW; }
+            | <EV_AS_arrowFilled> { value = org.geogebra.common.plugin.EuclidianStyleConstants.AXES_LINE_TYPE_ARROW_FILLED; }
+            | <EV_AS_twoArrows> { value = org.geogebra.common.plugin.EuclidianStyleConstants.AXES_LINE_TYPE_TWO_ARROWS; }
+            | <EV_AS_twoArrowsFilled> { value = org.geogebra.common.plugin.EuclidianStyleConstants.AXES_LINE_TYPE_TWO_ARROWS_FILLED; }
+            | <EV_FS_bold> { value = org.geogebra.common.plugin.EuclidianStyleConstants.AXES_LINE_TYPE_FULL_BOLD; }
+            | <EV_AS_arrowBold> { value = org.geogebra.common.plugin.EuclidianStyleConstants.AXES_LINE_TYPE_ARROW_BOLD; }
+            | <EV_AS_arrowFilledBold> { value = org.geogebra.common.plugin.EuclidianStyleConstants.AXES_LINE_TYPE_ARROW_FILLED_BOLD; }
+            | <EV_AS_twoArrowsBold> { value = org.geogebra.common.plugin.EuclidianStyleConstants.AXES_LINE_TYPE_TWO_ARROWS_BOLD; }
+            | <EV_AS_twoArrowsFilledBold> { value = org.geogebra.common.plugin.EuclidianStyleConstants.AXES_LINE_TYPE_TWO_ARROWS_FILLED_BOLD; }
+        )
+    )
+    {
+        if (evSettings != null) {
+            if ("lineStyle".equals(propName)) {
+                evSettings.setGridLineStyle(value);
+            } else if ("axesStyle".equals(propName)) {
+                evSettings.setAxesLineStyle(value);
+            }
+        }
+    }
+}
+
+/**
+ * Label style property: labelStyle: plain|bold|italic|boldItalic
+ */
+void gpadEvLabelStyleProperty(org.geogebra.common.main.settings.EuclidianSettings evSettings) :
+{
+    int value = 0;
+}
+{
+    <EV_labelStyle>
+    <EV_COLON>
+    (
+        <EV_FS_plain> { value = org.geogebra.common.awt.GFont.PLAIN; }
+        | <EV_FS_bold> { value = org.geogebra.common.awt.GFont.BOLD; }
+        | <EV_FS_italic> { value = org.geogebra.common.awt.GFont.ITALIC; }
+        | <EV_FS_boldItalic> { value = org.geogebra.common.awt.GFont.BOLD + org.geogebra.common.awt.GFont.ITALIC; }
+    )
+    {
+        if (evSettings != null) {
+            evSettings.setAxisFontStyle(value);
+        }
+    }
+}
+
+/**
+ * Ruler type property: rulerType: none|ruler|squareSmall|squareBig...
+ */
+void gpadEvRulerTypeProperty(org.geogebra.common.main.settings.EuclidianSettings evSettings) :
+{
+    int value = 0;
+    Token colorToken = null;
+}
+{
+    (
+        <EV_rulerType>
+        <EV_COLON>
+        (
+            <EV_GRID_none> { value = 0; }
+            | <EV_RT_ruler> { value = 1; }
+            | <EV_RT_squareSmall> { value = 2; }
+            | <EV_RT_squareBig> { value = 3; }
+            | <EV_RT_elementary12> { value = 4; }
+            | <EV_RT_elementary12House> { value = 5; }
+            | <EV_RT_elementary34> { value = 6; }
+            | <EV_RT_music> { value = 7; }
+            | <EV_RT_svg> { value = 8; }
+            | <EV_RT_elementary12Colored> { value = 9; }
+            | <EV_GRID_isometric> { value = 10; }
+            | <EV_GRID_polar> { value = 11; }
+            | <EV_GRID_dots> { value = 12; }
+        )
+        {
+            if (evSettings != null) {
+                evSettings.setRulerType(value);
+            }
+        }
+    )
+    |
+    (
+        <EV_rulerColor>
+        <EV_COLON>
+        colorToken = <EV_HEX_COLOR>
+        {
+            if (evSettings != null) {
+                org.geogebra.common.awt.GColor color = parseEvHexColor(colorToken.image);
+                if (color != null) {
+                    evSettings.setBgRulerColor(color);
+                }
+            }
+        }
+    )
+}
+
+/**
+ * Pen tools property: penTools: { pen { color: #xxx; thickness: n; opacity: n; } highlighter { ... } eraser { ... } }
+ */
+void gpadEvPenToolsProperty() throws GpadParseException :
+{
+    org.geogebra.common.main.settings.PenToolsSettings penSettings = null;
+    Token colorToken;
+    Token valToken;
+}
+{
+    <EV_penTools>
+    <EV_COLON>
+    {
+        penSettings = kernel.getApplication().getSettings().getPenTools();
+    }
+    <LBRACE>
+    (
+        (
+            <EV_pen>
+            <LBRACE>
+            (
+                (
+                    <EV_color> <EV_COLON>
+                    colorToken = <EV_HEX_COLOR>
+                    {
+                        if (penSettings != null) {
+                            org.geogebra.common.awt.GColor color = parseEvHexColor(colorToken.image);
+                            if (color != null) {
+                                penSettings.setLastSelectedPenColor(color);
+                            }
+                        }
+                    }
+                    (<POLAR_SEPARATOR>)?
+                    |
+                    <EV_thickness> <EV_COLON>
+                    valToken = <EV_FLOAT>
+                    {
+                        if (penSettings != null) {
+                            penSettings.setLastPenThickness((int) Double.parseDouble(valToken.image));
+                        }
+                    }
+                    (<POLAR_SEPARATOR>)?
+                    |
+                    <EV_opacity> <EV_COLON>
+                    valToken = <EV_FLOAT>
+                    {
+                        if (penSettings != null) {
+                            penSettings.setLastPenOpacity((int) Double.parseDouble(valToken.image));
+                        }
+                    }
+                    (<POLAR_SEPARATOR>)?
+                )
+            )*
+            <RBRACE>
+        )
+        |
+        (
+            <EV_highlighter>
+            <LBRACE>
+            (
+                (
+                    <EV_color> <EV_COLON>
+                    colorToken = <EV_HEX_COLOR>
+                    {
+                        if (penSettings != null) {
+                            org.geogebra.common.awt.GColor color = parseEvHexColor(colorToken.image);
+                            if (color != null) {
+                                penSettings.setLastSelectedHighlighterColor(color);
+                            }
+                        }
+                    }
+                    (<POLAR_SEPARATOR>)?
+                    |
+                    <EV_thickness> <EV_COLON>
+                    valToken = <EV_FLOAT>
+                    {
+                        if (penSettings != null) {
+                            penSettings.setLastHighlighterThickness((int) Double.parseDouble(valToken.image));
+                        }
+                    }
+                    (<POLAR_SEPARATOR>)?
+                )
+            )*
+            <RBRACE>
+        )
+        |
+        (
+            <EV_eraser>
+            <LBRACE>
+            (
+                (
+                    <EV_size> <EV_COLON>
+                    valToken = <EV_FLOAT>
+                    {
+                        if (penSettings != null) {
+                            penSettings.setDeleteToolSize((int) Double.parseDouble(valToken.image));
+                        }
+                    }
+                    (<POLAR_SEPARATOR>)?
+                )
+            )*
+            <RBRACE>
+        )
+    )*
+    <RBRACE>
 }

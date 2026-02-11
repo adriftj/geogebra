@@ -58,6 +58,15 @@ public class GgbToGpadConverter {
 	public String toGpad() {
 		StringBuilder sb = new StringBuilder();
 		
+		// Convert EuclidianSettings to @@env statement
+		if (construction.getKernel() != null && construction.getKernel().getApplication() != null) {
+			String envContent = EuclidianSettingsToGpadConverter.convert(
+				construction.getKernel().getApplication());
+			if (envContent != null) {
+				gpadGenerator.setEnvContent(envContent);
+			}
+		}
+		
 		// Convert all macros first
 		convertMacros(sb);
 		

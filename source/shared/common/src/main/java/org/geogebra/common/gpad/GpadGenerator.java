@@ -24,6 +24,7 @@ public class GpadGenerator {
 	private int styleSheetCounter = 0;
 	final boolean mergeStylesheets; // Package-private for access from XMLToGpadConverter
 	private final boolean inMacroConstruction; // Whether this is for macro construction (needs indentation)
+	private String envContent; // @@env statement content
 	
 	/**
 	 * Creates a new GpadGenerator.
@@ -91,12 +92,34 @@ public class GpadGenerator {
 	}
 	
 	/**
+	 * Sets the @@env statement content.
+	 * 
+	 * @param content the @@env content to output
+	 */
+	public void setEnvContent(String content) {
+		this.envContent = content;
+	}
+	
+	/**
 	 * Main entry point: generates Gpad output from collected items.
 	 * Performs dependency detection, topological sorting, and output generation.
 	 * 
 	 * @param sb string builder to append output to
 	 */
 	public void generate(StringBuilder sb) {
+		// Output @@env content first if present
+		if (envContent != null && !envContent.isEmpty()) {
+			if (inMacroConstruction) {
+				// Indent each line for macro construction
+				String[] lines = envContent.split("\n");
+				for (String line : lines) {
+					sb.append("    ").append(line).append("\n");
+				}
+			} else {
+				sb.append(envContent);
+			}
+		}
+		
 		// Ensure allLabels contains all labels from collected items
 		// (in case some labels were not added during parsing)
 		for (CollectedItem item : collectedItems) {
