@@ -845,6 +845,20 @@ public class Macro {
 	}
 
 	/**
+	 * @return the input labels of this macro
+	 */
+	public String[] getMacroInputLabels() {
+		return macroInputLabels;
+	}
+
+	/**
+	 * @return the output labels of this macro
+	 */
+	public String[] getMacroOutputLabels() {
+		return macroOutputLabels;
+	}
+
+	/**
 	 * @return to which view's toolbar this belongs
 	 */
 	public Integer getViewId() {

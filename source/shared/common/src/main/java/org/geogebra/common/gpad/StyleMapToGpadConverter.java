@@ -63,6 +63,37 @@ public class StyleMapToGpadConverter {
 	}
 
 	/**
+	 * Extracts show.object and show.label from the style map's "show" entry,
+	 * removing them from the attrs. Returns [showObject, showLabel] as booleans.
+	 * If "show" is absent or object/label are absent, defaults to true.
+	 * If the "show" entry becomes empty after extraction, removes it from the map.
+	 *
+	 * @param styleMap style map (may be modified)
+	 * @return boolean[2]: [0]=showObject, [1]=showLabel
+	 */
+	public static boolean[] extractShowVisibility(Map<String, LinkedHashMap<String, String>> styleMap) {
+		boolean showObject = true;
+		boolean showLabel = true;
+		if (styleMap == null)
+			return new boolean[]{showObject, showLabel};
+		LinkedHashMap<String, String> showAttrs = styleMap.get("show");
+		if (showAttrs == null)
+			return new boolean[]{showObject, showLabel};
+
+		String objectVal = showAttrs.remove("object");
+		String labelVal = showAttrs.remove("label");
+		if ("false".equals(objectVal))
+			showObject = false;
+		if ("false".equals(labelVal))
+			showLabel = false;
+
+		if (showAttrs.isEmpty())
+			styleMap.remove("show");
+
+		return new boolean[]{showObject, showLabel};
+	}
+
+	/**
 	 * Builds the Gpad style sheet content part "{ ... }" from a style map and appends it to the given StringBuilder.
 	 * This is the common logic used by both convert() and convertToContentOnly().
 	 * 
@@ -84,18 +115,17 @@ public class StyleMapToGpadConverter {
 			LinkedHashMap<String, String> attrs = entry.getValue();
 			String gpadProperty = null;
 
-			// Special handling for checkbox: if fixed="true", output both "checkbox;" and "fixed;"
+			// checkbox has its own fixed sub-property, independent from object-level fixed.
+			// Syntax: checkbox | checkbox: fixed | checkbox: ~fixed
 			if ("checkbox".equals(tagName)) {
 				String fixed = attrs != null ? attrs.get("fixed") : null;
-				// If fixed="false" or not present, only output "checkbox;" (fixed is default false, so omitted)
-				gpadProperty = "true".equals(fixed)? "checkbox; fixed": "checkbox";
+				if ("true".equals(fixed))
+					gpadProperty = "checkbox: fixed";
+				else
+					gpadProperty = "checkbox";
 			} else if ("value".equals(tagName)) {
-				// value: convert based on object type (e.g., "random" for Numeric)
-				// It is a special boolean property but won't be processed by convertSimplePropertyToGpad
 				gpadProperty = convertValueElement(attrs, objectType);
 			} else {
-				// Special handling for script elements: convert each attribute to separate gpad property
-				// This may output multiple properties (e.g., "ggbClick: ...; ggbUpdate: ...")
 				if ("ggbscript".equals(tagName) || "javascript".equals(tagName))
 					gpadProperty = convertScriptElementToGpad(tagName, attrs);
 				else
@@ -128,7 +158,7 @@ public class StyleMapToGpadConverter {
 			return null;
 
 		// For Numeric type: convert random attribute to random style
-		if ("Numeric".equals(objectType)) {
+		if ("numeric".equalsIgnoreCase(objectType)) {
 			if ("true".equals(attrs.get("random")))
 				return "random";
 		}
@@ -140,7 +170,7 @@ public class StyleMapToGpadConverter {
 	/**
 	 * Converts a single property (XML tag + attributes) to Gpad format.
 	 * 
-	 * @param tagName XML tag name (e.g., "lineStyle", "objColor")
+	 * @param tagName XML tag name (e.g., "lineStyle", "objColor"/"color")
 	 * @param attrs attribute map
 	 * @param objectType object type name (e.g., "Button", "Numeric"), can be null
 	 * @return Gpad property string (e.g., "lineStyle: thickness=4 opacity=178")
@@ -168,11 +198,10 @@ public class StyleMapToGpadConverter {
 			convertedValue = convertSpreadsheetTrace(attrs);
 			break;
 		case "lineStyle":
-			// lineStyle: dashedlong thickness=5 hidden opacity=128 ~arrow
 			convertedValue = convertLineStyle(attrs);
 			break;
 		case "objColor":
-			// objColor: #rrggbbaa | rgb(...) | hsv(...) | hsl(...) [fill=...] [angle=...] [dist=...] [image=...] [symbol=...] [inverse|~inverse]
+			// color: #rrggbbaa | rgb(...) | hsv(...) | hsl(...) [fill=...] [angle=...] [dist=...] [image=...] [symbol=...] [inverse|~inverse]
 			convertedValue = convertObjColor(attrs);
 			break;
 		case "barTag":
@@ -181,8 +210,8 @@ public class StyleMapToGpadConverter {
 			break;
 		case "bgColor":
 		case "borderColor":
-			// bgColor/borderColor: #rrggbb or #rrggbbaa (if alpha is not default)
-			convertedValue = convertColorToHex(attrs);
+			// bgColor/borderColor alpha is 0-255 integer (unlike objColor which is 0.0-1.0)
+			convertedValue = convertColorToHexIntAlpha(attrs);
 			break;
 		case "absoluteScreenLocation": // @screen: 100 200
 		case "labelOffset": // labelOffset: 28 75
@@ -208,11 +237,11 @@ public class StyleMapToGpadConverter {
 			}
 			break;
 		case "boundingBox":
-			// boundingBox: width=100 height=200
+			// boundingBox: <width> <height>
 			convertedValue = convertBoundingBox(attrs);
 			break;
 		case "contentSize":
-			// contentSize: width=100.5 height=200.3
+			// contentSize: <width> <height>
 			convertedValue = convertContentSize(attrs);
 			break;
 		case "cropBox":
@@ -237,16 +266,17 @@ public class StyleMapToGpadConverter {
 			convertedValue = convertFont(attrs);
 			break;
 		case "show":
-			// show: object ~label ev1 ~ev2 plane ~3d;
-			convertedValue = convertShow(attrs);
-			break;
+			// ev: ~1 2 3d ~plane;
+			convertedValue = convertEv(attrs);
+			if (convertedValue == null || convertedValue.isEmpty())
+				return null;
+			return "ev: " + convertedValue;
 		case "tempUserInput":
 			// tempUserInput: eval="..." display="...";
 			convertedValue = convertTempUserInput(attrs);
 			break;
 		}
 
-		// Only add property name prefix if converted value is not null and not empty
 		if (convertedValue == null || convertedValue.isEmpty())
 			return null;
 
@@ -353,7 +383,7 @@ public class StyleMapToGpadConverter {
 
 	/**
 	 * Converts lineStyle XML attributes to Gpad format.
-	 * Syntax: [type] [thickness=value] [hidden[=dashed|show]] [opacity=value] [arrow|~arrow]
+	 * Syntax: [type] [thickness] [hidden[=dashed|show]] [opacity=value] [arrow|~arrow]
 	 * 
 	 * @param attrs
 	 *            lineStyle attributes map
@@ -366,10 +396,9 @@ public class StyleMapToGpadConverter {
 		StringBuilder sb = new StringBuilder();
 		boolean first = true;
 
-		// Convert type (no prefix)
 		String typeValue = attrs.get("type");
-		// default is 0, so only output when different
-		if (typeValue != null && !"0".equals(typeValue)) {
+		String defaultType = GpadStyleDefaults.getDefaultAttrValue("lineStyle", "type");
+		if (typeValue != null && !typeValue.equals(defaultType)) {
 			String typeKey = GpadStyleMaps.LINE_STYLE_TYPE_REVERSE_MAP.get(typeValue);
 			if (typeKey != null) {
 				if (!first)
@@ -379,13 +408,12 @@ public class StyleMapToGpadConverter {
 			}
 		}
 
-		// Convert thickness=value
 		String thickness = attrs.get("thickness");
-		// default is 5, so only output when different
-		if (thickness != null && !"5".equals(thickness)) {
+		String defaultThickness = GpadStyleDefaults.getDefaultAttrValue("lineStyle", "thickness");
+		if (thickness != null && !thickness.equals(defaultThickness)) {
 			if (!first)
 				sb.append(" ");
-			sb.append("thickness=").append(thickness);
+			sb.append(thickness);
 			first = false;
 		}
 
@@ -461,17 +489,18 @@ public class StyleMapToGpadConverter {
 				try {
 					alpha = Double.parseDouble(alphaStr);
 				} catch (NumberFormatException e) {
-					// If alpha is not a valid number, default to 1.0
 					alpha = 1.0;
 				}
 
-				// Only append alpha if it's not the default value (1.0 = ff)
-				// Use a small epsilon to handle floating point precision issues
-				if (Math.abs(alpha - 1.0) > 1e-6) {
-					// Convert alpha from 0.0-1.0 to 0-255
+				if (alpha < 0) {
+					// Negative alpha is a sentinel (e.g., -1 for lists).
+					sb.append("00");
+				} else {
 					int alphaInt = (int) Math.round(alpha * 255);
 					alphaInt = Math.max(0, Math.min(255, alphaInt));
-					sb.append(toHex2Digits(alphaInt));
+					if (alphaInt != 255) {
+						sb.append(toHex2Digits(alphaInt));
+					}
 				}
 			}
 
@@ -505,11 +534,55 @@ public class StyleMapToGpadConverter {
 	}
 
 	/**
-	 * Converts objColor XML attributes to Gpad format.
+	 * Converts color attributes with integer alpha (0-255) to hex format.
+	 * Used for bgColor/borderColor where alpha is stored as integer 0-255.
+	 */
+	private static String convertColorToHexIntAlpha(LinkedHashMap<String, String> attrs) {
+		if (attrs == null || attrs.isEmpty())
+			return "";
+
+		String rStr = attrs.get("r");
+		String gStr = attrs.get("g");
+		String bStr = attrs.get("b");
+		String alphaStr = attrs.get("alpha");
+
+		if (rStr == null && gStr == null && bStr == null && alphaStr == null)
+			return "";
+
+		try {
+			int r = rStr == null ? 0 : Integer.parseInt(rStr);
+			int g = gStr == null ? 0 : Integer.parseInt(gStr);
+			int b = bStr == null ? 0 : Integer.parseInt(bStr);
+
+			r = Math.max(0, Math.min(255, r));
+			g = Math.max(0, Math.min(255, g));
+			b = Math.max(0, Math.min(255, b));
+
+			StringBuilder sb = new StringBuilder("#");
+			sb.append(toHex2Digits(r));
+			sb.append(toHex2Digits(g));
+			sb.append(toHex2Digits(b));
+
+			if (alphaStr != null) {
+				int alphaInt = Integer.parseInt(alphaStr);
+				alphaInt = Math.max(0, Math.min(255, alphaInt));
+				if (alphaInt != 255) {
+					sb.append(toHex2Digits(alphaInt));
+				}
+			}
+
+			return sb.toString();
+		} catch (NumberFormatException e) {
+			return "#000000";
+		}
+	}
+
+	/**
+	 * Converts objColor XML attributes to Gpad "color" format.
 	 * Syntax: [#rrggbbaa | rgb(...) | hsv(...) | hsl(...)] [fill=...] [angle=...] [dist=...] [image=...] [symbol=...] [inverse|~inverse]
 	 * 
 	 * @param attrs objColor attributes map
-	 * @return Gpad objColor string (e.g., "#FF0000" or "rgb(x, y, z) fill=hatch angle=45")
+	 * @return Gpad color string (e.g., "#FF0000" or "rgb(x, y, z) fill=hatch angle=45")
 	 */
 	private static String convertObjColor(LinkedHashMap<String, String> attrs) {
 		if (attrs == null || attrs.isEmpty())
@@ -637,7 +710,7 @@ public class StyleMapToGpadConverter {
 			sb.append("image=");
 			// Image path may contain special characters, so escape if needed
 			if (containsSpecialChars(image))
-				sb.append("\"").append(escapeString(image)).append("\"");
+				sb.append(quoteString(image));
 			else
 				sb.append(image);
 			first = false;
@@ -675,18 +748,50 @@ public class StyleMapToGpadConverter {
 	}
 
 	/**
-	 * Escapes special characters in a string for use in quoted Gpad strings.
-	 * Escapes: backslash, double quote, newline, carriage return.
-	 * Note: tab character (\t) does not need escaping in quoted strings.
-	 * 
-	 * @param str the string to escape
-	 * @return the escaped string
+	 * Quotes a string using "..." and/or `...` delimiters with concatenation.
+	 * Uses a greedy algorithm to minimise the number of segments.
 	 */
-	private static String escapeString(String str) {
-		return str.replace("\\", "\\\\")
-				  .replace("\"", "\\\"")
-				  .replace("\n", "\\n")
-				  .replace("\r", "\\r");
+	static String quoteString(String str) {
+		if (str == null) return "\"\"";
+		if (!str.contains("\""))
+			return "\"" + str + "\"";
+		if (!str.contains("`"))
+			return "`" + str + "`";
+		return splitQuote(str);
+	}
+
+	/**
+	 * Quotes a string for style-sheet GK_STR / GK_SCRIPT property values.
+	 * Uses the same "..." / `...` concatenation scheme as {@link #quoteString}.
+	 */
+	static String quoteStringForStyleSheet(String str) {
+		return quoteString(str);
+	}
+
+	/**
+	 * Splits a string that contains both {@code "} and {@code `} into
+	 * concatenated segments, each wrapped with whichever delimiter allows
+	 * the longest run (greedy, O(n), provably minimum segments).
+	 */
+	private static String splitQuote(String str) {
+		StringBuilder result = new StringBuilder();
+		int i = 0;
+		int len = str.length();
+		while (i < len) {
+			int nextQuote = str.indexOf('"', i);
+			if (nextQuote < 0) nextQuote = len;
+			int nextBacktick = str.indexOf('`', i);
+			if (nextBacktick < 0) nextBacktick = len;
+
+			if (nextQuote >= nextBacktick) {
+				result.append('"').append(str, i, nextQuote).append('"');
+				i = nextQuote;
+			} else {
+				result.append('`').append(str, i, nextBacktick).append('`');
+				i = nextBacktick;
+			}
+		}
+		return result.toString();
 	}
 
 	/**
@@ -704,31 +809,24 @@ public class StyleMapToGpadConverter {
 		// First, check if expression contains special characters that definitely need quotes
 		// These characters cannot appear in unquoted expressions in GK_EXPR_BLOCK
 		if (containsSpecialChars(expr))
-			return "\"" + escapeString(expr) + "\"";
+			return quoteString(expr);
 
-		// No obvious special characters, try to parse the expression using the grammar rules
-		// If it parses successfully and consumes all input, it's a "simple" expression and doesn't need quotes
 		boolean needsQuotes = true;
 		try {
 			Parser parser = new Parser();
 			parser.ReInit(new StringProvider(expr.trim()));
 			parser.token_source.SwitchTo(ParserConstants.GK_EXPR_BLOCK);
 			parser.gpadExpr();
-			// Check if all input was consumed by checking if next token is EOF
-			// getToken(0) returns the current token, getToken(1) returns the next token
 			Token nextToken = parser.getToken(1);
 			needsQuotes = !(nextToken != null && nextToken.kind == ParserConstants.EOF);
-			// if all input consumed, it's a simple expression
 		} catch (Exception e) {
-			// Parsing failed or other exception, expression needs quotes
-			// needsQuotes is already true, no need to set it again
+			// Parsing failed, expression needs quotes
 		}
 
-		if (!needsQuotes) // No special characters, return as-is
+		if (!needsQuotes)
 			return expr;
 
-		// Parsing failed or didn't consume all input, wrap in quotes and escape
-		return "\"" + escapeString(expr) + "\"";
+		return quoteString(expr);
 	}
 
 	/**
@@ -740,60 +838,47 @@ public class StyleMapToGpadConverter {
 	 *         返回空串表示不是简单xml元素，返回null表示省略此样式
 	 */
 	private static String convertSimplePropertyToGpad(String xmlTagName, LinkedHashMap<String, String> attrs) {
-		// 检查是否需要通过名字映射转换（XML 元素名 -> Gpad 属性名）
 		String gpadName = GpadStyleMaps.XML_TO_GPAD_NAME_MAP.get(xmlTagName);
 		if (gpadName == null)
 			gpadName = xmlTagName;
 		
-		// 从 PROPERTY_INFO 获取属性信息（key 是 Gpad 属性名）
-		GpadStyleMaps.PropertyInfo propInfo = GpadStyleMaps.PROPERTY_INFO.get(gpadName);
-		if (propInfo == null) { // 如果找不到，说明不是已知的属性
+		Integer gkType = GpadStyleMaps.PROPERTY_INFO.get(gpadName);
+		if (gkType == null) {
 			return "";
 		}
-
-		Integer gkType = propInfo.type;
-		// 确定 XML 属性名（检查是否有特殊属性名映射）
 		String attrName = GpadStyleMaps.GPAD_TO_XML_ATTR_NAME_MAP.getOrDefault(gpadName, "val");
 
-		// 获取属性值
 		String value = attrs != null ? attrs.get(attrName) : null;
 		
 		if (value == null)
-			return null; // 找不到值，省略
+			return null;
 
-		// 检查是否是默认值，如果是则返回 null 表示省略
-		String defaultValue = propInfo.defaultValue;
+		String defaultValue = GpadStyleMaps.getSimpleDefaultValue(gpadName);
 		if (defaultValue != null) {
-			// 对于数值类型，需要比较数值是否相等
 			if (gkType == GpadStyleMaps.GK_INT || gkType == GpadStyleMaps.GK_FLOAT) {
 				try {
 					if (gkType == GpadStyleMaps.GK_INT) {
-						// 整数比较
 						if (Integer.parseInt(value) == Integer.parseInt(defaultValue))
-							return null; // 默认值，省略
+							return null;
 					} else {
-						// 浮点数比较（包括 NaN 的特殊处理）
 						if ("NaN".equals(defaultValue)) {
-							// 检查 value 是否是 NaN
 							if ("NaN".equals(value))
-								return null; // 默认值 NaN，省略
+								return null;
 							if (Double.isNaN(Double.parseDouble(value)))
-								return null; // 默认值 NaN，省略
+								return null;
 						} else {
 							double val = Double.parseDouble(value);
 							double def = Double.parseDouble(defaultValue);
-							// 使用小的 epsilon 来比较浮点数
 							if (Math.abs(val - def) < 1e-9)
-								return null; // 默认值，省略
+								return null;
 						}
 					}
 				} catch (NumberFormatException e) {
-					// 如果解析失败，继续处理（可能是表达式）
+					// expression, continue
 				}
 			} else {
-				// 字符串类型，直接比较
 				if (value.equals(defaultValue))
-					return null; // 默认值，省略
+					return null;
 			}
 		}
 
@@ -809,39 +894,39 @@ public class StyleMapToGpadConverter {
 		}
 
 		if (gkType == GpadStyleMaps.GK_BOOL) {
-			// For most boolean properties, false value is omitted (default)
-			// But for "fixed", we need to output "~fixed" explicitly for EquationValue objects
-			// to prevent gpad parser from applying isObjectDraggingRestricted() default behavior
 			if ("true".equals(value))
 				return gpadName;
-			else if ("fixed".equals(gpadName) && "false".equals(value))
-				return "~fixed"; // Explicitly output ~fixed for equation/function objects
 			else
-				return ""; // Omit false value for other boolean properties
+				return "";
 		}
 
-		// 现在只能是字符串值，转换为 Gpad 格式（如果有特殊字符，需要用引号括起来并转义）
-		// Special handling for javascript: always quote the value to avoid parsing issues
 		if ("javascript".equals(gpadName) || containsSpecialChars(value))
-			value = "\"" + escapeString(value) + "\"";
+			value = quoteStringForStyleSheet(value);
 		
 		return gpadName + ": " + value;
 	}
 
-    // 特殊字符：分号、双引号、右大括号、空格、制表符、回车、换行
-    // 这些字符在 GK_STR 值和 objColor 表达式中必须用引号括起来
-    // 注意：逗号不需要在此检测，因为语法分析可以处理包含逗号的合法表达式（如函数参数）
 	private static boolean containsSpecialChars(String text) {
 		if (text == null || text.isEmpty()) {
 			return false;
 		}
 		for (int i = 0; i < text.length(); i++) {
 			char c = text.charAt(i);
-			if (c == ';' || c == '"' || c == '}' || c == '\t' || c == ' ' || c == '\r' || c == '\n') {
+			if (c == ';' || c == '"' || c == '}' || c == '\t' || c == ' ' || c == '\r' || c == '\n'
+					|| c == '[' || c == ']' || c == '(' || c == ')' || c == '{'
+					|| c == '\u2221' // ∡ POLAR_SEPARATOR token — must be quoted
+					|| isUnicodeWhitespace(c)) {
 				return true;
 			}
 		}
 		return false;
+	}
+
+	private static boolean isUnicodeWhitespace(char c) {
+		return (c >= '\u2000' && c <= '\u200B')
+				|| c == '\u00A0' || c == '\u1680' || c == '\u202F'
+				|| c == '\u2028' || c == '\u2029' || c == '\u205F'
+				|| c == '\u3000' || c == '\uFEFF';
 	}
 
 	/**
@@ -862,11 +947,11 @@ public class StyleMapToGpadConverter {
 
 	/**
 	 * Converts boundingBox XML attributes to Gpad format.
-	 * Syntax: boundingBox: width=<value> height=<value>;
+	 * Syntax: boundingBox: <width> <height>;
 	 * Both width and height are integers (decimal part ignored when converting from XML)
 	 * 
 	 * @param attrs boundingBox attributes map
-	 * @return Gpad boundingBox string (e.g., "width=100 height=200")
+	 * @return Gpad boundingBox string (e.g., "100 200")
 	 */
 	private static String convertBoundingBox(LinkedHashMap<String, String> attrs) {
 		if (attrs == null || attrs.isEmpty())
@@ -877,25 +962,23 @@ public class StyleMapToGpadConverter {
 
 		String width = attrs.get("width");
 		if (width != null) {
-			// Extract integer part (ignore decimal if present)
 			int dotIndex = width.indexOf('.');
 			if (dotIndex >= 0)
 				width = width.substring(0, dotIndex);
 			if (!first)
 				sb.append(" ");
-			sb.append("width=").append(width);
+			sb.append(width);
 			first = false;
 		}
 
 		String height = attrs.get("height");
 		if (height != null) {
-			// Extract integer part (ignore decimal if present)
 			int dotIndex = height.indexOf('.');
 			if (dotIndex >= 0)
 				height = height.substring(0, dotIndex);
 			if (!first)
 				sb.append(" ");
-			sb.append("height=").append(height);
+			sb.append(height);
 			first = false;
 		}
 
@@ -904,11 +987,11 @@ public class StyleMapToGpadConverter {
 
 	/**
 	 * Converts contentSize XML attributes to Gpad format.
-	 * Syntax: contentSize: width=<value> height=<value>;
+	 * Syntax: contentSize: <width> <height>;
 	 * Both width and height are floats
 	 * 
 	 * @param attrs contentSize attributes map
-	 * @return Gpad contentSize string (e.g., "width=100.5 height=200.3")
+	 * @return Gpad contentSize string (e.g., "100.5 200.3")
 	 */
 	private static String convertContentSize(LinkedHashMap<String, String> attrs) {
 		if (attrs == null || attrs.isEmpty())
@@ -921,7 +1004,7 @@ public class StyleMapToGpadConverter {
 		if (width != null) {
 			if (!first)
 				sb.append(" ");
-			sb.append("width=").append(width);
+			sb.append(width);
 			first = false;
 		}
 
@@ -929,7 +1012,7 @@ public class StyleMapToGpadConverter {
 		if (height != null) {
 			if (!first)
 				sb.append(" ");
-			sb.append("height=").append(height);
+			sb.append(height);
 			first = false;
 		}
 
@@ -955,7 +1038,7 @@ public class StyleMapToGpadConverter {
 		if (eval != null) {
 			if (!first)
 				sb.append(" ");
-			sb.append("eval=\"").append(escapeString(eval)).append("\"");
+			sb.append("eval=").append(quoteString(eval));
 			first = false;
 		}
 
@@ -963,7 +1046,7 @@ public class StyleMapToGpadConverter {
 		if (display != null) {
 			if (!first)
 				sb.append(" ");
-			sb.append("display=\"").append(escapeString(display)).append("\"");
+			sb.append("display=").append(quoteString(display));
 			first = false;
 		}
 
@@ -1103,7 +1186,7 @@ public class StyleMapToGpadConverter {
 
 	/**
 	 * Converts font XML attributes to Gpad format.
-	 * Syntax: font: [serif|~serif] [*sizeM] [plain|bold|italic|bold italic|italic bold];
+	 * Syntax: font: [serif|~serif] [sizeM] [plain|bold|italic|bold italic|italic bold];
 	 * serif: serif (true) or ~serif (false), default is false (omit if false)
 	 * sizeM: multiplier (float), default is 1.0 (omit if 1.0)
 	 * style: plain (0), bold (1), italic (2), or bold italic/italic bold (3), default is plain (omit if 0)
@@ -1127,6 +1210,10 @@ public class StyleMapToGpadConverter {
 			first = false;
 		}
 
+		// Note: font.size (old absolute pixel size) is not converted to GPAD.
+		// Modern GeoGebra uses sizeM (multiplier). The roundtrip comparison
+		// skips font.size as a known legacy attribute.
+
 		// Convert sizeM (only output if not default 1.0)
 		String sizeM = attrs.get("sizeM");
 		if (sizeM != null) {
@@ -1136,7 +1223,7 @@ public class StyleMapToGpadConverter {
 				if (Math.abs(sizeValue - 1.0) > 1e-9) {
 					if (!first)
 						sb.append(" ");
-					sb.append("*").append(sizeM);
+					sb.append(sizeM);
 					first = false;
 				}
 			} catch (NumberFormatException e) {
@@ -1174,103 +1261,59 @@ public class StyleMapToGpadConverter {
 	}
 
 	/**
-	 * Converts show attributes to Gpad format.
-	 * Syntax: show: [object|~object] [label|~label] [ev1|~ev1] [ev2|~ev2] [3d|~3d] [plane|~plane];
-	 * Default values: object="true", label="true", ev=0 (bit 0=0, bit 1=0)
-	 * Note: ev1 and ~ev2 are no-ops when bit 0=0 and bit 1=0 (default state), so don't output them
-	 * 
-	 * @param attrs show attributes (object, label, ev)
-	 * @return Gpad show string (e.g., "~label ~ev1 ev2 plane ~3d")
+	 * Converts show tag's ev bitmask to the "ev:" GPAD property format.
+	 * Syntax: ev: [~1] [2] [3d] [~plane];
+	 * Only handles ev/3d/plane bits; object/label are handled as label suffixes.
 	 */
-	private static String convertShow(LinkedHashMap<String, String> attrs) {
+	private static String convertEv(LinkedHashMap<String, String> attrs) {
 		if (attrs == null || attrs.isEmpty())
+			return "";
+
+		String evStr = attrs.get("ev");
+		if (evStr == null)
 			return "";
 
 		StringBuilder sb = new StringBuilder();
 		boolean first = true;
 
-		// Convert object attribute (default is "false", only output if "true")
-		String object = attrs.get("object");
-		if (object != null && "true".equals(object)) {
-			if (!first)
-				sb.append(" ");
-			sb.append("object");
-			first = false;
-		}
+		try {
+			int ev = Integer.parseInt(evStr);
 
-		// Convert label attribute (default is "false", only output if "true")
-		String label = attrs.get("label");
-		if (label != null && "true".equals(label)) {
-			if (!first)
-				sb.append(" ");
-			sb.append("label");
-			first = false;
-		}
-
-		// Convert ev attribute (bitmask)
-		// Default ev=0 means: bit 0=0 (visible in EV1), bit 1=0 (hidden in EV2)
-		// ev1 clears bit 0, ~ev2 clears bit 1 - both are no-ops when bits are already 0
-		String evStr = attrs.get("ev");
-		if (evStr != null) {
-			try {
-				int ev = Integer.parseInt(evStr);
-				
-				// Bit 0 (mask=1): if set -> ~ev1, if clear -> don't output ev1 (no-op)
-				if ((ev & 1) != 0) {
-					if (!first)
-						sb.append(" ");
-					sb.append("~ev1");
-					first = false;
-				}
-				// else: bit 0 is clear (default), ev1 would be no-op, so don't output
-
-				// Bit 1 (mask=2): if set -> ev2, if clear -> don't output ~ev2 (no-op)
-				if ((ev & 2) != 0) {
-					if (!first)
-						sb.append(" ");
-					sb.append("ev2");
-					first = false;
-				}
-				// else: bit 1 is clear (default), ~ev2 would be no-op, so don't output
-
-				// Bits 2 (mask=4) and 3 (mask=8): 3d handling
-				boolean bit2 = (ev & 4) != 0;
-				boolean bit3 = (ev & 8) != 0;
-				if (bit2 && !bit3) {
-					// Bit 2 set, bit 3 clear -> 3d
-					if (!first)
-						sb.append(" ");
-					sb.append("3d");
-					first = false;
-				} else if (!bit2 && bit3) {
-					// Bit 2 clear, bit 3 set -> ~3d
-					if (!first)
-						sb.append(" ");
-					sb.append("~3d");
-					first = false;
-				}
-				// else: both bits are 0 (default) or both are set (invalid state), don't output
-
-				// Bits 4 (mask=16) and 5 (mask=32): plane handling
-				boolean bit4 = (ev & 16) != 0;
-				boolean bit5 = (ev & 32) != 0;
-				if (bit4 && !bit5) {
-					// Bit 4 set, bit 5 clear -> plane
-					if (!first)
-						sb.append(" ");
-					sb.append("plane");
-					first = false;
-				} else if (!bit4 && bit5) {
-					// Bit 4 clear, bit 5 set -> ~plane
-					if (!first)
-						sb.append(" ");
-					sb.append("~plane");
-					first = false;
-				}
-				// else: both bits are 0 (default) or both are set (invalid state), don't output
-			} catch (NumberFormatException e) {
-				// If ev is not a valid number, ignore it
+			if ((ev & 1) != 0) {
+				sb.append("~1");
+				first = false;
 			}
+			if ((ev & 2) != 0) {
+				if (!first) sb.append(" ");
+				sb.append("2");
+				first = false;
+			}
+
+			boolean bit2 = (ev & 4) != 0;
+			boolean bit3 = (ev & 8) != 0;
+			if (bit2 && !bit3) {
+				if (!first) sb.append(" ");
+				sb.append("3d");
+				first = false;
+			} else if (!bit2 && bit3) {
+				if (!first) sb.append(" ");
+				sb.append("~3d");
+				first = false;
+			}
+
+			boolean bit4 = (ev & 16) != 0;
+			boolean bit5 = (ev & 32) != 0;
+			if (bit4 && !bit5) {
+				if (!first) sb.append(" ");
+				sb.append("plane");
+				first = false;
+			} else if (!bit4 && bit5) {
+				if (!first) sb.append(" ");
+				sb.append("~plane");
+				first = false;
+			}
+		} catch (NumberFormatException e) {
+			return "";
 		}
 
 		return sb.toString();
@@ -1605,42 +1648,40 @@ public class StyleMapToGpadConverter {
 		if (serialized == null || serialized.isEmpty())
 			return null;
 		
-		StringBuilder sb = new StringBuilder();
-		boolean[] first = {true}; // Use array to allow modification in lambda
-		
-		// Deserialize using helper class
+		// Collect corners first, then join with " | " to avoid trailing separators
+		java.util.List<String> corners = new java.util.ArrayList<>();
+
 		GpadSerializer.deserializeStartPointCorners(serialized, (firstCorner, isAbsolute, cornerData) -> {
-			if (!first[0])
-				sb.append(" | ");
-			first[0] = false;
-			
-			// Build corner string
 			String exp = cornerData[0];
 			if (exp != null) {
-				// Expression-based corner
+				StringBuilder csb = new StringBuilder();
 				if (isAbsolute)
-					sb.append("absolute \"");
-				else
-					sb.append("\"");
-				sb.append(escapeString(exp));
-				sb.append("\"");
+					csb.append("absolute ");
+				csb.append(quoteString(exp));
+				corners.add(csb.toString());
 			} else {
-				// x/y/z type
 				String x = cornerData[1];
 				String y = cornerData[2];
 				String z = cornerData[3];
-				if (x != null && y != null) {
-					// Coordinate-based corner
+				if (x != null && !"NaN".equals(x) && y != null && !"NaN".equals(y)) {
+					StringBuilder csb = new StringBuilder();
 					if (isAbsolute)
-						sb.append("absolute ");
-					sb.append(x).append(" ").append(y);
-					if (z != null)
-						sb.append(" ").append(z);
+						csb.append("absolute ");
+					csb.append(formatNumber(x)).append(" ").append(formatNumber(y));
+					if (z != null && !"NaN".equals(z))
+						csb.append(" ").append(formatNumber(z));
+					corners.add(csb.toString());
+				} else {
+					corners.add("_");
 				}
 			}
 		});
-		
-		return sb.toString();
+
+		// Trim trailing empty corners
+		while (!corners.isEmpty() && "_".equals(corners.get(corners.size() - 1)))
+			corners.remove(corners.size() - 1);
+
+		return corners.isEmpty() ? null : String.join(" | ", corners);
 	}
 
 	/**
@@ -1661,18 +1702,36 @@ public class StyleMapToGpadConverter {
 		// x y [z]
 		String x = attrs.get("x");
 		String y = attrs.get("y");
-		if (x == null || "NaN".equals(x) || y == null || "NaN".equals(y))
-			return null; // x and y are required
+		if (x == null || y == null)
+			return null;
 
-		sb.append(x).append(" ").append(y);
+		sb.append(formatNumber(x)).append(" ").append(formatNumber(y));
 
-		// Include z if it's not default (1.0)
 		String z = attrs.get("z");
-		boolean zIsDefault = z == null || "NaN".equals(z) || "1.0".equals(z);
+		boolean zIsDefault = z == null || "1.0".equals(z);
 		if (!zIsDefault)
-			sb.append(" ").append(z);
+			sb.append(" ").append(formatNumber(z));
 
 		return sb.toString();
+	}
+
+	/**
+	 * Formats a numeric string: rounds to 12 significant digits and avoids
+	 * scientific notation. Values extremely close to zero are rounded to 0.
+	 */
+	private static String formatNumber(String numStr) {
+		if (numStr == null)
+			return "0";
+		try {
+			double d = Double.parseDouble(numStr);
+			if (Math.abs(d) < 1e-10)
+				return "0";
+			java.math.BigDecimal bd = new java.math.BigDecimal(d)
+					.round(new java.math.MathContext(12));
+			return bd.stripTrailingZeros().toPlainString();
+		} catch (NumberFormatException e) {
+			return numStr;
+		}
 	}
 	
 	/**
@@ -1772,7 +1831,7 @@ public class StyleMapToGpadConverter {
 				sb.append("fill=image image=");
 				// Escape if needed
 				if (containsSpecialChars(image))
-					sb.append("\"").append(escapeString(image)).append("\"");
+					sb.append(quoteString(image));
 				else
 					sb.append(image);
 				firstAttr = false;
@@ -1824,8 +1883,7 @@ public class StyleMapToGpadConverter {
 			String attrName = attrNames[i];
 			String scriptContent = attrs.get(attrName);
 			
-			// Ignore empty strings
-			if (scriptContent == null || scriptContent.isEmpty())
+			if (scriptContent == null)
 				continue;
 
 			if (!first)
@@ -1834,14 +1892,7 @@ public class StyleMapToGpadConverter {
 			String propName = prefix + propSuffixes[i];
 			sb.append(propName).append(": ");
 
-			// Check if content contains newlines - use triple quotes if so
-			if (scriptContent.indexOf('\n') >= 0 || scriptContent.indexOf('\r') >= 0) {
-				// Use triple-quoted string format (no escaping, content as-is)
-				sb.append("\"\"\"").append(scriptContent).append("\"\"\"");
-			} else {
-				// Use regular quoted string format (with escaping)
-				sb.append("\"").append(escapeString(scriptContent)).append("\"");
-			}
+			sb.append(quoteStringForStyleSheet(scriptContent));
 			
 			first = false;
 		}

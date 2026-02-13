@@ -75,7 +75,7 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 
 	@Test
 	public void testLayerDefaultValue() {
-		// Test layer with default value (0) should be omitted
+		// layer default value (0) should be omitted; applier handles defaults via ALWAYS_APPLY_TAGS
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -83,7 +83,7 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 		styleMap.put("layer", attrs);
 		
 		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
-		assertTrue("Default layer should be omitted", gpad == null || !gpad.contains("layer"));
+		assertTrue("Default layer (0) should be omitted", gpad == null || !gpad.contains("layer"));
 	}
 
 	@Test
@@ -473,7 +473,7 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 
 	@Test
 	public void testLabelModeDefaultValue() {
-		// Test labelMode with default value ("0" -> "name") should be omitted
+		// labelMode default value (0=name) should be omitted; applier handles defaults via ALWAYS_APPLY_TAGS
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -481,7 +481,7 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 		styleMap.put("labelMode", attrs);
 		
 		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
-		assertTrue("Default labelMode should be omitted", gpad == null || !gpad.contains("labelMode"));
+		assertTrue("Default labelMode (0) should be omitted", gpad == null || !gpad.contains("labelMode"));
 	}
 
 	@Test
@@ -501,20 +501,8 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 
 	@Test
 	public void testPointStyleDefaultValue() {
-		// Test pointStyle with default value ("0" -> "dot") should be omitted
-		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
-		
-		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
-		attrs.put("val", "0");
-		styleMap.put("pointStyle", attrs);
-		
-		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
-		assertTrue("Default pointStyle should be omitted", gpad == null || !gpad.contains("pointStyle"));
-	}
-
-	@Test
-	public void testPointStyleNonDefaultValue() {
-		// Test pointStyle with non-default value should be output
+		// Test pointStyle with value "-1" should be omitted (it's the default per GpadStyleDefaults)
+		// The applier will fill in the default when pointStyle is omitted
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -522,9 +510,22 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 		styleMap.put("pointStyle", attrs);
 		
 		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
+		assertTrue("Default pointStyle (-1) should be omitted", gpad == null || !gpad.contains("pointStyle"));
+	}
+
+	@Test
+	public void testPointStyleNonDefaultValue() {
+		// Test pointStyle with value "0" should be output as "dot"
+		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
+		
+		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
+		attrs.put("val", "0");
+		styleMap.put("pointStyle", attrs);
+		
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain pointStyle", gpad.contains("pointStyle"));
-		assertTrue("Should contain converted value default", gpad.contains("default"));
+		assertTrue("Should contain converted value dot", gpad.contains("dot"));
 	}
 
 	@Test
@@ -646,7 +647,7 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 
 	@Test
 	public void testFileElementNameMapping() {
-		// Test that XML element "file" maps to Gpad property "filename"
+		// Test that XML element "file" maps to Gpad property "file"
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -655,7 +656,7 @@ public class StyleMapToGpadConverterDefaultValueTest extends BaseUnitTest {
 		
 		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
-		assertTrue("Should contain filename", gpad.contains("filename"));
+		assertTrue("Should contain file property", gpad.contains("file"));
 		assertTrue("Should contain file name", gpad.contains("test.png"));
 	}
 

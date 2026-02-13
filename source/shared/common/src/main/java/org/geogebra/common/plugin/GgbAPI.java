@@ -296,55 +296,63 @@ public abstract class GgbAPI implements JavaScriptAPI {
 
 	/**
 	 * Evaluates the given Gpad string and creates GeoElements.
+	 * Uses the static GPAD→XML→loadXml path.
 	 * 
 	 * @param gpadText Gpad text to parse
 	 * @return comma separated labels of created objects, or null if parsing fails
 	 */
 	public synchronized String evalGpad(String gpadText) {
-		lastError = null; // Clear previous error
-		lastWarning = null; // Clear previous warning
-		org.geogebra.common.gpad.GpadParser parser = null;
+		lastError = null;
+		lastWarning = null;
+		org.geogebra.common.gpad.GpadParser gpadParser = null;
 		try {
-			parser = new org.geogebra.common.gpad.GpadParser(kernel);
-			java.util.List<org.geogebra.common.kernel.geos.GeoElement> geos = parser.parse(gpadText);
-			
-			if (geos.isEmpty())
+			gpadParser = new org.geogebra.common.gpad.GpadParser(kernel);
+
+			java.util.Set<String> existingLabels = new java.util.LinkedHashSet<>();
+			for (GeoElement geo : construction.getGeoSetConstructionOrder())
+				if (geo.isLabelSet())
+					existingLabels.add(geo.getLabelSimple());
+
+			java.util.List<org.geogebra.common.gpad.GpadStaticItem> items =
+					gpadParser.parseStaticItems(gpadText);
+			if (items.isEmpty())
 				return "";
-			
+
+			String fullXml = org.geogebra.common.gpad.GpadToXmlStaticConverter
+					.buildFullXml(items);
+			app.setXML(fullXml, false);
+
 			StringBuilder ret = new StringBuilder();
 			boolean first = true;
-			for (org.geogebra.common.kernel.geos.GeoElement geo : geos) {
-				if (!first)
-					ret.append(",");
-				first = false;
-				ret.append(geo.getLabelSimple());
+			for (GeoElement geo : construction.getGeoSetConstructionOrder()) {
+				if (geo.isLabelSet() && !existingLabels.contains(geo.getLabelSimple())) {
+					if (!first) ret.append(",");
+					first = false;
+					ret.append(geo.getLabelSimple());
+				}
 			}
 			return ret.toString();
 		} catch (org.geogebra.common.gpad.GpadParseException e) {
-			// GpadParseException already contains position info in message, just extract it
 			lastError = e.getMessage();
 		} catch (Throwable t) {
 			lastError = t.getMessage();
 			if (lastError == null)
 				lastError = t.getClass().getSimpleName();
 		} finally {
-			// Collect warnings from parser (even if parsing failed, there may be warnings)
-			if (parser != null) {
-				java.util.List<String> warnings = parser.getGpadWarnings();
+			if (gpadParser != null) {
+				java.util.List<String> warnings = gpadParser.getGpadWarnings();
 				if (warnings != null && !warnings.isEmpty()) {
 					StringBuilder warningBuilder = new StringBuilder();
 					boolean first = true;
-					for (String warning : warnings) {
-						if (!first)
-							warningBuilder.append("\n");
+					for (String w : warnings) {
+						if (!first) warningBuilder.append("\n");
 						first = false;
-						warningBuilder.append(warning);
+						warningBuilder.append(w);
 					}
 					lastWarning = warningBuilder.toString();
 				}
 			}
 		}
-		// Don't use Log.error() here - let the caller handle error output
 		return null;
 	}
 
@@ -366,6 +374,135 @@ public abstract class GgbAPI implements JavaScriptAPI {
 		return lastWarning;
 	}
 
+	// ========== Gpad-to-XML Conversion (static path) ==========
+
+	/** Cached static items from evalGpadForXml, used by gpadToXml() */
+	private java.util.List<org.geogebra.common.gpad.GpadStaticItem> gpadStaticItems = null;
+
+	/**
+	 * Parses gpad text for XML conversion using the static path (no runtime).
+	 * Call gpadToXml() after this to get the full XML.
+	 * 
+	 * @param gpadText the gpad text to parse
+	 * @return true if parsing succeeded, false if error (check getLastError())
+	 */
+	public synchronized boolean evalGpadForXml(String gpadText) {
+		lastError = null;
+		lastWarning = null;
+		gpadStaticItems = null;
+
+		org.geogebra.common.gpad.GpadParser gpadParser = null;
+		try {
+			gpadParser = new org.geogebra.common.gpad.GpadParser(kernel);
+			gpadStaticItems = gpadParser.parseStaticItems(gpadText);
+
+			java.util.List<String> warnings = gpadParser.getGpadWarnings();
+			if (warnings != null && !warnings.isEmpty()) {
+				StringBuilder wb = new StringBuilder();
+				boolean first = true;
+				for (String w : warnings) {
+					if (!first) wb.append("\n");
+					first = false;
+					wb.append(w);
+				}
+				lastWarning = wb.toString();
+			}
+			return true;
+		} catch (org.geogebra.common.gpad.GpadParseException e) {
+			lastError = e.getMessage();
+		} catch (Throwable t) {
+			lastError = t.getMessage();
+			if (lastError == null)
+				lastError = t.getClass().getSimpleName();
+		}
+		return false;
+	}
+
+	/**
+	 * Generates the full geogebra.xml content from the last evalGpadForXml() result.
+	 * Must be called after a successful evalGpadForXml().
+	 * 
+	 * @return the complete geogebra.xml content, or null if no result available
+	 */
+	public synchronized String gpadToXml() {
+		if (gpadStaticItems == null)
+			return null;
+		return org.geogebra.common.gpad.GpadToXmlStaticConverter.buildFullXml(gpadStaticItems);
+	}
+
+	/**
+	 * Generates the geogebra_macro.xml content from the last evalGpadForXml() result.
+	 * 
+	 * @return macro XML string, or null if no macros are present
+	 */
+	public synchronized String gpadToMacroXml() {
+		if (gpadStaticItems == null)
+			return null;
+		return org.geogebra.common.gpad.GpadToXmlStaticConverter.buildMacroXml(gpadStaticItems);
+	}
+
+	/**
+	 * Applies a GPAD stylesheet to an existing GeoElement at runtime.
+	 * Independent of the static conversion path — this is a pure runtime
+	 * operation for changing object appearance on the fly.
+	 *
+	 * @param label      label of the GeoElement to modify
+	 * @param styleSheetStr stylesheet body, e.g. {@code "{ show: val true; lineStyle: thickness 2; }"}
+	 * @return comma-separated error messages, or {@code null} on success
+	 */
+	public synchronized String gpadSetStyle(String label, String styleSheetStr) {
+		return gpadSetStyle(label, styleSheetStr, null, null);
+	}
+
+	/**
+	 * Applies a GPAD stylesheet to an existing GeoElement at runtime,
+	 * with optional object/label visibility control.
+	 *
+	 * @param label          label of the GeoElement to modify
+	 * @param styleSheetStr  stylesheet body, e.g. {@code "{ lineStyle: 4; }"}
+	 * @param objectVisible  {@code true}/{@code false} to set object visibility,
+	 *                       {@code null} to leave unchanged
+	 * @param labelVisible   {@code true}/{@code false} to set label visibility,
+	 *                       {@code null} to leave unchanged
+	 * @return comma-separated error messages, or {@code null} on success
+	 */
+	public synchronized String gpadSetStyle(String label, String styleSheetStr,
+			Boolean objectVisible, Boolean labelVisible) {
+		GeoElement geo = kernel.lookupLabel(label);
+		if (geo == null)
+			return "GeoElement not found: " + label;
+
+		try {
+			org.geogebra.common.gpad.GpadParser gpadParser =
+					new org.geogebra.common.gpad.GpadParser(kernel);
+			org.geogebra.common.gpad.GpadStyleSheet styleSheet =
+					gpadParser.parseStyleSheet(styleSheetStr);
+
+			if (objectVisible != null || labelVisible != null) {
+				java.util.LinkedHashMap<String, String> showAttrs =
+						styleSheet.getProperty("show");
+				if (showAttrs == null) {
+					showAttrs = new java.util.LinkedHashMap<>();
+					styleSheet.setProperty("show", showAttrs);
+				}
+				showAttrs.put("object", objectVisible != null
+						? String.valueOf(objectVisible)
+						: String.valueOf(geo.isEuclidianVisible()));
+				showAttrs.put("label", labelVisible != null
+						? String.valueOf(labelVisible)
+						: String.valueOf(geo.isLabelVisible()));
+			}
+
+			java.util.ArrayList<String> errors =
+					org.geogebra.common.io.GpadStyleXMLApplier.apply(styleSheet, geo);
+			if (errors == null || errors.isEmpty())
+				return null;
+			return String.join(", ", errors);
+		} catch (org.geogebra.common.gpad.GpadParseException e) {
+			return "Parse error: " + e.getMessage();
+		}
+	}
+
 	/**
 	 * Converts a GeoElement to Gpad format.
 	 * 
@@ -377,38 +514,20 @@ public abstract class GgbAPI implements JavaScriptAPI {
 		GeoElement geo = kernel.lookupLabel(objName);
 		if (geo == null)
 			return "";
-		
-		org.geogebra.common.gpad.GeoElementToGpadConverter converter = 
-				new org.geogebra.common.gpad.GeoElementToGpadConverter();
-		return converter.toGpad(geo);
+		return org.geogebra.common.gpad.ToGpadConverter.fromGeoElement(geo);
 	}
 
 	/**
 	 * Converts the entire construction to Gpad format.
-	 * Enumerates all construction elements in order and converts them to gpad format.
-	 * 
-	 * @param mergeStylesheets whether to merge identical stylesheets
-	 * @return Gpad string representation of the entire construction
-	 */
-	public synchronized String toGpad(boolean mergeStylesheets) {
-		org.geogebra.common.gpad.GgbToGpadConverter converter = 
-				new org.geogebra.common.gpad.GgbToGpadConverter(construction, mergeStylesheets);
-		return converter.toGpad();
-	}
-
-	/**
-	 * Converts the entire construction to Gpad format by parsing XML directly.
-	 * This is an alternative implementation to toGpad() that works from XML
-	 * instead of iterating through ConstructionElement objects.
 	 * 
 	 * @param xmlFile complete GeoGebra XML file (with <geogebra> as root element), containing construction content
 	 * @param xmlMacro complete macro XML (with <geogebra> as root element), containing all macro definitions (may contain multiple <macro> elements)
 	 * @param mergeStylesheets whether to merge identical stylesheets
 	 * @return Gpad string representation of the entire construction
 	 */
-	public synchronized String xmlToGpad(String xmlFile, String xmlMacro, boolean mergeStylesheets) {
-		org.geogebra.common.gpad.XMLToGpadConverter converter = 
-				new org.geogebra.common.gpad.XMLToGpadConverter(xmlFile, xmlMacro, mergeStylesheets);
+	public synchronized String toGpad(String xmlFile, String xmlMacro, boolean mergeStylesheets) {
+		org.geogebra.common.gpad.ToGpadConverter converter = 
+				new org.geogebra.common.gpad.ToGpadConverter(xmlFile, xmlMacro, mergeStylesheets);
 		return converter.toGpad();
 	}
 

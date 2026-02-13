@@ -3,27 +3,28 @@ package org.geogebra.desktop.gpadtools;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
-import org.geogebra.common.io.XMLParseException;
-import org.geogebra.common.kernel.Construction;
-import org.geogebra.common.kernel.geos.GeoElement;
+import org.geogebra.common.io.MyXMLio;
+import org.geogebra.common.jre.io.StreamUtil;
 import org.geogebra.common.plugin.GgbAPI;
 import org.geogebra.common.util.debug.Log;
 import org.geogebra.desktop.headless.AppDNoGui;
-import org.geogebra.desktop.headless.GFileHandler;
 import org.geogebra.desktop.main.LocalizationD;
 
 /**
  * Command-line tool to test GeoGebra to GPAD roundtrip conversion.
  * 
  * This tool:
- * 1. Loads a GGB file
- * 2. Converts it to GPAD format
- * 3. Parses the GPAD back to a new construction
- * 4. Compares the original and converted Geo objects
+ * 1. Extracts XML from a GGB file
+ * 2. Converts it to GPAD format via toGpad
+ * 3. Converts GPAD back to XML via evalGpadForXml + gpadToXml
+ * 4. Compares the original and converted XML
  * 5. Generates a report (console + JSON)
  * 
  * Usage:
@@ -40,7 +41,7 @@ import org.geogebra.desktop.main.LocalizationD;
  */
 public class GgbGpadRoundtripTest {
 	
-	private static boolean mergeStylesheets = false;
+	private static boolean mergeStylesheets = true;
 	private static boolean verbose = false;
 	private static boolean overwrite = false;
 	private static List<String> errors = new ArrayList<>();
@@ -53,8 +54,8 @@ public class GgbGpadRoundtripTest {
 	private static int totalDifferent = 0;
 	private static int totalMissing = 0;
 	private static int totalExtra = 0;
-	private static int totalOriginalGeos = 0;
-	private static int totalConvertedGeos = 0;
+	private static int totalOriginalElements = 0;
+	private static int totalConvertedElements = 0;
 
 	/**
 	 * Main entry point
@@ -162,9 +163,11 @@ public class GgbGpadRoundtripTest {
 	}
 
 	/**
-	 * Test a single GGB file
+	 * Test a single GGB file by performing a roundtrip through GPAD at the XML level.
+	 * Flow: extract XML from .ggb → toGpad → evalGpadForXml + gpadToXml → compare XMLs
 	 */
-	private static boolean testFile(File inputFile, File reportFile, boolean verbose, boolean overwrite) {
+	private static boolean testFile(File inputFile, File reportFile,
+			boolean verbose, boolean overwrite) {
 		String inputPath = inputFile.getAbsolutePath();
 		
 		// Check if report file exists
@@ -176,69 +179,108 @@ public class GgbGpadRoundtripTest {
 
 		System.out.println("Testing: " + inputFile.getName());
 
-		AppDNoGui originalApp = null;
-		AppDNoGui convertedApp = null;
+		AppDNoGui app = null;
 		
 		try {
-			// Create headless app instance for original
-			originalApp = createHeadlessApp(inputPath);
-			
-			// Load GGB file
-			boolean loaded = false;
-			try (FileInputStream fis = new FileInputStream(inputFile)) {
-				loaded = GFileHandler.loadXML(originalApp, fis, false);
-			}
-			
-			if (!loaded) {
-				String error = "Failed to load GGB file: " + inputPath;
+			// 1. Extract XML directly from .ggb zip (like GgbToGpad)
+			String originalXml = extractXmlFromGgb(inputFile, MyXMLio.XML_FILE);
+			if (originalXml == null) {
+				String error = "Failed to extract " + MyXMLio.XML_FILE
+						+ " from ggb file: " + inputPath;
 				errors.add(error);
 				System.err.println("Error [" + inputPath + "]: " + error);
 				failCount++;
 				return false;
 			}
 			
-			// Stop animations
-			stopAnimations(originalApp);
+			String originalMacroXml = extractXmlFromGgb(inputFile, MyXMLio.XML_FILE_MACRO);
+			// macro may not exist, that's OK
 			
-			// Get original construction
-			Construction originalCons = originalApp.getKernel().getConstruction();
+			// 2. XML → GPAD (like GgbToGpad.convertFile)
+			app = createHeadlessApp(inputPath);
+			GgbAPI ggbApi = app.getGgbApi();
 			
-			// Convert to GPAD
-			GgbAPI ggbApi = originalApp.getGgbApi();
-			String gpadText = ggbApi.toGpad(mergeStylesheets);
+			String gpadText = ggbApi.toGpad(originalXml,
+					originalMacroXml != null ? originalMacroXml : "",
+					mergeStylesheets);
 			
 			if (gpadText == null || gpadText.isEmpty()) {
-				String error = "GPAD conversion produced empty result: " + inputPath;
-				errors.add(error);
-				System.err.println("Error [" + inputPath + "]: " + error);
-				failCount++;
-				return false;
+				// Empty construction is valid (e.g. probability calculator files)
+				System.out.println("Skipping (empty construction): " + inputPath);
+				successCount++;
+				return true;
 			}
 			
-			// Create new app for converted construction
-			convertedApp = createHeadlessApp(inputPath);
+			// 3. GPAD → XML (like GpadToGgb.convertFile)
+			boolean parseSuccess = ggbApi.evalGpadForXml(gpadText);
 			
-			// Parse GPAD into new construction
-			GgbAPI convertedApi = convertedApp.getGgbApi();
-			String result = convertedApi.evalGpad(gpadText);
+			// Check for warnings
+			String lastWarning = ggbApi.getLastWarning();
+			if (lastWarning != null && !lastWarning.trim().isEmpty()) {
+				String[] warnings = lastWarning.split("\n");
+				for (String warning : warnings) {
+					if (warning != null && !warning.trim().isEmpty()) {
+						System.err.println("Warning [" + inputPath + "]: " + warning.trim());
+					}
+				}
+			}
 			
-			if (result == null) {
-				String error = convertedApi.getLastError();
+			if (!parseSuccess) {
+				String error = ggbApi.getLastError();
 				if (error == null || error.trim().isEmpty()) {
 					error = "Failed to parse GPAD: Unknown error";
 				}
 				errors.add(inputPath + ": " + error);
 				System.err.println("Error [" + inputPath + "]: " + error);
+				if (verbose) {
+					java.util.regex.Matcher m = java.util.regex.Pattern
+						.compile("Line (\\d+)").matcher(error);
+					if (m.find()) {
+						int errLine = Integer.parseInt(m.group(1));
+						String[] gpadLines = gpadText.split("\n");
+						int from = Math.max(0, errLine - 3);
+						int to = Math.min(gpadLines.length, errLine + 2);
+						System.err.println("  GPAD context:");
+						for (int ln = from; ln < to; ln++) {
+							String marker = (ln + 1 == errLine) ? ">>>" : "   ";
+							System.err.println("  " + marker + " " + (ln + 1) + ": " + gpadLines[ln]);
+						}
+					}
+					if (reportFile != null) {
+						try {
+							File gpadDumpFile = new File(
+								reportFile.getParentFile(),
+								inputFile.getName().replace(".ggb", ".gpad"));
+							java.nio.file.Files.writeString(
+								gpadDumpFile.toPath(), gpadText);
+						} catch (Exception ignored) {
+						}
+					}
+				}
 				failCount++;
 				return false;
 			}
 			
-			// Get converted construction
-			Construction convertedCons = convertedApp.getKernel().getConstruction();
+			String convertedXml = ggbApi.gpadToXml();
+			if (convertedXml == null || convertedXml.isEmpty()) {
+				String error = "gpadToXml produced empty result: " + inputPath;
+				errors.add(error);
+				System.err.println("Error [" + inputPath + "]: " + error);
+				failCount++;
+				return false;
+			}
 			
-			// Compare constructions
+			String convertedMacroXml = ggbApi.gpadToMacroXml();
+			
+			// 4. Compare XMLs
 			RoundtripReport report = new RoundtripReport(inputFile.getName());
-			report.compare(originalCons, convertedCons);
+			report.compare(originalXml, convertedXml);
+			
+			// 5. Compare macro XMLs (if original has macros)
+			if (originalMacroXml != null && !originalMacroXml.trim().isEmpty()) {
+				report.compareMacros(originalMacroXml,
+						convertedMacroXml != null ? convertedMacroXml : "");
+			}
 			
 			// Print to console
 			report.printToConsole(verbose);
@@ -252,8 +294,8 @@ public class GgbGpadRoundtripTest {
 			totalDifferent += report.getDifferent();
 			totalMissing += report.getMissing();
 			totalExtra += report.getExtra();
-			totalOriginalGeos += report.getTotalOriginal();
-			totalConvertedGeos += report.getTotalConverted();
+			totalOriginalElements += report.getTotalOriginal();
+			totalConvertedElements += report.getTotalConverted();
 			
 			if (report.isSuccess()) {
 				successCount++;
@@ -263,12 +305,6 @@ public class GgbGpadRoundtripTest {
 			
 			return report.isSuccess();
 
-		} catch (XMLParseException e) {
-			String error = "XML parse error: " + e.getMessage();
-			errors.add(inputPath + ": " + error);
-			System.err.println("Error [" + inputPath + "]: " + error);
-			failCount++;
-			return false;
 		} catch (IOException e) {
 			String error = "IO error: " + e.getMessage();
 			errors.add(inputPath + ": " + error);
@@ -283,10 +319,33 @@ public class GgbGpadRoundtripTest {
 			failCount++;
 			return false;
 		} finally {
-			// Clean up
-			cleanupApp(originalApp);
-			cleanupApp(convertedApp);
+			cleanupApp(app);
 		}
+	}
+
+	/**
+	 * Extracts XML content from a .ggb zip archive.
+	 * Reuses the same logic as {@code GgbToGpad.extractXmlFromGgb}.
+	 *
+	 * @param inputFile the input .ggb file (zip archive)
+	 * @param xmlFileName the XML file name to extract (e.g., "geogebra.xml")
+	 * @return XML content as string, or null if not found
+	 */
+	private static String extractXmlFromGgb(File inputFile, String xmlFileName) {
+		try (ZipInputStream zip = new ZipInputStream(new FileInputStream(inputFile))) {
+			ZipEntry entry;
+			while ((entry = zip.getNextEntry()) != null) {
+				if (xmlFileName.equals(entry.getName())) {
+					byte[] content = StreamUtil.loadIntoMemory(zip);
+					return new String(content, StandardCharsets.UTF_8);
+				}
+				zip.closeEntry();
+			}
+		} catch (IOException e) {
+			System.err.println("Warning: Failed to extract " + xmlFileName
+					+ " from " + inputFile.getName() + ": " + e.getMessage());
+		}
+		return null;
 	}
 
 	/**
@@ -303,9 +362,11 @@ public class GgbGpadRoundtripTest {
 					Throwable t = (Throwable) logEntry;
 					Throwable cause = t.getCause();
 					if (cause != null && cause.getClass().getName().contains("ParseException")) {
-						System.err.println("Warning [" + inputPath + "]: LaTeX parsing error (non-fatal): " + cause.getMessage());
+						System.err.println("Warning [" + inputPath
+								+ "]: LaTeX parsing error (non-fatal): " + cause.getMessage());
 					} else {
-						System.err.println("Warning [" + inputPath + "]: RuntimeException in headless mode: " + t.getMessage());
+						System.err.println("Warning [" + inputPath
+								+ "]: RuntimeException in headless mode: " + t.getMessage());
 					}
 				} else if (logEntry instanceof Throwable) {
 					((Throwable) logEntry).printStackTrace();
@@ -324,26 +385,6 @@ public class GgbGpadRoundtripTest {
 	}
 
 	/**
-	 * Stops all animations in the app.
-	 */
-	private static void stopAnimations(AppDNoGui app) {
-		app.getKernel().getAnimationManager().stopAnimation();
-		app.getKernel().setNotifyRepaintActive(false);
-		app.getKernel().setNotifyViewsActive(false);
-		
-		// Disable all animating objects
-		GeoElement[] allObjects = app.getKernel().getConstruction()
-				.getGeoSetConstructionOrder().toArray(new GeoElement[0]);
-		for (GeoElement geo : allObjects) {
-			if (geo != null && geo.isAnimating()) {
-				geo.setAnimating(false);
-			}
-		}
-		
-		app.getKernel().getAnimationManager().stopAnimation();
-	}
-
-	/**
 	 * Cleans up an app instance.
 	 */
 	private static void cleanupApp(AppDNoGui app) {
@@ -351,15 +392,6 @@ public class GgbGpadRoundtripTest {
 			try {
 				app.getKernel().getAnimationManager().stopAnimation();
 				app.getKernel().setNotifyRepaintActive(false);
-				
-				GeoElement[] allObjects = app.getKernel().getConstruction()
-						.getGeoSetConstructionOrder().toArray(new GeoElement[0]);
-				for (GeoElement geo : allObjects) {
-					if (geo != null && geo.isAnimating()) {
-						geo.setAnimating(false);
-					}
-				}
-				
 				app.reset();
 			} catch (Exception e) {
 				// Ignore cleanup errors
@@ -370,7 +402,8 @@ public class GgbGpadRoundtripTest {
 	/**
 	 * Recursively test all GGB files in a directory.
 	 */
-	private static void testDirectory(File inputDir, File outputDir, boolean verbose, boolean overwrite) {
+	private static void testDirectory(File inputDir, File outputDir,
+			boolean verbose, boolean overwrite) {
 		if (!inputDir.isDirectory()) {
 			errors.add("Input is not a directory: " + inputDir.getAbsolutePath());
 			return;
@@ -479,16 +512,16 @@ public class GgbGpadRoundtripTest {
 		}
 		
 		System.out.println();
-		System.out.println("Geo Object Statistics (aggregated):");
-		System.out.println("  Total original:  " + totalOriginalGeos);
-		System.out.println("  Total converted: " + totalConvertedGeos);
+		System.out.println("XML Element Statistics (aggregated):");
+		System.out.println("  Total original:  " + totalOriginalElements);
+		System.out.println("  Total converted: " + totalConvertedElements);
 		System.out.println("  Matched:         " + totalMatched);
 		System.out.println("  Different:       " + totalDifferent);
 		System.out.println("  Missing:         " + totalMissing);
 		System.out.println("  Extra:           " + totalExtra);
 		
-		if (totalOriginalGeos > 0) {
-			double successRate = (double) totalMatched / totalOriginalGeos * 100;
+		if (totalOriginalElements > 0) {
+			double successRate = (double) totalMatched / totalOriginalElements * 100;
 			System.out.printf("  Overall success: %.1f%%%n", successRate);
 		}
 

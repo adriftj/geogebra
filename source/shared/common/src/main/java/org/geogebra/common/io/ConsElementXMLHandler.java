@@ -585,7 +585,7 @@ public class ConsElementXMLHandler {
 
 			int style = Integer.parseInt(attrs.get("val"));
 
-			if (style == -1) {
+			if (style == -1 && !isGpadMode) {
 				style = docPointStyle;
 			}
 			p.setPointStyle(style);
@@ -1986,8 +1986,9 @@ public class ConsElementXMLHandler {
 
 		alpha = attrs.get("alpha");
 		// ignore alpha value for lists prior to GeoGebra 3.2
+		// In GPAD mode, always apply alpha (no legacy format constraints)
 		if (alpha != null
-				&& (!geo.isGeoList() || xmlHandler.ggbFileFormat > 3.19)) {
+				&& (!geo.isGeoList() || isGpadMode || xmlHandler.ggbFileFormat > 3.19)) {
 			geo.setAlphaValue(Float.parseFloat(alpha));
 		}
 		return true;

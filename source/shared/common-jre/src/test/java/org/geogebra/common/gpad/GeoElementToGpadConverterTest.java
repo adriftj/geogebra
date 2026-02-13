@@ -1,5 +1,6 @@
 package org.geogebra.common.gpad;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -9,20 +10,21 @@ import org.geogebra.common.kernel.geos.GeoPoint;
 import org.junit.Test;
 
 /**
- * Unit tests for GeoElementToGpadConverter.
+ * Unit tests for {@link ToGpadConverter#fromGeoElement(GeoElement)}.
  */
 public class GeoElementToGpadConverterTest extends BaseUnitTest {
 
 	@Test
 	public void testConvertSimplePoint() {
 		GeoElement geo = add("A = (1, 2)");
-		
-		GeoElementToGpadConverter converter = new GeoElementToGpadConverter();
-		String gpad = converter.toGpad(geo);
-		
+
+		String gpad = ToGpadConverter.fromGeoElement(geo);
+
 		assertNotNull(gpad);
-		assertTrue(gpad.contains("A"));
-		assertTrue(gpad.contains("="));
+		assertTrue("Should contain type prefix 'point'", gpad.contains("point"));
+		assertTrue("Should contain label A", gpad.contains("A"));
+		assertTrue("Should contain coordinates (1, 2)",
+				gpad.contains("(1") && gpad.contains("2)"));
 	}
 
 	@Test
@@ -32,38 +34,32 @@ public class GeoElementToGpadConverterTest extends BaseUnitTest {
 			((GeoPoint) geo).setPointSize(6);
 			geo.setFixed(true);
 		}
-		
-		GeoElementToGpadConverter converter = new GeoElementToGpadConverter();
-		String gpad = converter.toGpad(geo);
-		
+
+		String gpad = ToGpadConverter.fromGeoElement(geo);
+
 		assertNotNull(gpad);
-		assertTrue(gpad.contains("A"));
-		// Should contain style sheet definition
-		assertTrue(gpad.contains("@") || gpad.contains("pointSize") || gpad.contains("fixed"));
+		assertTrue("Should contain label A", gpad.contains("A"));
+		assertTrue("Should contain stylesheet reference",
+				gpad.contains("@"));
+		assertTrue("Should contain pointSize or fixed",
+				gpad.contains("pointSize") || gpad.contains("fixed"));
 	}
 
 	@Test
-	public void testConvertMultipleElements() {
-		GeoElement geo1 = add("A = (1, 2)");
-		GeoElement geo2 = add("B = (3, 4)");
-		
-		GeoElementToGpadConverter converter = new GeoElementToGpadConverter();
-		java.util.List<GeoElement> geos = java.util.Arrays.asList(geo1, geo2);
-		String gpad = converter.toGpad(geos);
-		
+	public void testNoEnvGenerated() {
+		GeoElement geo = add("A = (1, 2)");
+
+		String gpad = ToGpadConverter.fromGeoElement(geo);
+
 		assertNotNull(gpad);
-		assertTrue(gpad.contains("A"));
-		assertTrue(gpad.contains("B"));
+		assertFalse("Single element should not generate @@env",
+				gpad.contains("@@env"));
 	}
 
 	@Test
 	public void testConvertNull() {
-		GeoElementToGpadConverter converter = new GeoElementToGpadConverter();
-		String gpad = converter.toGpad((GeoElement) null);
-		
+		String gpad = ToGpadConverter.fromGeoElement(null);
+
 		assertTrue(gpad.isEmpty());
 	}
 }
-
-
-

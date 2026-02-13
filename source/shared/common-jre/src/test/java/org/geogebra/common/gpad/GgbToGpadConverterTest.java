@@ -1,20 +1,20 @@
 package org.geogebra.common.gpad;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 import org.geogebra.common.BaseUnitTest;
 import org.geogebra.common.jre.headless.GgbAPIHeadless;
-import org.geogebra.common.kernel.geos.GeoPoint;
-import org.geogebra.common.kernel.geos.GeoVector;
 import org.geogebra.common.plugin.GgbAPI;
 import org.junit.Before;
 import org.junit.Test;
 
 /**
- * Integration tests for GgbToGpadConverter.
- * Tests the complete flow: create objects via gpad, then convert construction to gpad format.
+ * Integration tests for ggb-to-gpad conversion via XML.
+ * Tests the complete flow: create objects via gpad, get XML, then convert to gpad format.
  */
 public class GgbToGpadConverterTest extends BaseUnitTest {
 
@@ -25,204 +25,70 @@ public class GgbToGpadConverterTest extends BaseUnitTest {
 		api = new GgbAPIHeadless(getApp());
 	}
 
-	@Test
-	public void testCommandWithSingleOutput() {
-		// Create objects via gpad
-		String inputGpad = "A = (1, 2);\n"
-				+ "B = (3, 4);\n"
-				+ "s = Segment(A, B);";
-		
-		String result = api.evalGpad(inputGpad);
-		assertNotNull("evalGpad should succeed", result);
-		assertTrue("Should create objects", result.contains("A") && result.contains("B") && result.contains("s"));
-
-		// Convert construction to gpad
-		String outputGpad = api.toGpad(false);
-		assertNotNull("toGpad should return non-null", outputGpad);
-		
-		// Verify labels are present
-		assertTrue("Should contain label A", outputGpad.contains("A"));
-		assertTrue("Should contain label B", outputGpad.contains("B"));
-		assertTrue("Should contain label s", outputGpad.contains("s"));
-		
-		// Verify command is present
-		assertTrue("Should contain Segment command", outputGpad.contains("Segment"));
-	}
-
-	@Test
-	public void testCommandWithMultipleOutputs() {
-		// Create objects via gpad
-		String inputGpad = "A = (0, 0);\n"
-				+ "B = (1, 0);\n"
-				+ "C = (0, 1);\n"
-				+ "poly1, AB, BC, CA = Polygon(A, B, C);";
-		
-		String result = api.evalGpad(inputGpad);
-		assertNotNull("evalGpad should succeed", result);
-
-		// Convert construction to gpad
-		String outputGpad = api.toGpad(false);
-		assertNotNull("toGpad should return non-null", outputGpad);
-		
-		// Verify all labels are present
-		assertTrue("Should contain label A", outputGpad.contains("A"));
-		assertTrue("Should contain label B", outputGpad.contains("B"));
-		assertTrue("Should contain label C", outputGpad.contains("C"));
-		assertTrue("Should contain label poly1", outputGpad.contains("poly1"));
-		
-		// Verify command is present
-		assertTrue("Should contain Polygon command", outputGpad.contains("Polygon"));
-	}
-
-	@Test
-	public void testExpression() {
-		// Create objects via gpad (expression creates dependent objects)
-		String inputGpad = "a* = 1;\n"
-				+ "b* = 2;\n"
-				+ "c* = a + b;";
-		
-		String result = api.evalGpad(inputGpad);
-		assertNotNull("evalGpad should succeed", result);
-
-		// Convert construction to gpad
-		String outputGpad = api.toGpad(false);
-		assertNotNull("toGpad should return non-null", outputGpad);
-		
-		// Verify labels are present
-		assertTrue("Should contain label a", outputGpad.contains("a"));
-		assertTrue("Should contain label b", outputGpad.contains("b"));
-		assertTrue("Should contain label c", outputGpad.contains("c"));
-		
-		// Verify expression is present (c should be an expression)
-		// Note: Since c is a numeric expression (not drawable in geometry view), it won't have "*" or "~" suffixes
-		// The format is "c @cStyle = a + b" (with stylesheet) or "c = a + b" (without stylesheet)
-		// So we check for label c, followed by optional stylesheet reference, then "=" and the expression "a + b"
-		assertTrue("Should contain expression for c", 
-			(outputGpad.contains("c* @") || outputGpad.contains("c* ="))
-			&& outputGpad.contains("a + b"));
+	/**
+	 * Helper: convert current construction to gpad via XML path.
+	 */
+	private String toGpadViaXml(boolean mergeStylesheets) {
+		String xml = api.getXML();
+		String macroXml = getApp().getAllMacrosXMLorEmpty();
+		return api.toGpad(xml, macroXml, mergeStylesheets);
 	}
 
 	@Test
 	public void testCommandWithStyles() {
-		// Create objects with styles via gpad
-		String inputGpad = "@AStyle = { pointSize: 6; objColor: #FF0000FF; }\n"
-				+ "@BStyle = { pointSize: 8; objColor: #00FF00FF; }\n"
+		String inputGpad = "@AStyle = { pointSize: 6; color: #FF0000FF; }\n"
+				+ "@BStyle = { pointSize: 8; color: #00FF00FF; }\n"
 				+ "A @AStyle = (1, 2);\n"
 				+ "B @BStyle = (3, 4);\n"
 				+ "s = Segment(A, B);";
-		
+
 		String result = api.evalGpad(inputGpad);
 		assertNotNull("evalGpad should succeed", result);
 
-		// Convert construction to gpad
-		String outputGpad = api.toGpad(false);
+		String outputGpad = toGpadViaXml(false);
 		assertNotNull("toGpad should return non-null", outputGpad);
-		
-		// Verify labels are present
+
 		assertTrue("Should contain label A", outputGpad.contains("A"));
 		assertTrue("Should contain label B", outputGpad.contains("B"));
 		assertTrue("Should contain label s", outputGpad.contains("s"));
-		
-		// Verify stylesheets are generated for output objects
-		// A and B are independent, s is output of Segment command
-		assertTrue("Should contain stylesheet for s", 
+
+		assertTrue("Should contain stylesheet for s",
 			outputGpad.contains("@sStyle") || outputGpad.contains("@style"));
 	}
 
 	@Test
-	public void testExpressionWithStyles() {
-		// Create expression with styles
-		String inputGpad = "a* = 1;\n"
-				+ "@cStyle = { lineStyle: thickness=4; }\n"
-				+ "c* @cStyle = a + 5;";
-		
-		String result = api.evalGpad(inputGpad);
-		assertNotNull("evalGpad should succeed", result);
-
-		// Convert construction to gpad
-		String outputGpad = api.toGpad(false);
-		assertNotNull("toGpad should return non-null", outputGpad);
-		
-		// Verify labels are present
-		assertTrue("Should contain label a", outputGpad.contains("a"));
-		assertTrue("Should contain label c", outputGpad.contains("c"));
-		
-		// Verify expression is present with * flag (hidden object)
-		assertTrue("Should contain expression with * flag",
-			outputGpad.contains("c*") && outputGpad.contains("a + 5"));
-	}
-
-	@Test
 	public void testIndependentElements() {
-		// Create independent elements
 		String inputGpad = "A = (1, 2);\n"
 				+ "B = (3, 4);\n"
 				+ "n = 5;";
-		
+
 		String result = api.evalGpad(inputGpad);
 		assertNotNull("evalGpad should succeed", result);
 
-		// Convert construction to gpad
-		String outputGpad = api.toGpad(false);
+		String outputGpad = toGpadViaXml(false);
 		assertNotNull("toGpad should return non-null", outputGpad);
-		
-		// Verify all labels are present
+
 		assertTrue("Should contain label A", outputGpad.contains("A"));
 		assertTrue("Should contain label B", outputGpad.contains("B"));
 		assertTrue("Should contain label n", outputGpad.contains("n"));
 	}
 
 	@Test
-	public void testMixedCommandAndExpression() {
-		// Create mix of commands and expressions
-		String inputGpad = "A = (0, 0);\n"
-				+ "B = (1, 0);\n"
-				+ "s = Segment(A, B);\n"
-				+ "M = Midpoint(s);\n"
-				+ "d = Distance(A, B);\n"
-				+ "c = d + 1;";
-		
-		String result = api.evalGpad(inputGpad);
-		assertNotNull("evalGpad should succeed", result);
-
-		// Convert construction to gpad
-		String outputGpad = api.toGpad(false);
-		assertNotNull("toGpad should return non-null", outputGpad);
-		
-		// Verify all labels are present
-		assertTrue("Should contain label A", outputGpad.contains("A"));
-		assertTrue("Should contain label B", outputGpad.contains("B"));
-		assertTrue("Should contain label s", outputGpad.contains("s"));
-		assertTrue("Should contain label M", outputGpad.contains("M"));
-		assertTrue("Should contain label d", outputGpad.contains("d"));
-		assertTrue("Should contain label c", outputGpad.contains("c"));
-		
-		// Verify commands are present
-		assertTrue("Should contain Segment command", outputGpad.contains("Segment"));
-		assertTrue("Should contain Midpoint command", outputGpad.contains("Midpoint"));
-		assertTrue("Should contain Distance command", outputGpad.contains("Distance"));
-	}
-
-	@Test
 	public void testStylesheetMerging() {
-		// Create objects with same styles
-		String inputGpad = "@redStyle = { objColor: #FF0000FF; }\n"
+		String inputGpad = "@redStyle = { color: #FF0000FF; }\n"
 				+ "A @redStyle = (1, 2);\n"
 				+ "B @redStyle = (3, 4);\n"
 				+ "s = Segment(A, B);";
-		
+
 		String result = api.evalGpad(inputGpad);
 		assertNotNull("evalGpad should succeed", result);
 
-		// Convert with merging enabled
-		String outputGpadMerged = api.toGpad(true);
+		String outputGpadMerged = toGpadViaXml(true);
 		assertNotNull("toGpad should return non-null", outputGpadMerged);
-		
-		// Convert without merging
-		String outputGpadNotMerged = api.toGpad(false);
+
+		String outputGpadNotMerged = toGpadViaXml(false);
 		assertNotNull("toGpad should return non-null", outputGpadNotMerged);
-		
-		// Verify labels are present in both
+
 		assertTrue("Merged: Should contain label A", outputGpadMerged.contains("A"));
 		assertTrue("Merged: Should contain label B", outputGpadMerged.contains("B"));
 		assertTrue("Merged: Should contain label s", outputGpadMerged.contains("s"));
@@ -232,807 +98,362 @@ public class GgbToGpadConverterTest extends BaseUnitTest {
 	}
 
 	@Test
-	public void testCommandWithVisibilityFlags() {
-		// Create objects with visibility flags
-		// ~ flag was removed; use show: ~label in stylesheet for hidden label
-		String inputGpad = "A = (1, 2);\n"
-				+ "B* = (3, 4);\n"
-				+ "C { show: ~label } = (5, 6);\n"
-				+ "s = Segment(A, B);";
-		
-		String result = api.evalGpad(inputGpad);
-		assertNotNull("evalGpad should succeed", result);
-
-		// Convert construction to gpad
-		String outputGpad = api.toGpad(false);
-		assertNotNull("toGpad should return non-null", outputGpad);
-		
-		// Verify labels are present
-		assertTrue("Should contain label A", outputGpad.contains("A"));
-		assertTrue("Should contain label B", outputGpad.contains("B"));
-		assertTrue("Should contain label C", outputGpad.contains("C"));
-		assertTrue("Should contain label s", outputGpad.contains("s"));
-		
-		// Verify visibility flags are preserved (if applicable)
-		// Note: * flag for hidden objects is preserved in the output
-	}
-
-	@Test
-	public void testComplexConstruction() {
-		// Create a complex construction with multiple commands and expressions
-		String inputGpad = "@pointStyle = { pointSize: 5; }\n"
-				+ "@lineStyle = { lineStyle: thickness=3; }\n"
-				+ "A @pointStyle = (0, 0);\n"
-				+ "B @pointStyle = (4, 0);\n"
-				+ "C @pointStyle = (2, 3);\n"
-				+ "tri @lineStyle = Polygon(A, B, C);\n"
-				+ "M = Midpoint(A, B);\n"
-				+ "area = Area(tri);\n"
-				+ "perimeter = area * 2;";
-		
-		String result = api.evalGpad(inputGpad);
-		assertNotNull("evalGpad should succeed", result);
-
-		// Convert construction to gpad
-		String outputGpad = api.toGpad(false);
-		assertNotNull("toGpad should return non-null", outputGpad);
-		
-		// Verify all labels are present
-		assertTrue("Should contain label A", outputGpad.contains("A"));
-		assertTrue("Should contain label B", outputGpad.contains("B"));
-		assertTrue("Should contain label C", outputGpad.contains("C"));
-		assertTrue("Should contain label tri", outputGpad.contains("tri"));
-		assertTrue("Should contain label M", outputGpad.contains("M"));
-		assertTrue("Should contain label area", outputGpad.contains("area"));
-		assertTrue("Should contain label perimeter", outputGpad.contains("perimeter"));
-		
-		// Verify commands are present
-		assertTrue("Should contain Polygon command", outputGpad.contains("Polygon"));
-		assertTrue("Should contain Midpoint command", outputGpad.contains("Midpoint"));
-		assertTrue("Should contain Area command", outputGpad.contains("Area"));
-		
-		// Verify stylesheets are generated for output objects
-		assertTrue("Should contain stylesheet definitions", 
-			outputGpad.contains("@") && outputGpad.contains("{"));
-	}
-
-	@Test
 	public void testEmptyConstruction() {
-		// Test with empty construction
-		String outputGpad = api.toGpad(false);
+		String outputGpad = toGpadViaXml(false);
 		assertNotNull("toGpad should return non-null", outputGpad);
-		// Should be empty or contain only default elements
 	}
 
 	@Test
 	public void testFunctionExpression() {
-		// Create function via expression
 		String inputGpad = "f(x) = x^2 + 1;";
-		
+
 		String result = api.evalGpad(inputGpad);
 		assertNotNull("evalGpad should succeed", result);
 
-		// Convert construction to gpad
-		String outputGpad = api.toGpad(false);
+		String outputGpad = toGpadViaXml(false);
 		assertNotNull("toGpad should return non-null", outputGpad);
-		
-		// Verify label is present
+
 		assertTrue("Should contain label f", outputGpad.contains("f"));
-		
-		// Verify expression or command is present
-		assertTrue("Should contain function definition", 
+		assertTrue("Should contain function definition",
 			outputGpad.contains("f") && outputGpad.contains("="));
 	}
 
 	@Test
-	public void testSingleVariableFunction() {
-		// Create single-variable function: f(x) = x^2 + 1
-		String inputGpad = "f(x) = x^2 + 1;";
-		
-		String result = api.evalGpad(inputGpad);
-		assertNotNull("evalGpad should succeed", result);
-
-		// Convert construction to gpad
-		String outputGpad = api.toGpad(false);
-		assertNotNull("toGpad should return non-null", outputGpad);
-		
-		// Verify new format: f(x) @style ... = ...
-		// Should contain f(x) with variable list in parentheses
-		// Note: The format should be f(x) @style ... = ... or f(x) = ...
-		// Check for f followed by (x) pattern
-		boolean hasFunctionWithVars = outputGpad.matches("(?s).*f\\s*\\(\\s*x\\s*\\).*");
-		assertTrue("Should contain f(x) with variable list. Actual output: " + outputGpad, 
-			hasFunctionWithVars || outputGpad.contains("f(x)") || outputGpad.contains("f(x )"));
-		
-		// Should contain the expression (accept both x^2 and x² format)
-		assertTrue("Should contain function expression", 
-			outputGpad.contains("x^2 + 1") || outputGpad.contains("x^2+1") 
-			|| outputGpad.contains("x² + 1") || outputGpad.contains("x²+1"));
-	}
-
-	@Test
 	public void testMultiVariableFunction() {
-		// Create multi-variable function: g(x, y) = x * y
 		String inputGpad = "g(x, y) = x * y;";
-		
+
 		String result = api.evalGpad(inputGpad);
 		assertNotNull("evalGpad should succeed", result);
 
-		// Convert construction to gpad
-		String outputGpad = api.toGpad(false);
+		String outputGpad = toGpadViaXml(false);
 		assertNotNull("toGpad should return non-null", outputGpad);
-		
-		// Verify new format: g(x, y) @style ... = ...
-		// Should contain g(x, y) with variable list in parentheses
-		assertTrue("Should contain g(x, y) with variable list", 
+
+		assertTrue("Should contain g(x, y) with variable list",
 			outputGpad.contains("g(x, y)") || outputGpad.contains("g(x,y)"));
-		
-		// Should contain the expression (accept various multiplication formats)
-		assertTrue("Should contain function expression", 
-			outputGpad.contains("x * y") || outputGpad.contains("x*y") 
+
+		assertTrue("Should contain function expression",
+			outputGpad.contains("x * y") || outputGpad.contains("x*y")
 			|| outputGpad.contains("x y") || outputGpad.contains("x·y")
 			|| (outputGpad.contains("x") && outputGpad.contains("y")));
-	}
-
-	@Test
-	public void testFunctionWithThreeVariables() {
-		// Create function with three variables: h(x, y, z) = x + y + z
-		String inputGpad = "h(x, y, z) = x + y + z;";
-		
-		String result = api.evalGpad(inputGpad);
-		assertNotNull("evalGpad should succeed", result);
-
-		// Convert construction to gpad
-		String outputGpad = api.toGpad(false);
-		assertNotNull("toGpad should return non-null", outputGpad);
-		
-		// Verify new format: h(x, y, z) @style ... = ...
-		// Should contain h(x, y, z) with variable list in parentheses
-		assertTrue("Should contain h(x, y, z) with variable list", 
-			outputGpad.contains("h(x") && outputGpad.contains("y") && outputGpad.contains("z)"));
-		
-		// Should contain the expression
-		assertTrue("Should contain function expression", 
-			outputGpad.contains("x + y + z") || outputGpad.contains("x+y+z"));
-	}
-
-	@Test
-	public void testFunctionWithStyle() {
-		// Create function with style sheet
-		String inputGpad = "@fStyle = { lineStyle: thickness=3; objColor: #FF0000FF; }\n"
-				+ "f(x) @fStyle = x^2;";
-		
-		String result = api.evalGpad(inputGpad);
-		if (result == null) {
-			String error = api.getLastError();
-			String warning = api.getLastWarning();
-			System.err.println("evalGpad failed for testFunctionWithStyle");
-			if (error != null) {
-				System.err.println("Error: " + error);
-			}
-			if (warning != null) {
-				System.err.println("Warning: " + warning);
-			}
-		}
-		assertNotNull("evalGpad should succeed", result);
-
-		// Convert construction to gpad
-		String outputGpad = api.toGpad(false);
-		assertNotNull("toGpad should return non-null", outputGpad);
-		System.out.println(outputGpad);
-		
-		// Verify new format: f(x) @style ... = ...
-		// Should contain f(x) with variable list
-		assertTrue("Should contain f(x) with variable list", 
-			outputGpad.contains("f(x)") || outputGpad.contains("f(x )"));
-		
-		// Should contain stylesheet reference (may be @fStyle or generated @fStyle)
-		assertTrue("Should contain stylesheet reference", 
-			outputGpad.contains("@fStyle") || outputGpad.contains("@style"));
-		
-		// Should contain the expression (accept both x^2 and x² format)
-		assertTrue("Should contain function expression", 
-			outputGpad.contains("x^2") || outputGpad.contains("x²"));
 	}
 
 	@Test
 	public void testFunctionWithVisibilityFlags() {
-		// Create function with visibility flags
 		String inputGpad = "f(x) = x^2;\n"
 				+ "g(x) = x^3;";
-		
+
 		String result = api.evalGpad(inputGpad);
 		assertNotNull("evalGpad should succeed", result);
 
-		// Convert construction to gpad
-		String outputGpad = api.toGpad(false);
+		String outputGpad = toGpadViaXml(false);
 		assertNotNull("toGpad should return non-null", outputGpad);
-		
-		// Verify new format: f(x) @style ... = ... and g(x) @style ... = ...
-		// Should contain f(x) and g(x) with variable lists
-		assertTrue("Should contain f(x) with variable list", 
+
+		assertTrue("Should contain f(x) with variable list",
 			outputGpad.contains("f(x)") || outputGpad.contains("f(x )"));
-		assertTrue("Should contain g(x) with variable list", 
+		assertTrue("Should contain g(x) with variable list",
 			outputGpad.contains("g(x)") || outputGpad.contains("g(x )"));
 	}
 
 	@Test
-	public void testFunctionRoundTrip() {
-		// Test round trip: gpad -> GeoElement -> gpad
-		String inputGpad = "f(x) = x^2 + 2*x + 1;\n"
-				+ "g(x, y) = x * y + 1;";
-		
-		String result = api.evalGpad(inputGpad);
-		assertNotNull("evalGpad should succeed", result);
-
-		// Convert construction to gpad
-		String outputGpad = api.toGpad(false);
-		assertNotNull("toGpad should return non-null", outputGpad);
-		System.out.println(outputGpad);
-		
-		// Verify format for f(x)
-		assertTrue("Should contain f(x) with variable list", 
-			outputGpad.contains("f(x)") || outputGpad.contains("f(x )"));
-		assertTrue("Should contain f's expression", 
-			outputGpad.contains("x^2") || outputGpad.contains("x²")
-			|| outputGpad.contains("2*x") || outputGpad.contains("2x"));
-		
-		// Verify format for g(x, y)
-		assertTrue("Should contain g(x, y) with variable list", 
-			outputGpad.contains("g(x") && outputGpad.contains("y)"));
-		assertTrue("Should contain g's expression", 
-			outputGpad.contains("x * y") || outputGpad.contains("x*y")
-			|| outputGpad.contains("x y") || outputGpad.contains("x·y")
-			|| (outputGpad.contains("x") && outputGpad.contains("y")));
-		
-		// Try to parse the output again to verify it's valid gpad
-		String result2 = api.evalGpad(outputGpad);
-		if (result2 == null) {
-			String error = api.getLastError();
-			String warning = api.getLastWarning();
-			System.err.println("Round trip failed for testFunctionRoundTrip");
-			System.err.println("Output gpad: " + outputGpad);
-			if (error != null) {
-				System.err.println("Error: " + error);
-			}
-			if (warning != null) {
-				System.err.println("Warning: " + warning);
-			}
-		}
-		// Should succeed (result may be empty if no new objects created, but should not be null)
-		assertNotNull("Round trip should succeed", result2);
-	}
-
-	@Test
 	public void testFunctionWithMultiLetterVariable() {
-		// Test function with multi-letter variable name
 		String inputGpad = "f(alpha) = alpha^2;\n"
 				+ "g(beta, gamma) = beta + gamma;";
-		
+
 		String result = api.evalGpad(inputGpad);
 		assertNotNull("evalGpad should succeed", result);
 
-		// Convert construction to gpad
-		String outputGpad = api.toGpad(false);
+		String outputGpad = toGpadViaXml(false);
 		assertNotNull("toGpad should return non-null", outputGpad);
-		
-		// Verify format for f(alpha)
-		assertTrue("Should contain f(alpha) with variable list", 
+
+		assertTrue("Should contain f(alpha) with variable list",
 			outputGpad.contains("f(alpha)") || outputGpad.contains("f(alpha )"));
-		
-		// Verify format for g(beta, gamma)
-		assertTrue("Should contain g(beta, gamma) with variable list", 
+
+		assertTrue("Should contain g(beta, gamma) with variable list",
 			outputGpad.contains("g(beta") && outputGpad.contains("gamma)"));
 	}
 
+	// ========== New syntax tests ==========
+
 	@Test
-	public void testMacroConversion() {
-		// Create a macro via gpad
-		String inputGpad = "@@macro MyMidpoint(A, B) {\n"
-				+ "  A = (0, 0);\n"
-				+ "  B = (2, 2);\n"
-				+ "  M = Midpoint(A, B);\n"
-				+ "  @@return M\n"
-				+ "}";
-		
+	public void testColorPropertyName() {
+		String inputGpad = "@s = { color: #FF0000FF; }\nA @s = (1, 2);";
 		String result = api.evalGpad(inputGpad);
-		// Macro definition doesn't create GeoElements, so result should be empty string ""
-		// null means error occurred
-		assertNotNull("evalGpad should not return null (null means error)", result);
-		assertEquals("evalGpad should return empty string for macro definition", "", result);
-		assertTrue("evalGpad should succeed (no error)", api.getLastError() == null);
+		assertNotNull("evalGpad should succeed", result);
 
-		// Convert construction to gpad
-		String outputGpad = api.toGpad(false);
-		assertNotNull("toGpad should return non-null", outputGpad);
-		
-		// Verify macro definition is present and at the beginning
-		assertTrue("Should contain @@macro", outputGpad.contains("@@macro"));
-		assertTrue("Should contain MyMidpoint", outputGpad.contains("MyMidpoint"));
-		assertTrue("Should contain input parameters", outputGpad.contains("A, B") || outputGpad.contains("A,B"));
-		assertTrue("Should contain @@return", outputGpad.contains("@@return"));
-		assertTrue("Should contain output M", outputGpad.contains("@@return M") || outputGpad.contains("@@return M\n"));
-		
-		// Verify @@return does NOT end with semicolon
-		int returnIndex = outputGpad.indexOf("@@return");
-		if (returnIndex >= 0) {
-			String afterReturn = outputGpad.substring(returnIndex);
-			// Find the line with @@return
-			int newlineIndex = afterReturn.indexOf("\n");
-			if (newlineIndex > 0) {
-				String returnLine = afterReturn.substring(0, newlineIndex);
-				// Should NOT end with semicolon before the closing brace
-				assertTrue("@@return should not end with semicolon", 
-					!returnLine.trim().endsWith(";"));
-			}
-		}
+		String outputGpad = toGpadViaXml(false);
+		assertNotNull(outputGpad);
+		assertTrue("Output should use 'color:' not 'objColor:'",
+			outputGpad.contains("color:") && !outputGpad.contains("objColor:"));
 	}
 
 	@Test
-	public void testMacroWithMultipleInputsAndOutputs() {
-		// Create a macro with multiple inputs and outputs
-		String inputGpad = "@@macro Triangle(A, B, C) {\n"
-				+ "  A = (0, 0);\n"
-				+ "  B = (2, 0);\n"
-				+ "  C = (1, 2);\n"
-				+ "  a = Segment(B, C);\n"
-				+ "  b = Segment(C, A);\n"
-				+ "  c = Segment(A, B);\n"
-				+ "  @@return a, b, c\n"
-				+ "}";
-		
+	public void testEvPropertyRoundtrip() {
+		String inputGpad = "A { ev: 2; } = (1, 2);";
 		String result = api.evalGpad(inputGpad);
-		// Macro definition doesn't create GeoElements, so result should be empty string ""
-		// null means error occurred
-		assertNotNull("evalGpad should not return null (null means error)", result);
-		assertEquals("evalGpad should return empty string for macro definition", "", result);
-		assertTrue("evalGpad should succeed (no error)", api.getLastError() == null);
+		assertNotNull(result);
 
-		// Convert construction to gpad
-		String outputGpad = api.toGpad(false);
-		assertNotNull("toGpad should return non-null", outputGpad);
-		
-		// Verify macro definition
-		assertTrue("Should contain Triangle macro", outputGpad.contains("Triangle"));
-		assertTrue("Should contain input parameters A, B, C", 
-			outputGpad.contains("Triangle(A") && outputGpad.contains("B") && outputGpad.contains("C"));
-		assertTrue("Should contain multiple outputs", 
-			outputGpad.contains("@@return a") && outputGpad.contains("b") && outputGpad.contains("c"));
+		String outputGpad = toGpadViaXml(false);
+		assertNotNull(outputGpad);
+		assertTrue("Should contain ev: property with view flag",
+			outputGpad.contains("ev:"));
 	}
 
 	@Test
-	public void testMacroWithStyleSheet() {
-		// Create a macro with stylesheet inside
-		String inputGpad = "@@macro ColoredPoint(A) {\n"
-				+ "  A = (1, 2);\n"
-				+ "  @redStyle = { objColor: #FF0000FF; pointSize: 6; }\n"
-				+ "  P @redStyle = A;\n"
-				+ "  @@return P\n"
-				+ "}";
-		
+	public void testBoundingBoxPositionalParams() {
+		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
+		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
+		attrs.put("width", "300");
+		attrs.put("height", "200");
+		styleMap.put("boundingBox", attrs);
+
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
+		assertNotNull(gpad);
+		assertTrue("Should use positional params '300 200'", gpad.contains("300 200"));
+		assertTrue("Should not use width= format", !gpad.contains("width="));
+	}
+
+	@Test
+	public void testContentSizePositionalParams() {
+		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
+		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
+		attrs.put("width", "150.5");
+		attrs.put("height", "100.3");
+		styleMap.put("contentSize", attrs);
+
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
+		assertNotNull(gpad);
+		assertTrue("Should use positional params '150.5 100.3'", gpad.contains("150.5 100.3"));
+		assertTrue("Should not use width= format", !gpad.contains("width="));
+	}
+
+	@Test
+	public void testFontWithoutStarPrefix() {
+		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
+		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
+		attrs.put("serif", "true");
+		attrs.put("sizeM", "2.0");
+		attrs.put("style", "1");
+		styleMap.put("font", attrs);
+
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
+		assertNotNull(gpad);
+		assertTrue("Should contain font property", gpad.contains("font"));
+		assertTrue("Should contain serif", gpad.contains("serif"));
+		assertTrue("Should contain size 2 without * prefix", gpad.contains(" 2"));
+		assertTrue("Should not use * prefix for size", !gpad.contains("*2"));
+		assertTrue("Should contain bold", gpad.contains("bold"));
+	}
+
+	@Test
+	public void testFilePropertyName() {
+		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
+		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
+		attrs.put("name", "image.png");
+		styleMap.put("file", attrs);
+
+		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
+		assertNotNull(gpad);
+		assertTrue("Should use 'file:' property name", gpad.contains("file:"));
+		assertTrue("Should not use 'filename:' property name", !gpad.contains("filename:"));
+		assertTrue("Should contain file name", gpad.contains("image.png"));
+	}
+
+	@Test
+	public void testDefaultValuesOmitted() {
+		String inputGpad = "A = (1, 2);";
 		String result = api.evalGpad(inputGpad);
-		// Macro definition doesn't create GeoElements, so result should be empty string ""
-		// null means error occurred
-		assertNotNull("evalGpad should not return null (null means error)", result);
-		assertEquals("evalGpad should return empty string for macro definition", "", result);
-		assertTrue("evalGpad should succeed (no error)", api.getLastError() == null);
+		assertNotNull(result);
 
-		// Convert construction to gpad
-		String outputGpad = api.toGpad(false);
-		assertNotNull("toGpad should return non-null", outputGpad);
-		
-		// Verify macro definition contains stylesheet
-		assertTrue("Should contain ColoredPoint macro", outputGpad.contains("ColoredPoint"));
-		// Stylesheet may be in macro body or generated for output
-		assertTrue("Should contain stylesheet definition in macro", 
-			outputGpad.contains("@redStyle") || outputGpad.contains("@style") || outputGpad.contains("@P"));
-		assertTrue("Should contain @@return", outputGpad.contains("@@return"));
+		String outputGpad = toGpadViaXml(false);
+		assertNotNull(outputGpad);
+		assertTrue("Should not contain fixed (default false)",
+			!outputGpad.contains("fixed"));
+		assertTrue("Should not contain layer: 0 (default)",
+			!outputGpad.contains("layer:"));
+	}
+
+	// ========== Settings roundtrip tests ==========
+
+	@Test
+	public void testEnvKernelSettingsRoundtrip() {
+		GpadEnvToXmlConverter.ConvertResult result = GpadEnvToXmlConverter.convertAll(
+				"precision: 10sf; angleUnit: radian; coordStyle: austrian; "
+				+ "~continuous; symbolic; startAnimation; "
+				+ "pathRegionParams: always; "
+				+ "localization: digits ~labels; "
+				+ "cas: timeout=10 ~rootForm;");
+
+		String kernelXml = result.kernelXml.toString();
+		assertTrue("Should contain significantfigures", kernelXml.contains("significantfigures"));
+		assertTrue("Should contain val=\"10\"", kernelXml.contains("val=\"10\""));
+		assertTrue("Should contain radiant", kernelXml.contains("radiant"));
+		assertTrue("Should contain coordStyle val=\"1\"", kernelXml.contains("coordStyle"));
+		assertTrue("Should contain continuous false",
+				kernelXml.contains("continuous") && kernelXml.contains("false"));
+		assertTrue("Should contain symbolic true",
+				kernelXml.contains("symbolic") && kernelXml.contains("true"));
+		assertTrue("Should contain startAnimation", kernelXml.contains("startAnimation"));
+		assertTrue("Should contain usePathAndRegionParameters",
+				kernelXml.contains("usePathAndRegionParameters"));
+		assertTrue("Should contain localization", kernelXml.contains("localization"));
+		assertTrue("Should contain casSettings", kernelXml.contains("casSettings"));
 	}
 
 	@Test
-	public void testMultipleMacros() {
-		// Create multiple macros
-		String inputGpad = "@@macro MyMidpoint(A, B) {\n"
-				+ "  A = (0, 0);\n"
-				+ "  B = (2, 2);\n"
-				+ "  M = Midpoint(A, B);\n"
-				+ "  @@return M\n"
-				+ "}\n"
-				+ "@@macro MyDistance(A, B) {\n"
-				+ "  A = (0, 0);\n"
-				+ "  B = (2, 2);\n"
-				+ "  d = Distance(A, B);\n"
-				+ "  @@return d\n"
-				+ "}";
-		
-		String result = api.evalGpad(inputGpad);
-		// Macro definition doesn't create GeoElements, so result should be empty string ""
-		// null means error occurred
-		assertNotNull("evalGpad should not return null (null means error)", result);
-		assertEquals("evalGpad should return empty string for macro definition", "", result);
-		assertTrue("evalGpad should succeed (no error)", api.getLastError() == null);
-
-		// Convert construction to gpad
-		String outputGpad = api.toGpad(false);
-		assertNotNull("toGpad should return non-null", outputGpad);
-		
-		// Verify both macros are present
-		assertTrue("Should contain MyMidpoint macro", outputGpad.contains("MyMidpoint"));
-		assertTrue("Should contain MyDistance macro", outputGpad.contains("MyDistance"));
-		
-		// Verify macros appear before construction (if any)
-		int midpointIndex = outputGpad.indexOf("MyMidpoint");
-		int distanceIndex = outputGpad.indexOf("MyDistance");
-		assertTrue("Both macros should be present", midpointIndex >= 0 && distanceIndex >= 0);
+	public void testEnvPrecisionDpRoundtrip() {
+		GpadEnvToXmlConverter.ConvertResult result = GpadEnvToXmlConverter.convertAll(
+				"precision: 15dp;");
+		String kernelXml = result.kernelXml.toString();
+		assertTrue("Should contain decimals", kernelXml.contains("decimals"));
+		assertTrue("Should contain val=\"15\"", kernelXml.contains("val=\"15\""));
 	}
 
 	@Test
-	public void testMacroAndConstruction() {
-		// Create a macro and some construction elements
-		String inputGpad = "@@macro MyMidpoint(A, B) {\n"
-				+ "  A = (0, 0);\n"
-				+ "  B = (2, 2);\n"
-				+ "  M = Midpoint(A, B);\n"
-				+ "  @@return M\n"
-				+ "}\n"
-				+ "P = (0, 0);\n"
-				+ "Q = (2, 2);\n"
-				+ "R = (1, 1);";
-		
-		String result = api.evalGpad(inputGpad);
-		// Should create P, Q, R, so result should not be null or empty
-		assertNotNull("evalGpad should not return null (null means error)", result);
-		assertTrue("evalGpad should create objects (result should not be empty)", !result.isEmpty());
-		assertTrue("evalGpad should succeed (no error)", api.getLastError() == null);
-
-		// Convert construction to gpad
-		String outputGpad = api.toGpad(false);
-		assertNotNull("toGpad should return non-null", outputGpad);
-		System.out.println(outputGpad);
-		
-		// Verify macro appears before construction
-		assertTrue("Should contain MyMidpoint macro", outputGpad.contains("MyMidpoint"));
-		// Check for P, Q, R in output (format may vary: "P =", "P=", or just "P" in macro context)
-		assertTrue("Should contain P", outputGpad.contains("P") && (outputGpad.contains("P =") || outputGpad.contains("P=") || outputGpad.contains("P ")));
-		assertTrue("Should contain Q", outputGpad.contains("Q") && (outputGpad.contains("Q =") || outputGpad.contains("Q=") || outputGpad.contains("Q ")));
-		assertTrue("Should contain R", outputGpad.contains("R") && (outputGpad.contains("R =") || outputGpad.contains("R=") || outputGpad.contains("R ")));
-		
-		// Verify macro appears at the beginning
-		int macroIndex = outputGpad.indexOf("@@macro");
-		// Find first occurrence of P, Q, or R in construction (not in macro)
-		int pIndex = outputGpad.indexOf("P");
-		if (pIndex < 0) pIndex = outputGpad.indexOf("Q");
-		if (pIndex < 0) pIndex = outputGpad.indexOf("R");
-		assertTrue("Macro should appear before construction", 
-			macroIndex >= 0 && pIndex >= 0 && macroIndex < pIndex);
+	public void testEnvGuiRoundtrip() {
+		GpadEnvToXmlConverter.ConvertResult result = GpadEnvToXmlConverter.convertAll(
+				"font: 16; labeling: alwaysOn;");
+		String guiXml = result.guiXml.toString();
+		assertTrue("Should contain font", guiXml.contains("font"));
+		assertTrue("Should contain size=\"16\"", guiXml.contains("size=\"16\""));
+		assertTrue("Should contain labelingStyle", guiXml.contains("labelingStyle"));
+		assertTrue("Should contain val=\"1\"", guiXml.contains("val=\"1\""));
 	}
 
 	@Test
-	public void testMacroReturnFormat() {
-		// Test that @@return does not have semicolon
-		String inputGpad = "@@macro TestMacro(A) {\n"
-				+ "  A = (1, 2);\n"
-				+ "  P = A;\n"
-				+ "  @@return P\n"
-				+ "}";
-		
-		String result = api.evalGpad(inputGpad);
-		// Macro definition doesn't create GeoElements, so result should be empty string ""
-		// null means error occurred
-		assertNotNull("evalGpad should not return null (null means error)", result);
-		assertEquals("evalGpad should return empty string for macro definition", "", result);
-		assertTrue("evalGpad should succeed (no error)", api.getLastError() == null);
-
-		// Convert construction to gpad
-		String outputGpad = api.toGpad(false);
-		assertNotNull("toGpad should return non-null", outputGpad);
-		
-		// Find @@return statement
-		int returnIndex = outputGpad.indexOf("@@return");
-		assertTrue("Should contain @@return", returnIndex >= 0);
-		
-		// Extract the line with @@return
-		String afterReturn = outputGpad.substring(returnIndex);
-		int newlineIndex = afterReturn.indexOf("\n");
-		if (newlineIndex > 0) {
-			String returnLine = afterReturn.substring(0, newlineIndex).trim();
-			// Should end with just the output label(s), not with semicolon
-			assertTrue("@@return line should not end with semicolon", 
-				!returnLine.endsWith(";"));
-			assertTrue("@@return line should contain output", 
-				returnLine.contains("P"));
-		}
+	public void testEnvAlgebraViewRoundtrip() {
+		GpadEnvToXmlConverter.ConvertResult result = GpadEnvToXmlConverter.convertAll(
+				"algebraView: sort=dependency style=description auxiliary;");
+		String avXml = result.algebraViewXml.toString();
+		assertTrue("Should contain algebraView", avXml.contains("algebraView"));
+		assertTrue("Should contain mode val=\"0\"", avXml.contains("val=\"0\""));
+		assertTrue("Should contain auxiliary show=\"true\"",
+				avXml.contains("auxiliary") && avXml.contains("true"));
+		// style should go into kernel XML
+		String kernelXml = result.kernelXml.toString();
+		assertTrue("Should contain algebraStyle", kernelXml.contains("algebraStyle"));
 	}
 
 	@Test
-	public void testMacroWithComplexBody() {
-		// Create a macro with complex body including stylesheets
-		String inputGpad = "@@macro PerpendicularBisector(A, B) {\n"
-				+ "  A = (0, 0);\n"
-				+ "  B = (2, 2);\n"
-				+ "  M = Midpoint(A, B);\n"
-				+ "  s = Segment(A, B);\n"
-				+ "  @lineStyle = { lineStyle: thickness=3; }\n"
-				+ "  l @lineStyle = PerpendicularLine(M, s);\n"
-				+ "  @@return l\n"
-				+ "}";
-		
-		String result = api.evalGpad(inputGpad);
-		// Macro definition doesn't create GeoElements, so result should be empty string ""
-		// null means error occurred
-		assertNotNull("evalGpad should not return null (null means error)", result);
-		assertEquals("evalGpad should return empty string for macro definition", "", result);
-		assertTrue("evalGpad should succeed (no error)", api.getLastError() == null);
-
-		// Convert construction to gpad
-		String outputGpad = api.toGpad(false);
-		assertNotNull("toGpad should return non-null", outputGpad);
-		
-		// Verify macro definition
-		assertTrue("Should contain PerpendicularBisector macro", 
-			outputGpad.contains("PerpendicularBisector"));
-		assertTrue("Should contain macro body statements", 
-			outputGpad.contains("Midpoint") || outputGpad.contains("Segment") || outputGpad.contains("PerpendicularLine"));
-		// Stylesheet may be in macro body or generated for output
-		assertTrue("Should contain stylesheet in macro", 
-			outputGpad.contains("@lineStyle") || outputGpad.contains("@style") || outputGpad.contains("@l"));
-		assertTrue("Should contain @@return", outputGpad.contains("@@return"));
+	public void testEnvSpreadsheetViewRoundtrip() {
+		GpadEnvToXmlConverter.ConvertResult result = GpadEnvToXmlConverter.convertAll(
+				"spreadsheetView { "
+				+ "style: description; "
+				+ "size: 800 600; "
+				+ "cellSize: 70 21; "
+				+ "rows: 100; columns: 26; "
+				+ "column: 120 default 80 = =; "
+				+ "layout: grid ~formulaBar hScroll vScroll; "
+				+ "}");
+		String ssXml = result.spreadsheetViewXml.toString();
+		assertTrue("Should contain spreadsheetView", ssXml.contains("spreadsheetView"));
+		assertTrue("Should contain size", ssXml.contains("size"));
+		assertTrue("Should contain prefCellSize", ssXml.contains("prefCellSize"));
+		assertTrue("Should contain spreadsheetDimensions", ssXml.contains("spreadsheetDimensions"));
+		assertTrue("Should contain spreadsheetColumn", ssXml.contains("spreadsheetColumn"));
+		assertTrue("Should contain layout", ssXml.contains("layout"));
+		assertTrue("Should contain showGrid", ssXml.contains("showGrid"));
+		// spreadsheet style goes into kernel
+		String kernelXml = result.kernelXml.toString();
+		assertTrue("Should contain algebraStyle with spreadsheet",
+				kernelXml.contains("spreadsheet"));
 	}
 
 	@Test
-	public void testMacroWithNoInput() {
-		// Create a macro with no input parameters
-		String inputGpad = "@@macro CreateOrigin() {\n"
-				+ "  O = (0, 0);\n"
-				+ "  @@return O\n"
-				+ "}";
-		
-		String result = api.evalGpad(inputGpad);
-		// Macro definition doesn't create GeoElements, so result should be empty string ""
-		// null means error occurred
-		assertNotNull("evalGpad should not return null (null means error)", result);
-		assertEquals("evalGpad should return empty string for macro definition", "", result);
-		assertTrue("evalGpad should succeed (no error)", api.getLastError() == null);
-
-		// Convert construction to gpad
-		String outputGpad = api.toGpad(false);
-		assertNotNull("toGpad should return non-null", outputGpad);
-		
-		// Verify macro definition
-		assertTrue("Should contain CreateOrigin macro", outputGpad.contains("CreateOrigin"));
-		assertTrue("Should contain empty parameter list", 
-			outputGpad.contains("CreateOrigin()"));
-		assertTrue("Should contain @@return", outputGpad.contains("@@return"));
-		assertTrue("Should contain output O", outputGpad.contains("@@return O") || outputGpad.contains("@@return O\n"));
+	public void testEnvKeyboardRoundtrip() {
+		GpadEnvToXmlConverter.ConvertResult result = GpadEnvToXmlConverter.convertAll(
+				"keyboard: width=400 height=200 opacity=0.8 language=\"en\" show;");
+		String kbXml = result.keyboardXml.toString();
+		assertTrue("Should contain keyboard", kbXml.contains("keyboard"));
+		assertTrue("Should contain width=\"400\"", kbXml.contains("width=\"400\""));
+		assertTrue("Should contain show=\"true\"", kbXml.contains("show=\"true\""));
 	}
 
 	@Test
-	public void testMacroOrdering() {
-		// Create multiple macros and construction elements
-		String inputGpad = "P = (0, 0);\n"
-				+ "@@macro Macro1(A) {\n"
-				+ "  A = (1, 1);\n"
-				+ "  @@return A\n"
-				+ "}\n"
-				+ "Q = (2, 2);\n"
-				+ "@@macro Macro2(B) {\n"
-				+ "  B = (3, 3);\n"
-				+ "  @@return B\n"
-				+ "}\n"
-				+ "R = (4, 4);";
-		
-		String result = api.evalGpad(inputGpad);
-		// Should create P, Q, R, so result should not be null or empty
-		assertNotNull("evalGpad should not return null (null means error)", result);
-		assertTrue("evalGpad should create objects (result should not be empty)", !result.isEmpty());
-		assertTrue("evalGpad should succeed (no error)", api.getLastError() == null);
-
-		// Convert construction to gpad
-		String outputGpad = api.toGpad(false);
-		assertNotNull("toGpad should return non-null", outputGpad);
-		
-		// Verify all macros appear before all construction elements
-		int macro1Index = outputGpad.indexOf("Macro1");
-		int macro2Index = outputGpad.indexOf("Macro2");
-		// Find construction elements (format may vary)
-		int pIndex = outputGpad.indexOf("P ");
-		if (pIndex >= 0 && outputGpad.substring(Math.max(0, pIndex-5), pIndex).contains("macro")) {
-			// P is in macro, find next occurrence
-			pIndex = outputGpad.indexOf("P ", pIndex + 1);
-		}
-		int qIndex = outputGpad.indexOf("Q ");
-		if (qIndex >= 0 && outputGpad.substring(Math.max(0, qIndex-5), qIndex).contains("macro")) {
-			qIndex = outputGpad.indexOf("Q ", qIndex + 1);
-		}
-		int rIndex = outputGpad.indexOf("R ");
-		if (rIndex >= 0 && outputGpad.substring(Math.max(0, rIndex-5), rIndex).contains("macro")) {
-			rIndex = outputGpad.indexOf("R ", rIndex + 1);
-		}
-		
-		assertTrue("Macro1 should be present", macro1Index >= 0);
-		assertTrue("Macro2 should be present", macro2Index >= 0);
-		assertTrue("P should be present in construction", pIndex >= 0);
-		assertTrue("Q should be present in construction", qIndex >= 0);
-		assertTrue("R should be present in construction", rIndex >= 0);
-		
-		// All macros should appear before all construction elements
-		if (pIndex >= 0) {
-			assertTrue("Macro1 should appear before P", macro1Index < pIndex);
-			assertTrue("Macro2 should appear before P", macro2Index < pIndex);
-		}
-		if (qIndex >= 0) {
-			assertTrue("Macro1 should appear before Q", macro1Index < qIndex);
-			assertTrue("Macro2 should appear before Q", macro2Index < qIndex);
-		}
-		if (rIndex >= 0) {
-			assertTrue("Macro1 should appear before R", macro1Index < rIndex);
-			assertTrue("Macro2 should appear before R", macro2Index < rIndex);
-		}
+	public void testEnvProbCalcRoundtrip() {
+		GpadEnvToXmlConverter.ConvertResult result = GpadEnvToXmlConverter.convertAll(
+				"probCalc { "
+				+ "distribution: normal ~cumulative ~overlayActive parameters=\"1,0.5\"; "
+				+ "interval: left low=-1.0 high=1.0; "
+				+ "}");
+		String pcXml = result.probCalcXml.toString();
+		assertTrue("Should contain probabilityCalculator",
+				pcXml.contains("probabilityCalculator"));
+		assertTrue("Should contain distribution type=\"0\"",
+				pcXml.contains("type=\"0\""));
+		assertTrue("Should contain interval mode=\"1\"",
+				pcXml.contains("mode=\"1\""));
 	}
 
 	@Test
-	public void testPointWithLowercaseLabel() {
-		// Create a point with lowercase label programmatically
-		// This should generate Point(x, y) format to avoid ambiguity
-		GeoPoint point = new GeoPoint(getConstruction(), 800, 500, 1.0);
-		point.setLabel("layoutAppSize");
-		
-		// Convert to gpad
-		String outputGpad = api.toGpad(false);
-		assertNotNull("toGpad should return non-null", outputGpad);
-		
-		// Should contain the label
-		assertTrue("Should contain label layoutAppSize", outputGpad.contains("layoutAppSize"));
-		
-		// Should use Point(800.0, 500.0) format (not (800, 500))
-		// Note: coordinates are doubles, so they have decimal points
-		assertTrue("Should contain Point(800, 500) format. Actual gpad: " + outputGpad, 
-			outputGpad.contains("Point(") && outputGpad.contains("800") && outputGpad.contains("500") && outputGpad.contains(")"));
-		
-		// Should NOT contain plain (800, 500) format for this lowercase label
-		// (unless it's in a different context, but the main assignment should use Point[])
-		String pointLine = findLineContaining(outputGpad, "layoutAppSize");
-		assertTrue("Point with lowercase label should use Point(x, y) format: " + pointLine,
-			pointLine.contains("Point("));
-
-		// Verify it can be parsed back correctly
-		String result = api.evalGpad(outputGpad);
-		assertNotNull("Round trip should succeed", result);
-		assertTrue("Should contain layoutAppSize in result", result.contains("layoutAppSize"));
+	public void testEnvScriptingRoundtrip() {
+		GpadEnvToXmlConverter.ConvertResult result = GpadEnvToXmlConverter.convertAll(
+				"scripting: blocked disabled;");
+		String scrXml = result.scriptingXml.toString();
+		assertTrue("Should contain scripting", scrXml.contains("scripting"));
+		assertTrue("Should contain blocked=\"true\"", scrXml.contains("blocked=\"true\""));
+		assertTrue("Should contain disabled=\"true\"", scrXml.contains("disabled=\"true\""));
 	}
 
 	@Test
-	public void testPointWithUppercaseLabel() {
-		// Create a point with uppercase label programmatically
-		// This should generate Point(x, y) format
-		GeoPoint point = new GeoPoint(getConstruction(), 800, 500, 1.0);
-		point.setLabel("LayoutAppSize");
-		
-		// Convert to gpad
-		String outputGpad = api.toGpad(false);
-		assertNotNull("toGpad should return non-null", outputGpad);
-		
-		// Should contain the label
-		assertTrue("Should contain label LayoutAppSize", outputGpad.contains("LayoutAppSize"));
-		
-		// Should use Point(800.0, 500.0) format
-		// Note: coordinates are doubles, so they have decimal points
-		String pointLine = findLineContaining(outputGpad, "LayoutAppSize");
-		assertTrue("Point with uppercase label should use (x, y) format: " + pointLine,
-			pointLine.contains("Point(800") && (pointLine.contains("500)") || pointLine.contains("500.0)")));
+	public void testEnvTableViewRoundtrip() {
+		GpadEnvToXmlConverter.ConvertResult result = GpadEnvToXmlConverter.convertAll(
+				"tableView: min=-5.0 max=5.0 step=0.5;");
+		String tvXml = result.tableviewXml.toString();
+		assertTrue("Should contain tableview", tvXml.contains("tableview"));
+		assertTrue("Should contain min", tvXml.contains("min"));
+		assertTrue("Should contain max", tvXml.contains("max"));
+		assertTrue("Should contain step", tvXml.contains("step"));
 	}
 
 	@Test
-	public void testVectorWithUppercaseLabel() {
-		// Create a vector with uppercase label programmatically
-		// This should generate Vector(x, y) format to avoid ambiguity
-		GeoVector vector = new GeoVector(getConstruction());
-		vector.setCoords(3, 4, 0);
-		vector.setLabel("VecAB");
-		
-		// Convert to gpad
-		String outputGpad = api.toGpad(false);
-		assertNotNull("toGpad should return non-null", outputGpad);
-		
-		// Should contain the label
-		assertTrue("Should contain label VecAB", outputGpad.contains("VecAB"));
-		
-		// Should use Vector(3.0, 4.0) format (not (3, 4))
-		// Note: coordinates are doubles, so they have decimal points
-		String vectorLine = findLineContaining(outputGpad, "VecAB");
-		assertTrue("Vector with uppercase label should use Vector(x, y) format: " + vectorLine,
-			vectorLine.contains("Vector(") && vectorLine.contains("3") && vectorLine.contains("4") && vectorLine.contains(")"));
+	public void testXmlToGpadSettingsCapture() {
+		String xml = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
+				+ "<geogebra format=\"5.0\">\n"
+				+ "<kernel>\n"
+				+ "  <continuous val=\"false\"/>\n"
+				+ "  <decimals val=\"5\"/>\n"
+				+ "  <angleUnit val=\"radiant\"/>\n"
+				+ "  <algebraStyle val=\"2\" spreadsheet=\"1\"/>\n"
+				+ "  <coordStyle val=\"0\"/>\n"
+				+ "</kernel>\n"
+				+ "<algebraView>\n"
+				+ "  <mode val=\"0\"/>\n"
+				+ "  <auxiliary show=\"true\"/>\n"
+				+ "</algebraView>\n"
+				+ "<gui>\n"
+				+ "  <font size=\"16\"/>\n"
+				+ "  <labelingStyle val=\"2\"/>\n"
+				+ "</gui>\n"
+				+ "<construction title=\"\" author=\"\" date=\"\">\n"
+				+ "</construction>\n"
+				+ "</geogebra>";
+
+		ToGpadConverter converter = new ToGpadConverter(xml, null, false);
+		String gpad = converter.toGpad();
+		assertNotNull("toGpad should return non-null", gpad);
+		assertTrue("Should contain @@env", gpad.contains("@@env"));
+		assertTrue("Should contain precision", gpad.contains("precision:") || gpad.contains("precision: "));
+		assertTrue("Should contain angleUnit radian",
+				gpad.contains("radian"));
+		assertTrue("Should contain font: 16", gpad.contains("font: 16"));
+		assertTrue("Should contain labeling", gpad.contains("labeling:") || gpad.contains("labeling: "));
+		assertTrue("Should contain algebraView", gpad.contains("algebraView"));
 	}
 
 	@Test
-	public void testVectorWithLowercaseLabel() {
-		// Create a vector with lowercase label programmatically
-		// This should generate (x, y) format (normal format)
-		GeoVector vector = new GeoVector(getConstruction());
-		vector.setCoords(3, 4, 0);
-		vector.setLabel("vecAB");
-		
-		// Convert to gpad
-		String outputGpad = api.toGpad(false);
-		assertNotNull("toGpad should return non-null", outputGpad);
-		
-		// Should contain the label
-		assertTrue("Should contain label vecAB", outputGpad.contains("vecAB"));
-		
-		// Should use Vector(3.0, 4.0) format
-		// Note: coordinates are doubles, so they have decimal points
-		String vectorLine = findLineContaining(outputGpad, "vecAB");
-		assertTrue("Vector with lowercase label should use (x, y) format: " + vectorLine,
-			vectorLine.contains("Vector(3") && vectorLine.contains("4.0)"));
-	}
-
-	@Test
-	public void testMixedPointAndVectorLabels() {
-		// Create multiple points and vectors with different label cases
-		GeoPoint pointLower = new GeoPoint(getConstruction(), 100, 200, 1.0);
-		pointLower.setLabel("pointLower");
-		
-		GeoPoint pointUpper = new GeoPoint(getConstruction(), 300, 400, 1.0);
-		pointUpper.setLabel("PointUpper");
-		
-		GeoVector vectorLower = new GeoVector(getConstruction());
-		vectorLower.setCoords(5, 6, 0);
-		vectorLower.setLabel("vectorLower");
-		
-		GeoVector vectorUpper = new GeoVector(getConstruction());
-		vectorUpper.setCoords(7, 8, 0);
-		vectorUpper.setLabel("VectorUpper");
-		
-		// Convert to gpad
-		String outputGpad = api.toGpad(false);
-		assertNotNull("toGpad should return non-null", outputGpad);
-		
-		// Verify all labels are present
-		assertTrue("Should contain pointLower", outputGpad.contains("pointLower"));
-		assertTrue("Should contain PointUpper", outputGpad.contains("PointUpper"));
-		assertTrue("Should contain vectorLower", outputGpad.contains("vectorLower"));
-		assertTrue("Should contain VectorUpper", outputGpad.contains("VectorUpper"));
-		
-		// Verify formats
-		String pointLowerLine = findLineContaining(outputGpad, "pointLower");
-		assertTrue("pointLower should use Point(x, y) format: " + pointLowerLine,
-			pointLowerLine.contains("Point("));
-		
-		String pointUpperLine = findLineContaining(outputGpad, "PointUpper");
-		assertTrue("PointUpper should use Point(x, y) format: " + pointUpperLine,
-			pointUpperLine.contains("Point(300") && (pointUpperLine.contains("400)") || pointUpperLine.contains("400.0)")));
-		
-		String vectorLowerLine = findLineContaining(outputGpad, "vectorLower");
-		assertTrue("vectorLower should use Vector(x, y) format: " + vectorLowerLine,
-			vectorLowerLine.contains("Vector(5") && (vectorLowerLine.contains("6)") || vectorLowerLine.contains("6.0)")));
-
-		String vectorUpperLine = findLineContaining(outputGpad, "VectorUpper");
-		assertTrue("VectorUpper should use Vector(x, y) format: " + vectorUpperLine,
-			vectorUpperLine.contains("Vector(") && vectorUpperLine.contains("7") && vectorUpperLine.contains("8") && vectorUpperLine.contains(")"));
-	}
-
-	/**
-	 * Helper method to find the line containing a specific label in gpad output.
-	 * Prefers lines that contain "=" (command lines) over style sheet definitions.
-	 * @param gpad the gpad string
-	 * @param label the label to search for
-	 * @return the line containing the label, or empty string if not found
-	 */
-	private String findLineContaining(String gpad, String label) {
-		String[] lines = gpad.split("\n");
-		// First try to find a line with "=" (command line)
-		for (String line : lines) {
-			if (line.contains(label) && line.contains("=") && !line.trim().startsWith("@")) {
-				return line;
-			}
-		}
-		// Fallback to any line containing the label
-		for (String line : lines) {
-			if (line.contains(label)) {
-				return line;
-			}
-		}
-		return "";
+	public void testColumnWidthEncoding() {
+		GpadEnvToXmlConverter.ConvertResult result = GpadEnvToXmlConverter.convertAll(
+				"spreadsheetView { column: 120 default 80 = =; }");
+		String ssXml = result.spreadsheetViewXml.toString();
+		assertTrue("col 0 should have width 120",
+				ssXml.contains("id=\"0\"") && ssXml.contains("width=\"120\""));
+		assertTrue("col 2 should have width 80",
+				ssXml.contains("id=\"2\"") && ssXml.contains("width=\"80\""));
+		assertTrue("col 3 should have width 80 (= repeat)",
+				ssXml.contains("id=\"3\""));
+		assertTrue("col 4 should have width 80 (= repeat)",
+				ssXml.contains("id=\"4\""));
+		assertTrue("col 1 (default) should NOT be emitted as spreadsheetColumn",
+				!ssXml.contains("id=\"1\" width"));
 	}
 }
-

@@ -89,6 +89,16 @@ public class GpadSerializer {
     }
     
     /**
+     * Serializes an empty corner marker to the StringBuilder.
+     * Used for gaps in startPoint sequences (e.g., only corners 0 and 2 are set).
+     */
+    public static void serializeEmptyCorner(StringBuilder serialized, boolean firstCorner) {
+        if (!firstCorner)
+            serialized.append((char)1); // separator
+        serialized.append((char)4); // empty corner marker
+    }
+
+    /**
      * Serializes a single barTag bar to the StringBuilder.
      * Format: [length char][barNumber char][flags char][属性值序列]
      *   - length: total length of barNumber + flags + 属性值序列 (excluding length itself)
@@ -241,6 +251,13 @@ public class GpadSerializer {
         for (String cornerStr : cornerStrings) {
             if (cornerStr.isEmpty())
                 continue;
+
+            // Check for empty corner marker
+            if (cornerStr.length() == 1 && cornerStr.charAt(0) == '\u0004') {
+                handler.handle(firstCorner, false, new String[4]);
+                firstCorner = false;
+                continue;
+            }
             
             // Parse corner format: [absolute byte][type byte][content]
             if (cornerStr.length() < 2)
@@ -364,15 +381,11 @@ public class GpadSerializer {
             for (int i = 0; i < startPoints.size(); i++) {
                 LinkedHashMap<String, String> corner = startPoints.get(i);
                 if (corner == null) {
-                    // Check if there are any non-null entries after this
-                    for (int j = i + 1; j < startPoints.size(); j++) {
-                        if (startPoints.get(j) != null) {
-                            org.geogebra.common.util.debug.Log.error(
-                                "startPoint: found null at index " + i + ", but non-null entry exists at index " + j + ". Ignoring entries after index " + i);
-                            break;
-                        }
-                    }
-                    break;
+                    if (!first)
+                        serialized.append((char)1); // separator
+                    serialized.append((char)4); // empty corner marker
+                    first = false;
+                    continue;
                 }
                 
                 // Extract corner data

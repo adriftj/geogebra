@@ -253,9 +253,9 @@ public class GpadToGgb {
 				return false;
 			}
 			
-			// Parse GPAD and create construction
+			// Parse GPAD for XML conversion (hybrid approach: GeoElement for structure, GpadStyleSheet for styles)
 			GgbAPI ggbApi = app.getGgbApi();
-			String result = ggbApi.evalGpad(gpadText.toString());
+			boolean parseSuccess = ggbApi.evalGpadForXml(gpadText.toString());
 			
 			// Check for warnings (non-fatal issues) - output before checking for errors
 			// Warnings should be output even if parsing fails
@@ -272,7 +272,7 @@ public class GpadToGgb {
 				}
 			}
 			
-			if (result == null) {
+			if (!parseSuccess) {
 				// Check for error message
 				String error = ggbApi.getLastError();
 				if (error == null || error.trim().isEmpty())
@@ -283,8 +283,8 @@ public class GpadToGgb {
 				return false;
 			}
 			
-			// Get XML representation of the construction
-			String xmlString = ggbApi.getXML();
+			// Generate XML from GeoElement structure + GpadStyleSheet styles (no default value pollution)
+			String xmlString = ggbApi.gpadToXml();
 			
 			if (xmlString == null || xmlString.isEmpty()) {
 				String error = "Conversion produced empty XML: " + inputPath;
@@ -294,12 +294,15 @@ public class GpadToGgb {
 				return false;
 			}
 			
+			// Generate macro XML using hybrid approach (if macros exist)
+			String macroXml = ggbApi.gpadToMacroXml();
+			
 			// Collect files to embed
 			Set<String> filesToEmbed = collectFilesToEmbed(gpadText.toString(), inputFile, embedRootDir);
 			
 			// Write to GGB file (ZIP format) with embedded files
 			try (FileOutputStream fos = new FileOutputStream(outputFile)) {
-				writeZippedWithEmbeddedFiles(fos, xmlString, filesToEmbed, embedRootDir, app);
+				writeZippedWithEmbeddedFiles(fos, xmlString, macroXml, filesToEmbed, embedRootDir);
 			}
 
 			// Output success message, including warning indicator if warnings were present
@@ -332,11 +335,13 @@ public class GpadToGgb {
 					app.getKernel().setNotifyRepaintActive(false);
 					app.getKernel().getAnimationManager().stopAnimation();
 					
-					// Get XML and write to file
+					// Generate XML from the already-parsed result
 					GgbAPI ggbApi = app.getGgbApi();
-					String xmlString = ggbApi.getXML();
+					String xmlString = ggbApi.gpadToXml();
 					
 					if (xmlString != null && !xmlString.isEmpty()) {
+						String macroXml = ggbApi.gpadToMacroXml();
+						
 						// Collect files to embed
 						StringBuilder gpadTextForEmbed = new StringBuilder();
 						try (InputStreamReader reader = new InputStreamReader(
@@ -350,7 +355,7 @@ public class GpadToGgb {
 						Set<String> filesToEmbed = collectFilesToEmbed(gpadTextForEmbed.toString(), inputFile, embedRootDir);
 						
 						try (FileOutputStream fos = new FileOutputStream(outputFile)) {
-							writeZippedWithEmbeddedFiles(fos, xmlString, filesToEmbed, embedRootDir, app);
+							writeZippedWithEmbeddedFiles(fos, xmlString, macroXml, filesToEmbed, embedRootDir);
 						}
 						System.out.println("Converted (with LaTeX warning): " + inputFile.getName() + " -> " + outputFile.getName());
 						successCount++;
@@ -565,9 +570,15 @@ public class GpadToGgb {
 	
 	/**
 	 * Write GGB file with embedded files
+	 * 
+	 * @param fos output stream
+	 * @param xmlString main construction XML
+	 * @param macroXml macro XML (may be null if no macros)
+	 * @param filesToEmbed files to embed
+	 * @param embedRootDir root directory for embedded files
 	 */
 	private static void writeZippedWithEmbeddedFiles(FileOutputStream fos, String xmlString, 
-			Set<String> filesToEmbed, File embedRootDir, AppDNoGui app) throws IOException {
+			String macroXml, Set<String> filesToEmbed, File embedRootDir) throws IOException {
 		ZipOutputStream zip = new ZipOutputStream(fos);
 		
 		// Write XML file
@@ -575,17 +586,11 @@ public class GpadToGgb {
 		zip.write(xmlString.getBytes(StandardCharsets.UTF_8));
 		zip.closeEntry();
 		
-		// Write macro XML file if macros exist
-		if (app != null && app.getKernel() != null && app.getKernel().hasMacros()) {
-			java.util.ArrayList<org.geogebra.common.kernel.Macro> macros = app.getKernel().getAllMacros();
-			if (macros != null && !macros.isEmpty()) {
-				String macroXML = app.getXMLio().getFullMacroXML(macros);
-				if (macroXML != null && !macroXML.isEmpty()) {
-					zip.putNextEntry(new ZipEntry(MyXMLio.XML_FILE_MACRO));
-					zip.write(macroXML.getBytes(StandardCharsets.UTF_8));
-					zip.closeEntry();
-				}
-			}
+		// Write macro XML file if provided
+		if (macroXml != null && !macroXml.isEmpty()) {
+			zip.putNextEntry(new ZipEntry(MyXMLio.XML_FILE_MACRO));
+			zip.write(macroXml.getBytes(StandardCharsets.UTF_8));
+			zip.closeEntry();
 		}
 		
 		// Write embedded files

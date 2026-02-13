@@ -11,11 +11,12 @@ public class GpadStyleMaps {
 	 */
 	public static final Map<String, String> GPAD_TO_XML_NAME_MAP = Map.ofEntries(
 			Map.entry("@screen", "absoluteScreenLocation"),
+			Map.entry("color", "objColor"),
 			Map.entry("hideLabelInAlgebra", "algebra"),
 			Map.entry("showIf", "condition"),
 			Map.entry("showGeneralAngle", "emphasizeRightAngle"),
-			Map.entry("filename", "file"),
-			Map.entry("random", "value"));
+			Map.entry("random", "value"),
+			Map.entry("unselectable", "selectionAllowed"));
 
 	/**
 	 * XML 元素名 -> Gpad 属性名（GPAD_TO_XML_NAME_MAP 的反向映射）
@@ -25,7 +26,8 @@ public class GpadStyleMaps {
 			Map.entry("algebra", "hideLabelInAlgebra"),
 			Map.entry("condition", "showIf"),
 			Map.entry("emphasizeRightAngle", "showGeneralAngle"),
-			Map.entry("file", "filename"));
+			Map.entry("objColor", "color"),
+			Map.entry("selectionAllowed", "unselectable"));
 
 	// ==================== 属性名到XML属性名的映射 ====================
 
@@ -38,7 +40,7 @@ public class GpadStyleMaps {
 		Map.entry("audio", "src"),
 		Map.entry("curveParam", "t"),
 		Map.entry("decoration", "type"),
-		Map.entry("filename", "name"),
+		Map.entry("file", "name"),
 		Map.entry("hideLabelInAlgebra", "labelVisible"),
 		Map.entry("linkedGeo", "exp"),
 		Map.entry("random", "random"),
@@ -59,96 +61,93 @@ public class GpadStyleMaps {
 	public static final Integer GK_FLOAT = 2;
 	public static final Integer GK_STR = 3;
 
-	// ==================== 属性信息内部类 ====================
+	// ==================== 属性类型表 ====================
 
 	/**
-	 * 属性信息，包含类型和默认值
-	 * 默认值存储的是 XML 格式的值（因为比较时使用的是从 XML 读取的值）
+	 * 属性类型表：Gpad 属性名 -> 类型常量（GK_BOOL/GK_INT/GK_FLOAT/GK_STR）。
+	 * 默认值通过 {@link #getSimpleDefaultValue(String)} 从 {@link GpadStyleDefaults} 获取。
 	 */
-	public static class PropertyInfo {
-		public final Integer type;
-		public final String defaultValue;
-
-		public PropertyInfo(Integer type, String defaultValue) {
-			this.type = type;
-			this.defaultValue = defaultValue;
-		}
-	}
-
-	// ==================== 属性信息表（合并了类型和默认值） ====================
-
-	/**
-	 * 属性信息表，同时包含类型（GK_BOOL/GK_INT/GK_FLOAT/GK_STR）和默认值
-	 * 用于统一管理属性类型和默认值，方便维护
-	 * Key 是 Gpad 属性名
-	 * 默认值存储的是 XML 格式的值（因为比较时使用的是从 XML 读取的值）
-	 */
-	public static final Map<String, PropertyInfo> PROPERTY_INFO = Map.ofEntries(
-			// GK_BOOL 类型（布尔类型没有默认值，因为 false 值会被省略）
-			Map.entry("autocolor", new PropertyInfo(GK_BOOL, null)),
-			Map.entry("auxiliary", new PropertyInfo(GK_BOOL, null)),
-			Map.entry("breakpoint", new PropertyInfo(GK_BOOL, null)),
-			Map.entry("centered", new PropertyInfo(GK_BOOL, null)),
-			Map.entry("comboBox", new PropertyInfo(GK_BOOL, null)),
-			Map.entry("contentSerif", new PropertyInfo(GK_BOOL, null)),
-			Map.entry("fixed", new PropertyInfo(GK_BOOL, null)),
-			Map.entry("hideLabelInAlgebra", new PropertyInfo(GK_BOOL, null)),
-			Map.entry("inBackground", new PropertyInfo(GK_BOOL, null)),
-			Map.entry("interpolate", new PropertyInfo(GK_BOOL, null)),
-			Map.entry("isLaTeX", new PropertyInfo(GK_BOOL, null)),
-			Map.entry("isMask", new PropertyInfo(GK_BOOL, null)),
-			Map.entry("keepTypeOnTransform", new PropertyInfo(GK_BOOL, null)),
-			Map.entry("levelOfDetailQuality", new PropertyInfo(GK_BOOL, null)),
-			Map.entry("outlyingIntersections", new PropertyInfo(GK_BOOL, null)),
-			Map.entry("random", new PropertyInfo(GK_BOOL, null)),
-			Map.entry("selectionAllowed", new PropertyInfo(GK_BOOL, null)),
-			Map.entry("showGeneralAngle", new PropertyInfo(GK_BOOL, null)),
-			Map.entry("showOnAxis", new PropertyInfo(GK_BOOL, null)),
-			Map.entry("showTrimmed", new PropertyInfo(GK_BOOL, null)),
-			Map.entry("symbolic", new PropertyInfo(GK_BOOL, null)),
-			Map.entry("trace", new PropertyInfo(GK_BOOL, null)),
-			Map.entry("userinput", new PropertyInfo(GK_BOOL, null)),
+	public static final Map<String, Integer> PROPERTY_INFO = Map.ofEntries(
+			// GK_BOOL 类型
+			Map.entry("allowReflexAngle", GK_BOOL),
+			Map.entry("autocolor", GK_BOOL),
+			Map.entry("auxiliary", GK_BOOL),
+			Map.entry("breakpoint", GK_BOOL),
+			Map.entry("centered", GK_BOOL),
+			Map.entry("comboBox", GK_BOOL),
+			Map.entry("contentSerif", GK_BOOL),
+			Map.entry("fixed", GK_BOOL),
+			Map.entry("hideLabelInAlgebra", GK_BOOL),
+			Map.entry("inBackground", GK_BOOL),
+			Map.entry("interpolate", GK_BOOL),
+			Map.entry("isLaTeX", GK_BOOL),
+			Map.entry("isMask", GK_BOOL),
+			Map.entry("keepTypeOnTransform", GK_BOOL),
+			Map.entry("levelOfDetailQuality", GK_BOOL),
+			Map.entry("outlyingIntersections", GK_BOOL),
+			Map.entry("random", GK_BOOL),
+			Map.entry("unselectable", GK_BOOL),
+			Map.entry("showGeneralAngle", GK_BOOL),
+			Map.entry("showOnAxis", GK_BOOL),
+			Map.entry("showTrimmed", GK_BOOL),
+			Map.entry("symbolic", GK_BOOL),
+			Map.entry("trace", GK_BOOL),
+			Map.entry("userinput", GK_BOOL),
 
 			// GK_INT 类型
-			Map.entry("arcSize", new PropertyInfo(GK_INT, "30")),
-			Map.entry("decimals", new PropertyInfo(GK_INT, "-1")),
-			Map.entry("layer", new PropertyInfo(GK_INT, "0")),
-			Map.entry("length", new PropertyInfo(GK_INT, "20")),
-			Map.entry("selectedIndex", new PropertyInfo(GK_INT, "0")),
-			Map.entry("significantfigures", new PropertyInfo(GK_INT, "-1")),
-			Map.entry("slopeTriangleSize", new PropertyInfo(GK_INT, "1")),
+			Map.entry("arcSize", GK_INT),
+			Map.entry("decimals", GK_INT),
+			Map.entry("layer", GK_INT),
+			Map.entry("length", GK_INT),
+			Map.entry("levelOfDetail", GK_INT),
+			Map.entry("selectedIndex", GK_INT),
+			Map.entry("significantfigures", GK_INT),
+			Map.entry("slopeTriangleSize", GK_INT),
 
 			// GK_FLOAT 类型
-			Map.entry("fading", new PropertyInfo(GK_FLOAT, "0.0")),
-			Map.entry("ordering", new PropertyInfo(GK_FLOAT, "NaN")),
-			Map.entry("pointSize", new PropertyInfo(GK_FLOAT, "5")),
+			Map.entry("fading", GK_FLOAT),
+			Map.entry("ordering", GK_FLOAT),
+			Map.entry("pointSize", GK_FLOAT),
 
-			// GK_STR 类型（存储 XML 格式的默认值）
-			// 对于有值映射的属性，这里存储的是 XML 值（如 "0"），而不是 Gpad 值（如 "0-360"）
-			Map.entry("angleStyle", new PropertyInfo(GK_STR, "0")), // XML 中 "0" 对应 Gpad 的 "0-360"
-			Map.entry("audio", new PropertyInfo(GK_STR, "")), // XML 属性名是 "src"
-			Map.entry("caption", new PropertyInfo(GK_STR, "")),
-			Map.entry("content", new PropertyInfo(GK_STR, "")),
-			Map.entry("coordStyle", new PropertyInfo(GK_STR, "cartesian")),
-			Map.entry("curveParam", new PropertyInfo(GK_STR, "")), // 值可能是表达式（字符串）
-			Map.entry("decoration", new PropertyInfo(GK_STR, "0")), // XML 中 "0" 对应 Gpad 的 "none"
-			Map.entry("dynamicCaption", new PropertyInfo(GK_STR, "")),
-			Map.entry("endStyle", new PropertyInfo(GK_STR, "default")),
-			Map.entry("filename", new PropertyInfo(GK_STR, "")), // XML 元素名是 "file"
-			Map.entry("headStyle", new PropertyInfo(GK_STR, "0")), // XML 中 "0" 对应 Gpad 的 "default"
-			Map.entry("incrementY", new PropertyInfo(GK_STR, "")),
-			Map.entry("jsClickFunction", new PropertyInfo(GK_STR, "")),
-			Map.entry("jsUpdateFunction", new PropertyInfo(GK_STR, "")),
-			Map.entry("labelMode", new PropertyInfo(GK_STR, "0")), // XML 中 "0" 对应 Gpad 的 "name"
-			Map.entry("linkedGeo", new PropertyInfo(GK_STR, "")),
-			Map.entry("parentLabel", new PropertyInfo(GK_STR, "")),
-			Map.entry("pointStyle", new PropertyInfo(GK_STR, "0")), // XML 中 "0" 对应 Gpad 的 "dot"
-			Map.entry("showIf", new PropertyInfo(GK_STR, "")), // XML 元素名是 "condition"
-			Map.entry("startStyle", new PropertyInfo(GK_STR, "default")),
-			Map.entry("textAlign", new PropertyInfo(GK_STR, "left")),
-			Map.entry("tooltipMode", new PropertyInfo(GK_STR, "0")), // XML 中 "0" 对应 Gpad 的 "algebraview"
-			Map.entry("verticalAlign", new PropertyInfo(GK_STR, "top")),
-			Map.entry("video", new PropertyInfo(GK_STR, ""))); // XML 属性名是 "src"
+			// GK_STR 类型
+			Map.entry("angleStyle", GK_STR),
+			Map.entry("audio", GK_STR),
+			Map.entry("caption", GK_STR),
+			Map.entry("content", GK_STR),
+			Map.entry("coordStyle", GK_STR),
+			Map.entry("curveParam", GK_STR),
+			Map.entry("decoration", GK_STR),
+			Map.entry("dynamicCaption", GK_STR),
+			Map.entry("endStyle", GK_STR),
+			Map.entry("file", GK_STR),
+			Map.entry("headStyle", GK_STR),
+			Map.entry("incrementY", GK_STR),
+			Map.entry("jsClickFunction", GK_STR),
+			Map.entry("jsUpdateFunction", GK_STR),
+			Map.entry("labelMode", GK_STR),
+			Map.entry("linkedGeo", GK_STR),
+			Map.entry("parentLabel", GK_STR),
+			Map.entry("pointStyle", GK_STR),
+			Map.entry("showIf", GK_STR),
+			Map.entry("startStyle", GK_STR),
+			Map.entry("textAlign", GK_STR),
+			Map.entry("tooltipMode", GK_STR),
+			Map.entry("verticalAlign", GK_STR),
+			Map.entry("video", GK_STR));
+
+	/**
+	 * Gets the default value for a simple property (GK_BOOL/GK_INT/GK_FLOAT/GK_STR)
+	 * from the GpadStyleDefaults authoritative source.
+	 * This converts from Gpad property name to XML tag name and reads the appropriate attr.
+	 * 
+	 * @param gpadName Gpad property name
+	 * @return default value in XML format, or null if no default
+	 */
+	public static String getSimpleDefaultValue(String gpadName) {
+		String xmlTagName = GPAD_TO_XML_NAME_MAP.getOrDefault(gpadName, gpadName);
+		String attrName = GPAD_TO_XML_ATTR_NAME_MAP.getOrDefault(gpadName, "val");
+		return GpadStyleDefaults.getDefaultAttrValue(xmlTagName, attrName);
+	}
 
 	// ==================== lineStyle 相关 ====================
 
@@ -170,6 +169,10 @@ public class GpadStyleMaps {
 	public static final Map<String, String> LINE_STYLE_TYPE_REVERSE_MAP = Map.ofEntries(
 			Map.entry("-1", "pointwise"),
 			Map.entry("0", "full"),
+			Map.entry("1", "dashedshort"),   // legacy value for dashed
+			Map.entry("2", "dotted"),        // legacy value for dotted
+			Map.entry("3", "dasheddotted"),  // legacy value for dashed-dotted
+			Map.entry("4", "dashedlong"),    // legacy value for dashed-long
 			Map.entry("10", "dashedshort"),
 			Map.entry("15", "dashedlong"),
 			Map.entry("20", "dotted"),
@@ -258,20 +261,32 @@ public class GpadStyleMaps {
 					"180-360", "2",
 					"any", "3")),
 			Map.entry("coordStyle", COORD_STYLE_MAP),
-			Map.entry("decoration", Map.of("none", "0",
-					"single_tick", "1",
-					"double_tick", "2",
-					"triple_tick", "3",
-					"simple_arrow", "4",
-					"double_arrow", "5",
-					"triple_arrow", "6")),
+			Map.entry("decoration", Map.ofEntries(
+					Map.entry("none", "0"),
+					Map.entry("single_tick", "1"),
+					Map.entry("double_tick", "2"),
+					Map.entry("triple_tick", "3"),
+					Map.entry("simple_arrow", "4"),
+					Map.entry("double_arrow", "5"),
+					Map.entry("triple_arrow", "6"),
+					Map.entry("right_angle", "7"),
+					Map.entry("right_angle_dot", "8"),
+					Map.entry("clockwise", "9"))),
 			Map.entry("emphasizeRightAngle", BOOLEAN_VALUE_REVERT_MAP),
+			Map.entry("selectionAllowed", BOOLEAN_VALUE_REVERT_MAP),
 			Map.entry("endStyle", START_END_STYLE_VALUES),
 			Map.entry("headStyle", Map.of("default", "0", "arrow", "1")),
-			Map.entry("labelMode", Map.of("name", "0",
-					"namevalue", "1",
-					"value", "2",
-					"caption", "3")),
+			Map.entry("labelMode", Map.ofEntries(
+					Map.entry("name", "0"),
+					Map.entry("namevalue", "1"),
+					Map.entry("value", "2"),
+					Map.entry("caption", "3"),
+					Map.entry("default", "4"),
+					Map.entry("defaultname", "5"),
+					Map.entry("defaultnamevalue", "6"),
+					Map.entry("defaultvalue", "7"),
+					Map.entry("defaultcaption", "8"),
+					Map.entry("captionvalue", "9"))),
 			Map.entry("pointStyle", Map.ofEntries(
 					Map.entry("default", "-1"),
 					Map.entry("dot", "0"),
@@ -304,20 +319,32 @@ public class GpadStyleMaps {
 					"2", "180-360",
 					"3", "any")),
 			Map.entry("coordStyle", COORD_STYLE_MAP),
-			Map.entry("decoration", Map.of("0", "none",
-					"1", "single_tick",
-					"2", "double_tick",
-					"3", "triple_tick",
-					"4", "simple_arrow",
-					"5", "double_arrow",
-					"6", "triple_arrow")),
+			Map.entry("decoration", Map.ofEntries(
+					Map.entry("0", "none"),
+					Map.entry("1", "single_tick"),
+					Map.entry("2", "double_tick"),
+					Map.entry("3", "triple_tick"),
+					Map.entry("4", "simple_arrow"),
+					Map.entry("5", "double_arrow"),
+					Map.entry("6", "triple_arrow"),
+					Map.entry("7", "right_angle"),
+					Map.entry("8", "right_angle_dot"),
+					Map.entry("9", "clockwise"))),
 			Map.entry("emphasizeRightAngle", BOOLEAN_VALUE_REVERT_MAP),
+			Map.entry("selectionAllowed", BOOLEAN_VALUE_REVERT_MAP),
 			Map.entry("endStyle", START_END_STYLE_VALUES),
 			Map.entry("headStyle", Map.of("0", "default", "1", "arrow")),
-			Map.entry("labelMode", Map.of("0", "name",
-					"1", "namevalue",
-					"2", "value",
-					"3", "caption")),
+			Map.entry("labelMode", Map.ofEntries(
+					Map.entry("0", "name"),
+					Map.entry("1", "namevalue"),
+					Map.entry("2", "value"),
+					Map.entry("3", "caption"),
+					Map.entry("4", "default"),
+					Map.entry("5", "defaultname"),
+					Map.entry("6", "defaultnamevalue"),
+					Map.entry("7", "defaultvalue"),
+					Map.entry("8", "defaultcaption"),
+					Map.entry("9", "captionvalue"))),
 			Map.entry("pointStyle", Map.ofEntries(
 					Map.entry("-1", "default"),
 					Map.entry("0", "dot"),
@@ -373,6 +400,85 @@ public class GpadStyleMaps {
 			Map.entry("weaving", "7"),
 			Map.entry("symbols", "8"),
 			Map.entry("image", "9"));
+
+	// ==================== 视图 ID / 名称映射 ====================
+
+	public static final Map<String, String> VIEW_NAME_TO_ID = Map.ofEntries(
+			Map.entry("ev1", "1"),
+			Map.entry("algebra", "2"),
+			Map.entry("spreadsheet", "4"),
+			Map.entry("cas", "8"),
+			Map.entry("ev2", "16"),
+			Map.entry("protocol", "32"),
+			Map.entry("probability", "64"),
+			Map.entry("data", "70"),
+			Map.entry("inspector", "128"),
+			Map.entry("ev3d", "512"),
+			Map.entry("ev3d2", "513"),
+			Map.entry("plane", "1024"),
+			Map.entry("properties", "4097"),
+			Map.entry("table", "8192"),
+			Map.entry("tools", "16384"),
+			Map.entry("sidePanel", "32768"));
+
+	public static final Map<Integer, String> VIEW_ID_TO_NAME;
+	static {
+		java.util.Map<Integer, String> m = new java.util.LinkedHashMap<>();
+		for (Map.Entry<String, String> e : VIEW_NAME_TO_ID.entrySet()) {
+			try {
+				m.put(Integer.parseInt(e.getValue()), e.getKey());
+			} catch (NumberFormatException ignored) { }
+		}
+		VIEW_ID_TO_NAME = java.util.Collections.unmodifiableMap(m);
+	}
+
+	public static String viewNameToId(String name) {
+		String mapped = VIEW_NAME_TO_ID.get(name);
+		return mapped != null ? mapped : name;
+	}
+
+	public static String viewIdToName(String idStr) {
+		if (idStr == null) return "0";
+		try {
+			int id = Integer.parseInt(idStr);
+			String name = VIEW_ID_TO_NAME.get(id);
+			return name != null ? name : idStr;
+		} catch (NumberFormatException e) {
+			return idStr;
+		}
+	}
+
+	// ==================== Tab ID / 名称映射 ====================
+
+	public static final Map<String, String> TAB_NAME_TO_ID = Map.ofEntries(
+			Map.entry("algebra", "ALGEBRA"),
+			Map.entry("tools", "TOOLS"),
+			Map.entry("table", "TABLE"),
+			Map.entry("distribution", "DISTRIBUTION"),
+			Map.entry("spreadsheet", "SPREADSHEET"));
+
+	public static final Map<String, String> TAB_ID_TO_NAME = Map.ofEntries(
+			Map.entry("0", "algebra"),
+			Map.entry("ALGEBRA", "algebra"),
+			Map.entry("1", "tools"),
+			Map.entry("TOOLS", "tools"),
+			Map.entry("2", "table"),
+			Map.entry("TABLE", "table"),
+			Map.entry("3", "distribution"),
+			Map.entry("DISTRIBUTION", "distribution"),
+			Map.entry("4", "spreadsheet"),
+			Map.entry("SPREADSHEET", "spreadsheet"));
+
+	public static String tabNameToId(String name) {
+		if (name == null) return null;
+		String mapped = TAB_NAME_TO_ID.get(name);
+		return mapped != null ? mapped : name;
+	}
+
+	public static String tabIdToName(String idOrName) {
+		if (idOrName == null) return null;
+		return TAB_ID_TO_NAME.get(idOrName);
+	}
 
 	// 私有构造函数，防止实例化
 	private GpadStyleMaps() {

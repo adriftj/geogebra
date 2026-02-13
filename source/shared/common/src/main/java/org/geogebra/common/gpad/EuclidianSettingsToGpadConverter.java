@@ -464,7 +464,7 @@ public class EuclidianSettingsToGpadConverter {
 		// Label
 		String[] labels = settings.getAxesLabels();
 		if (labels != null && axisId < labels.length && labels[axisId] != null && !labels[axisId].isEmpty()) {
-			axisSb.append(" label=\"").append(escapeString(labels[axisId])).append("\"");
+			axisSb.append(" label=").append(quoteString(labels[axisId]));
 			hasContent = true;
 		}
 		
@@ -474,7 +474,7 @@ public class EuclidianSettingsToGpadConverter {
 			if (Unicode.PI_STRING.equals(unitLabels[axisId])) {
 				axisSb.append(" piUnit");
 			} else {
-				axisSb.append(" unit=\"").append(escapeString(unitLabels[axisId])).append("\"");
+				axisSb.append(" unit=").append(quoteString(unitLabels[axisId]));
 			}
 			hasContent = true;
 		}
@@ -681,14 +681,8 @@ public class EuclidianSettingsToGpadConverter {
 	/**
 	 * Escapes special characters in a string for Gpad.
 	 */
-	private static String escapeString(String str) {
-		if (str == null) {
-			return "";
-		}
-		return str.replace("\\", "\\\\")
-				.replace("\"", "\\\"")
-				.replace("\n", "\\n")
-				.replace("\r", "\\r");
+	private static String quoteString(String str) {
+		return StyleMapToGpadConverter.quoteString(str);
 	}
 	
 	/**

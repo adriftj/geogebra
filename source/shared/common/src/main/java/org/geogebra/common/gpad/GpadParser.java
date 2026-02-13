@@ -1,20 +1,15 @@
 package org.geogebra.common.gpad;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
-import org.geogebra.common.kernel.CircularDefinitionException;
 import org.geogebra.common.kernel.Kernel;
-import org.geogebra.common.kernel.geos.GeoElement;
 import org.geogebra.common.kernel.parser.Parser;
 
 /**
- * Main Gpad parser that parses complete Gpad text and creates GeoElements.
+ * Main Gpad parser – static GPAD↔XML conversion only, no runtime evaluation.
  */
 public class GpadParser {
-	private Map<String, GpadStyleSheet> globalStyleSheets;
 	private Kernel kernel;
 	private Parser parser;
 
@@ -25,41 +20,49 @@ public class GpadParser {
 	 */
 	public GpadParser(Kernel kernel) {
 		this.kernel = kernel;
-		this.globalStyleSheets = new HashMap<>();
 		this.parser = new Parser(kernel);
 	}
 
 	/**
-	 * Parses a complete Gpad text and creates GeoElements.
-	 * 
-	 * @param gpadText
-	 *            Gpad text to parse (case-insensitive: Gpad or gpad)
-	 * @return list of created GeoElements
-	 * @throws GpadParseException
-	 *             if parsing fails
-	 * @throws CircularDefinitionException
-	 *             if circular definition is detected
+	 * Parses GPAD text statically (no kernel evaluation) and returns a list of
+	 * {@link GpadStaticItem} that can be fed to
+	 * {@link GpadToXmlStaticConverter}.
+	 *
+	 * @param gpadText GPAD text to parse
+	 * @return list of static items
+	 * @throws GpadParseException if parsing fails
 	 */
-	public List<GeoElement> parse(String gpadText) throws GpadParseException {
+	public List<GpadStaticItem> parseStaticItems(String gpadText) throws GpadParseException {
 		if (gpadText == null || gpadText.trim().isEmpty())
 			return new ArrayList<>();
-
-		// parseGpad now only throws GpadParseException, so we can directly propagate
-		List<GeoElement> results = parser.parseGpad(gpadText);
-		
-		// Update global style sheets
-		Map<String, GpadStyleSheet> parserStyleSheets = parser.getGpadStyleSheets();
-		if (parserStyleSheets != null)
-			globalStyleSheets.putAll(parserStyleSheets);
-		
-		return results;
+		return parser.parseGpadStatic(gpadText);
 	}
 
 	/**
-	 * @return the global style sheets
+	 * Parses GPAD text statically (no kernel evaluation) and produces
+	 * a construction XML string that can be loaded by {@code MyXMLio.loadXml()}.
+	 *
+	 * @param gpadText GPAD text to convert
+	 * @return construction XML string ({@code <construction>...</construction>})
+	 * @throws GpadParseException if parsing fails
 	 */
-	public Map<String, GpadStyleSheet> getGlobalStyleSheets() {
-		return globalStyleSheets;
+	public String parseStaticToXml(String gpadText) throws GpadParseException {
+		List<GpadStaticItem> items = parseStaticItems(gpadText);
+		return GpadToXmlStaticConverter.buildConstructionXml(items);
+	}
+
+	/**
+	 * Parses a GPAD stylesheet body string (e.g. {@code "{ show: val true; }"})
+	 * into a {@link GpadStyleSheet}.
+	 *
+	 * @param styleSheetStr stylesheet body string
+	 * @return parsed stylesheet
+	 * @throws GpadParseException if parsing fails
+	 */
+	public GpadStyleSheet parseStyleSheet(String styleSheetStr) throws GpadParseException {
+		if (styleSheetStr == null || styleSheetStr.trim().isEmpty())
+			return new GpadStyleSheet("");
+		return parser.parseGpadStyleSheet(styleSheetStr);
 	}
 
 	/**

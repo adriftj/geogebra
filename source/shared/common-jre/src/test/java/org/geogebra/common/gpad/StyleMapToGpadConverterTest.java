@@ -388,7 +388,6 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 
 	@Test
 	public void testCheckboxWithFixedTrue() {
-		// Test checkbox with fixed="true": should output both "checkbox;" and "fixed;"
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> checkboxAttrs = new LinkedHashMap<>();
@@ -397,13 +396,11 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		
 		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
-		assertTrue("Should contain checkbox", gpad.contains("checkbox"));
-		assertTrue("Should contain fixed", gpad.contains("fixed"));
+		assertTrue("Should contain 'checkbox: fixed'", gpad.contains("checkbox: fixed"));
 	}
 
 	@Test
 	public void testCheckboxWithFixedFalse() {
-		// Test checkbox with fixed="false": should only output "checkbox;" (fixed is default false, so omitted)
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> checkboxAttrs = new LinkedHashMap<>();
@@ -413,12 +410,11 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain checkbox", gpad.contains("checkbox"));
-		assertTrue("Should not contain fixed (default false, omitted)", !gpad.contains("fixed"));
+		assertTrue("Should not contain 'fixed' (default false)", !gpad.contains("fixed"));
 	}
 
 	@Test
 	public void testCheckboxWithoutFixed() {
-		// Test checkbox without fixed attribute: should only output "checkbox;" (fixed defaults to false)
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> checkboxAttrs = new LinkedHashMap<>();
@@ -427,12 +423,11 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain checkbox", gpad.contains("checkbox"));
-		assertTrue("Should not contain fixed (default false, omitted)", !gpad.contains("fixed"));
+		assertTrue("Should not contain 'fixed' (default false)", !gpad.contains("fixed"));
 	}
 
 	@Test
 	public void testCheckboxWithFixedTrueAndOtherProperties() {
-		// Test checkbox with fixed="true" along with other properties
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> checkboxAttrs = new LinkedHashMap<>();
@@ -445,8 +440,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		
 		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
-		assertTrue("Should contain checkbox", gpad.contains("checkbox"));
-		assertTrue("Should contain fixed", gpad.contains("fixed"));
+		assertTrue("Should contain 'checkbox: fixed'", gpad.contains("checkbox: fixed"));
 		assertTrue("Should contain trace", gpad.contains("trace"));
 	}
 
@@ -464,8 +458,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain boundingBox", gpad.contains("boundingBox"));
-		assertTrue("Should contain width=100", gpad.contains("width=100"));
-		assertTrue("Should contain height=200", gpad.contains("height=200"));
+		assertTrue("Should contain positional 100 200", gpad.contains("100 200"));
 	}
 
 	@Test
@@ -480,8 +473,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		
 		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
-		assertTrue("Should contain width=100 (decimal ignored)", gpad.contains("width=100"));
-		assertTrue("Should contain height=200 (decimal ignored)", gpad.contains("height=200"));
+		assertTrue("Should contain positional 100 200 (decimal ignored)", gpad.contains("100 200"));
 		assertTrue("Should not contain 100.5", !gpad.contains("100.5"));
 		assertTrue("Should not contain 200.9", !gpad.contains("200.9"));
 	}
@@ -497,8 +489,8 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain boundingBox", gpad.contains("boundingBox"));
-		assertTrue("Should contain width=100", gpad.contains("width=100"));
-		assertTrue("Should not contain height", !gpad.contains("height"));
+		assertTrue("Should contain 100", gpad.contains("100"));
+		assertTrue("Should not contain height value", !gpad.contains(" 200"));
 	}
 
 	@Test
@@ -512,8 +504,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain boundingBox", gpad.contains("boundingBox"));
-		assertTrue("Should contain height=200", gpad.contains("height=200"));
-		assertTrue("Should not contain width", !gpad.contains("width"));
+		assertTrue("Should contain 200", gpad.contains("200"));
 	}
 
 	// ========== Tests for contentSize ==========
@@ -530,8 +521,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain contentSize", gpad.contains("contentSize"));
-		assertTrue("Should contain width=100.5", gpad.contains("width=100.5"));
-		assertTrue("Should contain height=200.3", gpad.contains("height=200.3"));
+		assertTrue("Should contain positional 100.5 200.3", gpad.contains("100.5 200.3"));
 	}
 
 	@Test
@@ -546,8 +536,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		
 		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
-		assertTrue("Should contain width=100", gpad.contains("width=100"));
-		assertTrue("Should contain height=200", gpad.contains("height=200"));
+		assertTrue("Should contain positional 100 200", gpad.contains("100 200"));
 	}
 
 	@Test
@@ -561,8 +550,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain contentSize", gpad.contains("contentSize"));
-		assertTrue("Should contain width=100.5", gpad.contains("width=100.5"));
-		assertTrue("Should not contain height", !gpad.contains("height"));
+		assertTrue("Should contain 100.5", gpad.contains("100.5"));
 	}
 
 	// ========== Tests for cropBox ==========
@@ -829,8 +817,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		
 		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
-		assertTrue("Should contain width=-100.5", gpad.contains("width=-100.5"));
-		assertTrue("Should contain height=-200.3", gpad.contains("height=-200.3"));
+		assertTrue("Should contain positional -100.5 -200.3", gpad.contains("-100.5 -200.3"));
 	}
 
 	@Test
@@ -845,8 +832,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		
 		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
-		assertTrue("Should contain width=-100 (decimal ignored)", gpad.contains("width=-100"));
-		assertTrue("Should contain height=-200 (decimal ignored)", gpad.contains("height=-200"));
+		assertTrue("Should contain positional -100 -200 (decimal ignored)", gpad.contains("-100 -200"));
 		assertTrue("Should not contain -100.5", !gpad.contains("-100.5"));
 		assertTrue("Should not contain -200.9", !gpad.contains("-200.9"));
 	}
@@ -855,7 +841,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 
 	@Test
 	public void testFontBasicSerifSizePlain() {
-		// Test font: serif *0.5 plain
+		// Test font: serif 0.5 plain
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -868,14 +854,14 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		assertNotNull(gpad);
 		assertTrue("Should contain font", gpad.contains("font"));
 		assertTrue("Should contain serif", gpad.contains("serif"));
-		assertTrue("Should contain *0.5", gpad.contains("*0.5"));
+		assertTrue("Should contain 0.5", gpad.contains("0.5"));
 		// style=0 (plain) is default, so should not be output
 		assertTrue("Should not contain plain (default)", !gpad.contains("plain"));
 	}
 
 	@Test
 	public void testFontTildeSerifSizeItalicBold() {
-		// Test font: ~serif *2 italic bold
+		// Test font: ~serif 2 italic bold
 		Map<String, LinkedHashMap<String, String>> styleMap = new LinkedHashMap<>();
 		
 		LinkedHashMap<String, String> attrs = new LinkedHashMap<>();
@@ -889,7 +875,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		assertTrue("Should contain font", gpad.contains("font"));
 		// serif=false is default, so should not output ~serif
 		assertTrue("Should not contain ~serif (default false)", !gpad.contains("~serif"));
-		assertTrue("Should contain *2", gpad.contains("*2"));
+		assertTrue("Should contain 2", gpad.contains(" 2 "));
 		assertTrue("Should contain italic bold", gpad.contains("italic bold"));
 	}
 
@@ -908,7 +894,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		assertNotNull(gpad);
 		assertTrue("Should contain font", gpad.contains("font"));
 		assertTrue("Should contain serif", gpad.contains("serif"));
-		assertTrue("Should not contain * (default 1.0)", !gpad.contains("*"));
+		assertTrue("Should not contain sizeM (default 1.0)", !gpad.contains("1.0"));
 		assertTrue("Should not contain style keywords (default plain)", !gpad.contains("plain") && !gpad.contains("bold") && !gpad.contains("italic"));
 	}
 
@@ -927,7 +913,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		assertNotNull(gpad);
 		assertTrue("Should contain font", gpad.contains("font"));
 		assertTrue("Should not contain serif (default false)", !gpad.contains("serif"));
-		assertTrue("Should contain *1.5", gpad.contains("*1.5"));
+		assertTrue("Should contain 1.5", gpad.contains("1.5"));
 		assertTrue("Should not contain style keywords", !gpad.contains("plain") && !gpad.contains("bold") && !gpad.contains("italic"));
 	}
 
@@ -946,7 +932,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		assertNotNull(gpad);
 		assertTrue("Should contain font", gpad.contains("font"));
 		assertTrue("Should not contain serif", !gpad.contains("serif"));
-		assertTrue("Should not contain *sizeM", !gpad.contains("*"));
+		assertTrue("Should not contain sizeM", !gpad.contains("1.0"));
 		assertTrue("Should contain bold", gpad.contains("bold"));
 		assertTrue("Should not contain italic", !gpad.contains("italic"));
 	}
@@ -1001,7 +987,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		assertNotNull(gpad);
 		assertTrue("Should contain font", gpad.contains("font"));
 		assertTrue("Should contain serif", gpad.contains("serif"));
-		assertTrue("Should contain *1.8", gpad.contains("*1.8"));
+		assertTrue("Should contain 1.8", gpad.contains("1.8"));
 		assertTrue("Should contain italic bold", gpad.contains("italic bold"));
 	}
 
@@ -1035,7 +1021,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
 		assertTrue("Should contain font", gpad.contains("font"));
-		assertTrue("Should not contain size (default 1.0)", !gpad.contains("*"));
+		assertTrue("Should not contain size (default 1.0)", !gpad.contains("1.0"));
 		assertTrue("Should contain bold", gpad.contains("bold"));
 	}
 
@@ -1054,7 +1040,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		assertNotNull(gpad);
 		assertTrue("Should contain font", gpad.contains("font"));
 		assertTrue("Should contain serif", gpad.contains("serif"));
-		assertTrue("Should contain *1.5", gpad.contains("*1.5"));
+		assertTrue("Should contain 1.5", gpad.contains("1.5"));
 		assertTrue("Should not contain plain (default)", !gpad.contains("plain"));
 	}
 
@@ -1071,7 +1057,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		
 		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
-		assertTrue("Should contain *0.75", gpad.contains("*0.75"));
+		assertTrue("Should contain 0.75", gpad.contains("0.75"));
 		assertTrue("Should contain italic", gpad.contains("italic"));
 	}
 
@@ -1088,7 +1074,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		
 		String gpad = StyleMapToGpadConverter.convert("test", styleMap, null);
 		assertNotNull(gpad);
-		assertTrue("Should contain *3.5", gpad.contains("*3.5"));
+		assertTrue("Should contain 3.5", gpad.contains("3.5"));
 	}
 
 	@Test
@@ -1119,7 +1105,7 @@ public class StyleMapToGpadConverterTest extends BaseUnitTest {
 		assertNotNull(gpad);
 		assertTrue("Should contain font", gpad.contains("font"));
 		assertTrue("Should contain serif", gpad.contains("serif"));
-		assertTrue("Should contain *1.5", gpad.contains("*1.5"));
+		assertTrue("Should contain 1.5", gpad.contains("1.5"));
 		// Invalid style should be ignored
 		assertTrue("Should not contain style keywords", !gpad.contains("plain") && !gpad.contains("bold") && !gpad.contains("italic"));
 	}

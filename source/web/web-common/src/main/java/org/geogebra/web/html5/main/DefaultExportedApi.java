@@ -1252,24 +1252,13 @@ public class DefaultExportedApi implements ExportedApi {
 	/**
 	 * Converts the entire construction to Gpad format.
 	 * 
-	 * @param mergeStylesheets whether to merge identical stylesheets
-	 * @return Gpad string representation of the entire construction
-	 */
-	public String toGpad(@TS(TS.OPTIONAL_BOOL) Object mergeStylesheets) {
-		boolean merge = Js.isTruthy(mergeStylesheets);
-		return getGgbAPI().toGpad(merge);
-	}
-
-	/**
-	 * Converts the entire construction to Gpad format by parsing XML directly.
-	 * 
 	 * @param xmlFile complete GeoGebra XML file (with <geogebra> as root element), containing construction content
 	 * @param xmlMacro complete macro XML (with <geogebra> as root element), containing all macro definitions (may contain multiple <macro> elements)
 	 * @param mergeStylesheets whether to merge identical stylesheets
 	 * @return Gpad string representation of the entire construction
 	 */
-	public String xmlToGpad(String xmlFile, String xmlMacro, @TS(TS.OPTIONAL_BOOL) Object mergeStylesheets) {
+	public String toGpad(String xmlFile, String xmlMacro, @TS(TS.OPTIONAL_BOOL) Object mergeStylesheets) {
 		boolean merge = Js.isTruthy(mergeStylesheets);
-		return getGgbAPI().xmlToGpad(xmlFile + "", xmlMacro + "", merge);
+		return getGgbAPI().toGpad(xmlFile + "", xmlMacro + "", merge);
 	}
 }

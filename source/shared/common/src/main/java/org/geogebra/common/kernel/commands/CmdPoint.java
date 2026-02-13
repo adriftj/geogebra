@@ -18,6 +18,7 @@ package org.geogebra.common.kernel.commands;
 
 import org.geogebra.common.kernel.Kernel;
 import org.geogebra.common.kernel.Path;
+import org.geogebra.common.kernel.algos.AlgoDependentPoint;
 import org.geogebra.common.kernel.algos.AlgoPointVector;
 import org.geogebra.common.kernel.algos.AlgoPointsFromList;
 import org.geogebra.common.kernel.arithmetic.Command;
@@ -86,14 +87,31 @@ public class CmdPoint extends CommandProcessor {
 		case 2:
 			arg = resArgs(c, info);
 			
-			// Check for Point(Number, Number) - creates independent draggable point
+			// Check for Point(Number, Number)
 			if (arg[0] instanceof GeoNumberValue && arg[1] instanceof GeoNumberValue) {
-				double x = ((GeoNumberValue) arg[0]).getDouble();
-				double y = ((GeoNumberValue) arg[1]).getDouble();
-				GeoPoint point = getAlgoDispatcher().point(x, y, false);
+				if (arg[0].isIndependent() && arg[1].isIndependent()) {
+					// Both independent: create free draggable point
+					double x = ((GeoNumberValue) arg[0]).getDouble();
+					double y = ((GeoNumberValue) arg[1]).getDouble();
+					GeoPoint point = getAlgoDispatcher().point(x, y, false);
+					if (c.getLabels() != null && c.getLabels().length > 0)
+						point.setLabel(c.getLabels()[0]);
+					return new GeoElement[]{point};
+				}
+				// At least one argument is dependent: create a dependent point
+				// that tracks changes. Build a vector expression node from the
+				// original command arguments to preserve the dependency chain.
+				org.geogebra.common.kernel.arithmetic.MyVecNode vec =
+					new org.geogebra.common.kernel.arithmetic.MyVecNode(kernel,
+						c.getArgument(0), c.getArgument(1));
+				org.geogebra.common.kernel.arithmetic.ExpressionNode root =
+					new org.geogebra.common.kernel.arithmetic.ExpressionNode(kernel, vec);
+				root.setForcePoint();
+				AlgoDependentPoint algo = new AlgoDependentPoint(cons, root, false);
+				GeoPoint depPoint = (GeoPoint) algo.getOutput(0);
 				if (c.getLabels() != null && c.getLabels().length > 0)
-					point.setLabel(c.getLabels()[0]);
-				return new GeoElement[]{point};
+					depPoint.setLabel(c.getLabels()[0]);
+				return new GeoElement[]{depPoint};
 			}
 			
 			// Existing cases: Point(Path, NumberValue) and Point(Point, Vector)
