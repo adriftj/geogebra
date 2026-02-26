@@ -305,6 +305,7 @@ public abstract class GgbAPI implements JavaScriptAPI {
 		lastError = null;
 		lastWarning = null;
 		org.geogebra.common.gpad.GpadParser gpadParser = null;
+		java.util.List<String> inferWarnings = new java.util.ArrayList<>();
 		try {
 			gpadParser = new org.geogebra.common.gpad.GpadParser(kernel);
 
@@ -319,7 +320,7 @@ public abstract class GgbAPI implements JavaScriptAPI {
 				return "";
 
 			String fullXml = org.geogebra.common.gpad.GpadToXmlStaticConverter
-					.buildFullXml(items);
+					.buildFullXml(items, inferWarnings);
 			app.setXML(fullXml, false);
 
 			StringBuilder ret = new StringBuilder();
@@ -339,18 +340,22 @@ public abstract class GgbAPI implements JavaScriptAPI {
 			if (lastError == null)
 				lastError = t.getClass().getSimpleName();
 		} finally {
+			java.util.List<String> allWarnings = new java.util.ArrayList<>();
 			if (gpadParser != null) {
-				java.util.List<String> warnings = gpadParser.getGpadWarnings();
-				if (warnings != null && !warnings.isEmpty()) {
-					StringBuilder warningBuilder = new StringBuilder();
-					boolean first = true;
-					for (String w : warnings) {
-						if (!first) warningBuilder.append("\n");
-						first = false;
-						warningBuilder.append(w);
-					}
-					lastWarning = warningBuilder.toString();
+				java.util.List<String> parseWarnings = gpadParser.getGpadWarnings();
+				if (parseWarnings != null)
+					allWarnings.addAll(parseWarnings);
+			}
+			allWarnings.addAll(inferWarnings);
+			if (!allWarnings.isEmpty()) {
+				StringBuilder warningBuilder = new StringBuilder();
+				boolean first = true;
+				for (String w : allWarnings) {
+					if (!first) warningBuilder.append("\n");
+					first = false;
+					warningBuilder.append(w);
 				}
+				lastWarning = warningBuilder.toString();
 			}
 		}
 		return null;
@@ -421,13 +426,27 @@ public abstract class GgbAPI implements JavaScriptAPI {
 	/**
 	 * Generates the full geogebra.xml content from the last evalGpadForXml() result.
 	 * Must be called after a successful evalGpadForXml().
+	 * Type-inference warnings are appended to {@link #lastWarning}.
 	 * 
 	 * @return the complete geogebra.xml content, or null if no result available
 	 */
 	public synchronized String gpadToXml() {
 		if (gpadStaticItems == null)
 			return null;
-		return org.geogebra.common.gpad.GpadToXmlStaticConverter.buildFullXml(gpadStaticItems);
+		java.util.List<String> inferWarnings = new java.util.ArrayList<>();
+		String xml = org.geogebra.common.gpad.GpadToXmlStaticConverter
+				.buildFullXml(gpadStaticItems, inferWarnings);
+		if (!inferWarnings.isEmpty()) {
+			StringBuilder wb = new StringBuilder();
+			if (lastWarning != null)
+				wb.append(lastWarning);
+			for (String w : inferWarnings) {
+				if (wb.length() > 0) wb.append("\n");
+				wb.append(w);
+			}
+			lastWarning = wb.toString();
+		}
+		return xml;
 	}
 
 	/**

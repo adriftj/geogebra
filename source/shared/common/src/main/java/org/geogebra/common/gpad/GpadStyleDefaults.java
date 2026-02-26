@@ -47,7 +47,7 @@ public final class GpadStyleDefaults {
 	private static final LinkedHashMap<String, String> VAL_5 = createMap("val", "5");
 	private static final LinkedHashMap<String, String> VAL_LEFT = createMap("val", "left");
 	private static final LinkedHashMap<String, String> VAL_TOP = createMap("val", "top");
-	private static final LinkedHashMap<String, String> VAL_CARTESIAN = createMap("style", "cartesian");
+	private static final LinkedHashMap<String, String> VAL_CARTESIAN = createMap("val", "cartesian");
 
 	// String types with special attr names
 	private static final LinkedHashMap<String, String> SRC_EMPTY = createMap("src", "");

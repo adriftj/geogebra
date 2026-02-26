@@ -52,6 +52,19 @@ public class GpadToXmlStaticConverter {
 	 * @return full XML string suitable for writing into a .ggb file
 	 */
 	public static String buildFullXml(List<GpadStaticItem> items) {
+		return buildFullXml(items, null);
+	}
+
+	/**
+	 * Builds a complete {@code geogebra.xml} document from a list of static
+	 * items, collecting type-inference warnings.
+	 *
+	 * @param items    list of parsed static items
+	 * @param warnings list to collect type-inference warnings (may be {@code null})
+	 * @return full XML string suitable for writing into a .ggb file
+	 */
+	public static String buildFullXml(List<GpadStaticItem> items,
+			List<String> warnings) {
 		XMLStringBuilder sb = new XMLStringBuilder();
 		MyXMLio.addXMLHeader(sb);
 		addStaticGeoGebraHeader(sb, false);
@@ -86,7 +99,7 @@ public class GpadToXmlStaticConverter {
 			sb.append(new XMLStringBuilder(new StringBuilder(DEFAULT_KERNEL_XML)));
 		}
 
-		String constructionXml = buildConstructionXml(items);
+		String constructionXml = buildConstructionXml(items, warnings);
 		sb.append(new XMLStringBuilder(new StringBuilder(constructionXml)));
 
 		sb.closeTag("geogebra");
@@ -159,6 +172,19 @@ public class GpadToXmlStaticConverter {
 	 * @return XML string containing the {@code <construction>} block
 	 */
 	public static String buildConstructionXml(List<GpadStaticItem> items) {
+		return buildConstructionXml(items, null);
+	}
+
+	/**
+	 * Builds a complete {@code <construction>} XML fragment from a list of
+	 * static items, collecting type-inference warnings.
+	 *
+	 * @param items    list of parsed static items
+	 * @param warnings list to collect type-inference warnings (may be {@code null})
+	 * @return XML string containing the {@code <construction>} block
+	 */
+	public static String buildConstructionXml(List<GpadStaticItem> items,
+			List<String> warnings) {
 		XMLStringBuilder sb = new XMLStringBuilder();
 		sb.startOpeningTag("construction", 0);
 		sb.attr("title", "");
@@ -168,6 +194,7 @@ public class GpadToXmlStaticConverter {
 
 		for (GpadStaticItem item : items) {
 			if (item.type == null) continue;
+			GpadTypeInferrer.inferMissingTypes(item, warnings);
 			switch (item.type) {
 				case COMMAND:    emitCommand(sb, item); break;
 				case EXPRESSION: emitExpression(sb, item); break;
@@ -491,15 +518,27 @@ public class GpadToXmlStaticConverter {
 		sb.endTag();
 	}
 
-	private static String unquote(String s) {
+	/**
+	 * Decodes a shorthand quoted string into its plain-text value.
+	 * Handles mixed-quote strings (e.g. {@code "Hello`"`"World"} → {@code Hello"World})
+	 * and simple single-delimiter strings ({@code "abc"} → {@code abc}).
+	 */
+	static String unquote(String s) {
 		if (s == null) return "";
 		String t = s.trim();
-		if (t.length() >= 6 && t.startsWith("\"\"\"") && t.endsWith("\"\"\""))
-			return t.substring(3, t.length() - 3);
-		if (t.length() >= 2 && t.charAt(0) == '"' && t.charAt(t.length() - 1) == '"')
-			return t.substring(1, t.length() - 1);
-		if (t.length() >= 2 && t.charAt(0) == '`' && t.charAt(t.length() - 1) == '`')
-			return t.substring(1, t.length() - 1);
+		if (t.isEmpty()) return "";
+		if (GpadTypeInferrer.isMixedQuotedString(t)) {
+			StringBuilder sb = new StringBuilder();
+			int i = 0;
+			while (i < t.length()) {
+				char delim = t.charAt(i);
+				int end = t.indexOf(delim, i + 1);
+				if (end < 0) break;
+				sb.append(t, i + 1, end);
+				i = end + 1;
+			}
+			return sb.toString();
+		}
 		return t;
 	}
 

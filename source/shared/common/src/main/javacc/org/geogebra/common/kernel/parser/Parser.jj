@@ -1051,7 +1051,7 @@ TOKEN : {
  < TEXT: "\""  (~["\""])* "\"" >
 }
 
-<GK_BLOCK, GK_animation_BLOCK, GK_EXPR_BLOCK> TOKEN : {
+<DEFAULT, GK_BLOCK, GK_animation_BLOCK, GK_EXPR_BLOCK> TOKEN : {
  < BACKTICK_TEXT: "`" (~["`"])* "`" >
 }
 
