@@ -1213,12 +1213,13 @@ public class DefaultExportedApi implements ExportedApi {
 
 	/**
 	 * Evaluates the given Gpad string and creates GeoElements.
-	 * 
+	 *
 	 * @param gpadText Gpad text to parse
-	 * @return comma separated labels of created objects, or null if parsing fails
+	 * @return labels of created objects (in gpad source order), or null on error
 	 */
-	public String evalGpad(String gpadText) {
-		return getGgbAPI().evalGpad(gpadText + "");
+	public JsArray<String> evalGpad(String gpadText, @TS(TS.OPTIONAL_BOOL) Object returnLabels) {
+		String[] labels = getGgbAPI().evalGpad(gpadText + "", Js.isTruthy(returnLabels));
+		return labels != null ? new JsArray<>(labels) : null;
 	}
 
 	/**
@@ -1257,8 +1258,18 @@ public class DefaultExportedApi implements ExportedApi {
 	 * @param mergeStylesheets whether to merge identical stylesheets
 	 * @return Gpad string representation of the entire construction
 	 */
-	public String toGpad(String xmlFile, String xmlMacro, @TS(TS.OPTIONAL_BOOL) Object mergeStylesheets) {
+	/**
+	 * Exports the current construction (including macros) as Gpad text.
+	 *
+	 * @param mergeStylesheets whether to merge identical stylesheets (optional, default false)
+	 * @return Gpad string representation of the current construction
+	 */
+	public String getGpad(@TS(TS.OPTIONAL_BOOL) Object mergeStylesheets) {
+		return getGgbAPI().getGpad(Js.isTruthy(mergeStylesheets));
+	}
+
+	public String xmlToGpad(String xmlFile, String xmlMacro, @TS(TS.OPTIONAL_BOOL) Object mergeStylesheets) {
 		boolean merge = Js.isTruthy(mergeStylesheets);
-		return getGgbAPI().toGpad(xmlFile + "", xmlMacro + "", merge);
+		return getGgbAPI().xmlToGpad(xmlFile + "", xmlMacro + "", merge);
 	}
 }

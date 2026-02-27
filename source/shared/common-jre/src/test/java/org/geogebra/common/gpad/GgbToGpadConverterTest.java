@@ -1,6 +1,9 @@
 package org.geogebra.common.gpad;
 
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.LinkedHashMap;
@@ -31,7 +34,7 @@ public class GgbToGpadConverterTest extends BaseUnitTest {
 	private String toGpadViaXml(boolean mergeStylesheets) {
 		String xml = api.getXML();
 		String macroXml = getApp().getAllMacrosXMLorEmpty();
-		return api.toGpad(xml, macroXml, mergeStylesheets);
+		return api.xmlToGpad(xml, macroXml, mergeStylesheets);
 	}
 
 	@Test
@@ -42,7 +45,7 @@ public class GgbToGpadConverterTest extends BaseUnitTest {
 				+ "B @BStyle = (3, 4);\n"
 				+ "s = Segment(A, B);";
 
-		String result = api.evalGpad(inputGpad);
+		String[] result = api.evalGpad(inputGpad, false);
 		assertNotNull("evalGpad should succeed", result);
 
 		String outputGpad = toGpadViaXml(false);
@@ -62,7 +65,7 @@ public class GgbToGpadConverterTest extends BaseUnitTest {
 				+ "B = (3, 4);\n"
 				+ "n = 5;";
 
-		String result = api.evalGpad(inputGpad);
+		String[] result = api.evalGpad(inputGpad, false);
 		assertNotNull("evalGpad should succeed", result);
 
 		String outputGpad = toGpadViaXml(false);
@@ -80,7 +83,7 @@ public class GgbToGpadConverterTest extends BaseUnitTest {
 				+ "B @redStyle = (3, 4);\n"
 				+ "s = Segment(A, B);";
 
-		String result = api.evalGpad(inputGpad);
+		String[] result = api.evalGpad(inputGpad, false);
 		assertNotNull("evalGpad should succeed", result);
 
 		String outputGpadMerged = toGpadViaXml(true);
@@ -107,7 +110,7 @@ public class GgbToGpadConverterTest extends BaseUnitTest {
 	public void testFunctionExpression() {
 		String inputGpad = "f(x) = x^2 + 1;";
 
-		String result = api.evalGpad(inputGpad);
+		String[] result = api.evalGpad(inputGpad, false);
 		assertNotNull("evalGpad should succeed", result);
 
 		String outputGpad = toGpadViaXml(false);
@@ -122,7 +125,7 @@ public class GgbToGpadConverterTest extends BaseUnitTest {
 	public void testMultiVariableFunction() {
 		String inputGpad = "g(x, y) = x * y;";
 
-		String result = api.evalGpad(inputGpad);
+		String[] result = api.evalGpad(inputGpad, false);
 		assertNotNull("evalGpad should succeed", result);
 
 		String outputGpad = toGpadViaXml(false);
@@ -142,7 +145,7 @@ public class GgbToGpadConverterTest extends BaseUnitTest {
 		String inputGpad = "f(x) = x^2;\n"
 				+ "g(x) = x^3;";
 
-		String result = api.evalGpad(inputGpad);
+		String[] result = api.evalGpad(inputGpad, false);
 		assertNotNull("evalGpad should succeed", result);
 
 		String outputGpad = toGpadViaXml(false);
@@ -159,7 +162,7 @@ public class GgbToGpadConverterTest extends BaseUnitTest {
 		String inputGpad = "f(alpha) = alpha^2;\n"
 				+ "g(beta, gamma) = beta + gamma;";
 
-		String result = api.evalGpad(inputGpad);
+		String[] result = api.evalGpad(inputGpad, false);
 		assertNotNull("evalGpad should succeed", result);
 
 		String outputGpad = toGpadViaXml(false);
@@ -177,7 +180,7 @@ public class GgbToGpadConverterTest extends BaseUnitTest {
 	@Test
 	public void testColorPropertyName() {
 		String inputGpad = "@s = { color: #FF0000FF; }\nA @s = (1, 2);";
-		String result = api.evalGpad(inputGpad);
+		String[] result = api.evalGpad(inputGpad, false);
 		assertNotNull("evalGpad should succeed", result);
 
 		String outputGpad = toGpadViaXml(false);
@@ -189,7 +192,7 @@ public class GgbToGpadConverterTest extends BaseUnitTest {
 	@Test
 	public void testEvPropertyRoundtrip() {
 		String inputGpad = "A { ev: 2; } = (1, 2);";
-		String result = api.evalGpad(inputGpad);
+		String[] result = api.evalGpad(inputGpad, false);
 		assertNotNull(result);
 
 		String outputGpad = toGpadViaXml(false);
@@ -261,7 +264,7 @@ public class GgbToGpadConverterTest extends BaseUnitTest {
 	@Test
 	public void testDefaultValuesOmitted() {
 		String inputGpad = "A = (1, 2);";
-		String result = api.evalGpad(inputGpad);
+		String[] result = api.evalGpad(inputGpad, false);
 		assertNotNull(result);
 
 		String outputGpad = toGpadViaXml(false);
@@ -270,6 +273,46 @@ public class GgbToGpadConverterTest extends BaseUnitTest {
 			!outputGpad.contains("fixed"));
 		assertTrue("Should not contain layer: 0 (default)",
 			!outputGpad.contains("layer:"));
+	}
+
+	// ========== returnLabels tests ==========
+
+	@Test
+	public void testReturnLabelsTrue() {
+		String inputGpad = "A = (1, 2);\nB = (3, 4);\ns = Segment(A, B);";
+		String[] labels = api.evalGpad(inputGpad, true);
+		assertNotNull(labels);
+		assertArrayEquals(new String[]{"A", "B", "s"}, labels);
+	}
+
+	@Test
+	public void testReturnLabelsFalseGivesEmptyArray() {
+		String inputGpad = "A = (1, 2);\nB = (3, 4);";
+		String[] result = api.evalGpad(inputGpad, false);
+		assertNotNull(result);
+		assertEquals(0, result.length);
+	}
+
+	@Test
+	public void testReturnLabelsSkipsStylesheets() {
+		String inputGpad = "@s = { color: #FF0000FF; }\nA @s = (1, 2);\nB = (3, 4);";
+		String[] labels = api.evalGpad(inputGpad, true);
+		assertNotNull(labels);
+		assertArrayEquals(new String[]{"A", "B"}, labels);
+	}
+
+	@Test
+	public void testReturnLabelsErrorGivesNull() {
+		String[] labels = api.evalGpad("this is not valid gpad @@@@", true);
+		assertNull(labels);
+		assertNotNull(api.getLastError());
+	}
+
+	@Test
+	public void testReturnLabelsEmptyGpad() {
+		String[] labels = api.evalGpad("", true);
+		assertNotNull(labels);
+		assertEquals(0, labels.length);
 	}
 
 	// ========== Settings roundtrip tests ==========

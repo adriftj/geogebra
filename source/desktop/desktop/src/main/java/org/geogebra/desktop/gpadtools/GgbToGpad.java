@@ -168,7 +168,7 @@ public class GgbToGpad {
 
 	/**
 	 * Convert a single GGB file to GPAD format by extracting XML directly
-	 * from the ggb zip archive and converting it using toGpad.
+	 * from the ggb zip archive and converting it using xmlToGpad.
 	 */
 	private static boolean convertFile(File inputFile, File outputFile, 
 			boolean mergeStyles, boolean overwrite) {
@@ -210,7 +210,7 @@ public class GgbToGpad {
 			AppDNoGui app = new AppDNoGui(new LocalizationD(3), true);
 			GgbAPI ggbApi = app.getGgbApi();
 			
-			String gpadText = ggbApi.toGpad(xmlFile, xmlMacro, mergeStyles);
+			String gpadText = ggbApi.xmlToGpad(xmlFile, xmlMacro, mergeStyles);
 
 			if (gpadText == null || gpadText.isEmpty()) {
 				String error = "Conversion produced empty result: " + inputPath;

@@ -27,7 +27,7 @@ public class GpadTypeInferrerTest extends BaseUnitTest {
 	}
 
 	private void evalAndAssertType(String gpad, String label, String expectedXmlType) {
-		String result = api.evalGpad(gpad);
+		String[] result = api.evalGpad(gpad, false);
 		assertNotNull("evalGpad should succeed for: " + gpad, result);
 		assertNull("evalGpad should not produce error: " + api.getLastError(),
 				api.getLastError());
@@ -192,7 +192,7 @@ public class GpadTypeInferrerTest extends BaseUnitTest {
 		// to verify warnings are produced. We test the warning mechanism by
 		// using a gpad with a command not in the mapping table.
 		String gpad = "point A = (0, 0);\npoint B = (1, 1);\nr = Segment(A, B);";
-		String result = api.evalGpad(gpad);
+		String[] result = api.evalGpad(gpad, false);
 		assertNotNull(result);
 		// Segment IS in the mapping, so no warning expected
 		assertNull("No warning expected for known command", api.getLastWarning());
@@ -215,7 +215,7 @@ public class GpadTypeInferrerTest extends BaseUnitTest {
 	@Test
 	public void noWarningForKnownTypes() {
 		String gpad = "point A = (1, 2);\nn = 5;";
-		api.evalGpad(gpad);
+		api.evalGpad(gpad, false);
 		assertNull("No warning expected when types are explicit or inferrable",
 				api.getLastWarning());
 	}

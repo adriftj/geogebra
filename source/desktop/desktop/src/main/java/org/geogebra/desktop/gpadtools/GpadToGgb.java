@@ -253,17 +253,13 @@ public class GpadToGgb {
 				return false;
 			}
 			
-			// Parse GPAD for XML conversion (hybrid approach: GeoElement for structure, GpadStyleSheet for styles)
 			GgbAPI ggbApi = app.getGgbApi();
-			boolean parseSuccess = ggbApi.evalGpadForXml(gpadText.toString());
+			String[] xmlResult = ggbApi.gpadToXml(gpadText.toString());
 			
-			// Check for warnings (non-fatal issues) - output before checking for errors
-			// Warnings should be output even if parsing fails
 			String lastWarning = ggbApi.getLastWarning();
 			boolean hasWarnings = false;
 			if (lastWarning != null && !lastWarning.trim().isEmpty()) {
 				hasWarnings = true;
-				// Output warnings (multiple warnings may be separated by newlines)
 				String[] warnings = lastWarning.split("\n");
 				for (String warning : warnings) {
 					if (warning != null && !warning.trim().isEmpty()) {
@@ -272,8 +268,7 @@ public class GpadToGgb {
 				}
 			}
 			
-			if (!parseSuccess) {
-				// Check for error message
+			if (xmlResult == null) {
 				String error = ggbApi.getLastError();
 				if (error == null || error.trim().isEmpty())
 					error = "Failed to parse GPAD: Unknown error";
@@ -283,8 +278,8 @@ public class GpadToGgb {
 				return false;
 			}
 			
-			// Generate XML from GeoElement structure + GpadStyleSheet styles (no default value pollution)
-			String xmlString = ggbApi.gpadToXml();
+			String xmlString = xmlResult[0];
+			String macroXml = xmlResult[1];
 			
 			if (xmlString == null || xmlString.isEmpty()) {
 				String error = "Conversion produced empty XML: " + inputPath;
@@ -293,9 +288,6 @@ public class GpadToGgb {
 				failCount++;
 				return false;
 			}
-			
-			// Generate macro XML using hybrid approach (if macros exist)
-			String macroXml = ggbApi.gpadToMacroXml();
 			
 			// Collect files to embed
 			Set<String> filesToEmbed = collectFilesToEmbed(gpadText.toString(), inputFile, embedRootDir);
@@ -329,33 +321,28 @@ public class GpadToGgb {
 				System.err.println("Warning [" + inputPath + "]: " + error);
 				System.err.println("Attempting to continue conversion despite LaTeX error...");
 				
-				// Try to continue with conversion even if LaTeX rendering failed
 				try {
-					// Ensure repainting is still disabled
 					app.getKernel().setNotifyRepaintActive(false);
 					app.getKernel().getAnimationManager().stopAnimation();
-					
-					// Generate XML from the already-parsed result
-					GgbAPI ggbApi = app.getGgbApi();
-					String xmlString = ggbApi.gpadToXml();
-					
-					if (xmlString != null && !xmlString.isEmpty()) {
-						String macroXml = ggbApi.gpadToMacroXml();
-						
-						// Collect files to embed
-						StringBuilder gpadTextForEmbed = new StringBuilder();
-						try (InputStreamReader reader = new InputStreamReader(
-								new FileInputStream(inputFile), StandardCharsets.UTF_8)) {
-							char[] buffer = new char[8192];
-							int read;
-							while ((read = reader.read(buffer)) != -1) {
-								gpadTextForEmbed.append(buffer, 0, read);
-							}
+
+					StringBuilder retryGpadText = new StringBuilder();
+					try (InputStreamReader reader = new InputStreamReader(
+							new FileInputStream(inputFile), StandardCharsets.UTF_8)) {
+						char[] buffer = new char[8192];
+						int read;
+						while ((read = reader.read(buffer)) != -1) {
+							retryGpadText.append(buffer, 0, read);
 						}
-						Set<String> filesToEmbed = collectFilesToEmbed(gpadTextForEmbed.toString(), inputFile, embedRootDir);
+					}
+
+					GgbAPI ggbApi = app.getGgbApi();
+					String[] retryResult = ggbApi.gpadToXml(retryGpadText.toString());
+					
+					if (retryResult != null && retryResult[0] != null && !retryResult[0].isEmpty()) {
+						Set<String> filesToEmbed = collectFilesToEmbed(retryGpadText.toString(), inputFile, embedRootDir);
 						
 						try (FileOutputStream fos = new FileOutputStream(outputFile)) {
-							writeZippedWithEmbeddedFiles(fos, xmlString, macroXml, filesToEmbed, embedRootDir);
+							writeZippedWithEmbeddedFiles(fos, retryResult[0], retryResult[1], filesToEmbed, embedRootDir);
 						}
 						System.out.println("Converted (with LaTeX warning): " + inputFile.getName() + " -> " + outputFile.getName());
 						successCount++;

@@ -22,8 +22,8 @@ import org.geogebra.desktop.main.LocalizationD;
  * 
  * This tool:
  * 1. Extracts XML from a GGB file
- * 2. Converts it to GPAD format via toGpad
- * 3. Converts GPAD back to XML via evalGpadForXml + gpadToXml
+ * 2. Converts it to GPAD format via xmlToGpad
+ * 3. Converts GPAD back to XML via gpadToXml
  * 4. Compares the original and converted XML
  * 5. Generates a report (console + JSON)
  * 
@@ -164,7 +164,7 @@ public class GgbGpadRoundtripTest {
 
 	/**
 	 * Test a single GGB file by performing a roundtrip through GPAD at the XML level.
-	 * Flow: extract XML from .ggb → toGpad → evalGpadForXml + gpadToXml → compare XMLs
+	 * Flow: extract XML from .ggb → xmlToGpad → gpadToXml → compare XMLs
 	 */
 	private static boolean testFile(File inputFile, File reportFile,
 			boolean verbose, boolean overwrite) {
@@ -200,21 +200,19 @@ public class GgbGpadRoundtripTest {
 			app = createHeadlessApp(inputPath);
 			GgbAPI ggbApi = app.getGgbApi();
 			
-			String gpadText = ggbApi.toGpad(originalXml,
+			String gpadText = ggbApi.xmlToGpad(originalXml,
 					originalMacroXml != null ? originalMacroXml : "",
 					mergeStylesheets);
 			
 			if (gpadText == null || gpadText.isEmpty()) {
-				// Empty construction is valid (e.g. probability calculator files)
 				System.out.println("Skipping (empty construction): " + inputPath);
 				successCount++;
 				return true;
 			}
 			
-			// 3. GPAD → XML (like GpadToGgb.convertFile)
-			boolean parseSuccess = ggbApi.evalGpadForXml(gpadText);
+			// 3. GPAD → XML
+			String[] xmlResult = ggbApi.gpadToXml(gpadText);
 			
-			// Check for warnings
 			String lastWarning = ggbApi.getLastWarning();
 			if (lastWarning != null && !lastWarning.trim().isEmpty()) {
 				String[] warnings = lastWarning.split("\n");
@@ -225,7 +223,7 @@ public class GgbGpadRoundtripTest {
 				}
 			}
 			
-			if (!parseSuccess) {
+			if (xmlResult == null) {
 				String error = ggbApi.getLastError();
 				if (error == null || error.trim().isEmpty()) {
 					error = "Failed to parse GPAD: Unknown error";
@@ -261,7 +259,7 @@ public class GgbGpadRoundtripTest {
 				return false;
 			}
 			
-			String convertedXml = ggbApi.gpadToXml();
+			String convertedXml = xmlResult[0];
 			if (convertedXml == null || convertedXml.isEmpty()) {
 				String error = "gpadToXml produced empty result: " + inputPath;
 				errors.add(error);
@@ -270,7 +268,7 @@ public class GgbGpadRoundtripTest {
 				return false;
 			}
 			
-			String convertedMacroXml = ggbApi.gpadToMacroXml();
+			String convertedMacroXml = xmlResult[1];
 			
 			// 4. Compare XMLs
 			RoundtripReport report = new RoundtripReport(inputFile.getName());
