@@ -3813,8 +3813,11 @@ void gpadStyleSheetPropertySlider(GpadStyleSheet styleSheet) :
             attrs.put("min", minValue);
         if (maxValue != null)
             attrs.put("max", maxValue);
+        // Always emit width to prevent NullPointerException in handleSlider
         if (widthValue != null)
             attrs.put("width", widthValue);
+        else
+            attrs.put("width", (hasScreen && screen) ? "200" : "4");
         
         // Set horizontal (inverse of vertical)
         attrs.put("horizontal", String.valueOf(!(hasVertical&&vertical)));

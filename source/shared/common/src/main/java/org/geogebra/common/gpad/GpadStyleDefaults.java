@@ -281,7 +281,7 @@ public final class GpadStyleDefaults {
 	 * the stylesheet. This guarantees the GeoElement ends up with the unified default,
 	 * regardless of what init() or other creation logic did.
 	 */
-	public static final Set<String> ALWAYS_APPLY_TAGS = Set.of("fixed", "lineStyle", "layer", "labelMode");
+	public static final Set<String> ALWAYS_APPLY_TAGS = Set.of("fixed", "lineStyle", "layer", "labelMode", "show");
 
 	// ==================== Public API ====================
 
