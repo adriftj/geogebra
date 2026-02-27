@@ -622,21 +622,22 @@ public class XmlSettingsToGpadEnvConverter {
 			}
 		}
 
-		emitColorProp(inner, "bgColor", bgColor);
-		emitColorProp(inner, "axesColor", axesColor);
-		emitColorProp(inner, "gridColor", gridColor);
+		emitColorProp(inner, GpadEnvKeys.Ev.BG_COLOR, bgColor);
+		emitColorProp(inner, GpadEnvKeys.Ev.AXES_COLOR, axesColor);
+		emitColorProp(inner, GpadEnvKeys.Ev.GRID_COLOR, gridColor);
 
 		if (sizeAttrs != null) {
 			String w = sizeAttrs.get("width"), h = sizeAttrs.get("height");
 			if (w != null && h != null)
-				inner.append("    size: ").append(w).append(",").append(h).append(";\n");
+				inner.append("    ").append(GpadEnvKeys.Ev.SIZE).append(": ")
+						.append(w).append(",").append(h).append(";\n");
 		}
 
 		emitCoordSystem2D(inner, coordSystem);
 		emitEvSettingsProps(inner, evSettings);
 
-		emitAxisProp(inner, "xAxis", axisMap.get(0));
-		emitAxisProp(inner, "yAxis", axisMap.get(1));
+		emitAxisProp(inner, GpadEnvKeys.Ev.X_AXIS, axisMap.get(0));
+		emitAxisProp(inner, GpadEnvKeys.Ev.Y_AXIS, axisMap.get(1));
 
 		emitGridDist(inner, gridAttrs);
 		emitLineAndAxesStyle(inner, lineStyle);
@@ -645,9 +646,10 @@ public class XmlSettingsToGpadEnvConverter {
 		if (rulerTypeVal != null) {
 			String gpad = rulerTypeIntToGpad(rulerTypeVal);
 			if (gpad != null && !"none".equals(gpad))
-				inner.append("    rulerType: ").append(gpad).append(";\n");
+				inner.append("    ").append(GpadEnvKeys.Ev.RULER_TYPE)
+						.append(": ").append(gpad).append(";\n");
 		}
-		emitColorProp(inner, "rulerColor", rulerColor);
+		emitColorProp(inner, GpadEnvKeys.Ev.RULER_COLOR, rulerColor);
 
 		if (inner.length() == 0) return;
 		sb.append("  ").append(evName).append(" {\n");
@@ -696,26 +698,29 @@ public class XmlSettingsToGpadEnvConverter {
 			}
 		}
 
-		emitColorProp(inner, "bgColor", bgColor);
+		emitColorProp(inner, GpadEnvKeys.Ev.BG_COLOR, bgColor);
 		emitCoordSystem3D(inner, coordSystem);
 		emitEvSettingsProps(inner, evSettings);
 
-		if (hasPlane) inner.append("    plane;\n");
-		if (lightExplicit && !lightVal) inner.append("    ~light;\n");
-		else if (lightExplicit && lightVal) inner.append("    light;\n");
-		if (yAxisUp) inner.append("    yAxisUp;\n");
-		if (coloredAxes) inner.append("    coloredAxes;\n");
+		if (hasPlane) inner.append("    ").append(GpadEnvKeys.Ev.PLANE).append(";\n");
+		if (lightExplicit && !lightVal)
+			inner.append("    ~").append(GpadEnvKeys.Ev.LIGHT).append(";\n");
+		else if (lightExplicit && lightVal)
+			inner.append("    ").append(GpadEnvKeys.Ev.LIGHT).append(";\n");
+		if (yAxisUp) inner.append("    ").append(GpadEnvKeys.Ev.Y_AXIS_UP).append(";\n");
+		if (coloredAxes) inner.append("    ").append(GpadEnvKeys.Ev.COLORED_AXES).append(";\n");
 
 		if (clippingAttrs != null) {
-			boolean clUse = "true".equals(clippingAttrs.get("use"));
-			boolean clShow = "true".equals(clippingAttrs.get("show"));
+			boolean clUse = "true".equals(clippingAttrs.get(GpadEnvKeys.Clipping.USE));
+			boolean clShow = "true".equals(clippingAttrs.get(GpadEnvKeys.Clipping.SHOW));
 			if (clUse || clShow) {
-				inner.append("    clipping:");
-				if (clUse) inner.append(" use");
-				else inner.append(" ~use");
-				if (clShow) inner.append(" show");
-				String size = clippingAttrs.get("size");
-				if (size != null && !"0".equals(size)) inner.append(" size=").append(size);
+				inner.append("    ").append(GpadEnvKeys.Ev.CLIPPING).append(":");
+				if (clUse) inner.append(" ").append(GpadEnvKeys.Clipping.USE);
+				else inner.append(" ~").append(GpadEnvKeys.Clipping.USE);
+				if (clShow) inner.append(" ").append(GpadEnvKeys.Clipping.SHOW);
+				String size = clippingAttrs.get(GpadEnvKeys.Clipping.SIZE);
+				if (size != null && !"0".equals(size))
+					inner.append(" ").append(GpadEnvKeys.Clipping.SIZE).append("=").append(size);
 				inner.append(";\n");
 			}
 		}
@@ -724,9 +729,9 @@ public class XmlSettingsToGpadEnvConverter {
 		emitLineAndAxesStyle(inner, lineStyle);
 		emitLabelStyleProp(inner, labelStyle);
 
-		emitAxisProp(inner, "xAxis", axisMap.get(0));
-		emitAxisProp(inner, "yAxis", axisMap.get(1));
-		emitAxisProp(inner, "zAxis", axisMap.get(2));
+		emitAxisProp(inner, GpadEnvKeys.Ev.X_AXIS, axisMap.get(0));
+		emitAxisProp(inner, GpadEnvKeys.Ev.Y_AXIS, axisMap.get(1));
+		emitAxisProp(inner, GpadEnvKeys.Ev.Z_AXIS, axisMap.get(2));
 
 		if (inner.length() == 0) return;
 		sb.append("  ev3d {\n");
@@ -761,26 +766,40 @@ public class XmlSettingsToGpadEnvConverter {
 	private static void emitCoordSystem2D(StringBuilder sb,
 			LinkedHashMap<String, String> cs) {
 		if (cs == null) return;
-		String xMin = cs.get("xMin"), xMax = cs.get("xMax");
-		String yMin = cs.get("yMin"), yMax = cs.get("yMax");
+		String xMin = cs.get(GpadEnvKeys.CoordSystem.X_MIN);
+		String xMax = cs.get(GpadEnvKeys.CoordSystem.X_MAX);
+		String yMin = cs.get(GpadEnvKeys.CoordSystem.Y_MIN);
+		String yMax = cs.get(GpadEnvKeys.CoordSystem.Y_MAX);
 		if (xMin != null && xMax != null && yMin != null && yMax != null) {
-			sb.append("    coordSystem: xMin=").append(quoteExpr(xMin))
-					.append(" xMax=").append(quoteExpr(xMax))
-					.append(" yMin=").append(quoteExpr(yMin))
-					.append(" yMax=").append(quoteExpr(yMax)).append(";\n");
+			sb.append("    ").append(GpadEnvKeys.Ev.COORD_SYSTEM).append(": ")
+					.append(GpadEnvKeys.CoordSystem.X_MIN).append("=")
+					.append(quoteExpr(xMin))
+					.append(" ").append(GpadEnvKeys.CoordSystem.X_MAX).append("=")
+					.append(quoteExpr(xMax))
+					.append(" ").append(GpadEnvKeys.CoordSystem.Y_MIN).append("=")
+					.append(quoteExpr(yMin))
+					.append(" ").append(GpadEnvKeys.CoordSystem.Y_MAX).append("=")
+					.append(quoteExpr(yMax)).append(";\n");
 			return;
 		}
 		String xZero = cs.get("xZero"), yZero = cs.get("yZero");
-		String scale = cs.get("scale"), yscale = cs.get("yscale");
+		String scale = cs.get("scale");
+		String yscale = cs.get(GpadEnvKeys.CoordSystem.Y_SCALE);
 		if (xZero == null && scale == null) return;
-		sb.append("    coordSystem:");
+		sb.append("    ").append(GpadEnvKeys.Ev.COORD_SYSTEM).append(":");
 		if (xZero != null || yZero != null)
-			sb.append(" origin=").append(nvl(xZero, "0")).append(",").append(nvl(yZero, "0"));
+			sb.append(" ").append(GpadEnvKeys.CoordSystem.ORIGIN).append("=")
+					.append(nvl(xZero, "0")).append(",").append(nvl(yZero, "0"));
 		if (scale != null && yscale != null && scale.equals(yscale))
-			sb.append(" scale=").append(scale);
+			sb.append(" ").append(GpadEnvKeys.CoordSystem.SCALE)
+					.append("=").append(scale);
 		else {
-			if (scale != null) sb.append(" xscale=").append(scale);
-			if (yscale != null) sb.append(" yscale=").append(yscale);
+			if (scale != null)
+				sb.append(" ").append(GpadEnvKeys.CoordSystem.X_SCALE)
+						.append("=").append(scale);
+			if (yscale != null)
+				sb.append(" ").append(GpadEnvKeys.CoordSystem.Y_SCALE)
+						.append("=").append(yscale);
 		}
 		sb.append(";\n");
 	}
@@ -788,12 +807,18 @@ public class XmlSettingsToGpadEnvConverter {
 	private static void emitCoordSystem3D(StringBuilder sb,
 			LinkedHashMap<String, String> cs) {
 		if (cs == null) return;
-		String xMin = cs.get("xMin"), xMax = cs.get("xMax");
-		String yMin = cs.get("yMin"), yMax = cs.get("yMax");
-		String zMin = cs.get("zMin"), zMax = cs.get("zMax");
+		String xMin = cs.get(GpadEnvKeys.CoordSystem.X_MIN);
+		String xMax = cs.get(GpadEnvKeys.CoordSystem.X_MAX);
+		String yMin = cs.get(GpadEnvKeys.CoordSystem.Y_MIN);
+		String yMax = cs.get(GpadEnvKeys.CoordSystem.Y_MAX);
+		String zMin = cs.get(GpadEnvKeys.CoordSystem.Z_MIN);
+		String zMax = cs.get(GpadEnvKeys.CoordSystem.Z_MAX);
 		String xZero = cs.get("xZero"), yZero = cs.get("yZero"), zZero = cs.get("zZero");
-		String scale = cs.get("scale"), yscale = cs.get("yscale"), zscale = cs.get("zscale");
-		String xAngle = cs.get("xAngle"), zAngle = cs.get("zAngle");
+		String scale = cs.get("scale");
+		String yscale = cs.get(GpadEnvKeys.CoordSystem.Y_SCALE);
+		String zscale = cs.get(GpadEnvKeys.CoordSystem.Z_SCALE);
+		String xAngle = cs.get(GpadEnvKeys.CoordSystem.X_ANGLE);
+		String zAngle = cs.get(GpadEnvKeys.CoordSystem.Z_ANGLE);
 
 		boolean hasBounded = xMin != null && xMax != null && yMin != null
 				&& yMax != null && zMin != null && zMax != null;
@@ -803,29 +828,47 @@ public class XmlSettingsToGpadEnvConverter {
 		boolean hasAngle = xAngle != null || zAngle != null;
 		if (!hasBounded && !hasOrigin && !hasScale && !hasAngle) return;
 
-		sb.append("    coordSystem:");
+		sb.append("    ").append(GpadEnvKeys.Ev.COORD_SYSTEM).append(":");
 		if (hasOrigin)
-			sb.append(" origin=").append(nvl(xZero, "0")).append(",")
+			sb.append(" ").append(GpadEnvKeys.CoordSystem.ORIGIN).append("=")
+					.append(nvl(xZero, "0")).append(",")
 					.append(nvl(yZero, "0")).append(",").append(nvl(zZero, "0"));
 		if (hasScale) {
 			boolean allSame = eq(scale, yscale) && eq(scale, zscale);
 			if (allSame && scale != null)
-				sb.append(" scale=").append(scale);
+				sb.append(" ").append(GpadEnvKeys.CoordSystem.SCALE)
+						.append("=").append(scale);
 			else {
-				if (scale != null) sb.append(" xscale=").append(scale);
-				if (yscale != null) sb.append(" yscale=").append(yscale);
-				if (zscale != null) sb.append(" zscale=").append(zscale);
+				if (scale != null)
+					sb.append(" ").append(GpadEnvKeys.CoordSystem.X_SCALE)
+							.append("=").append(scale);
+				if (yscale != null)
+					sb.append(" ").append(GpadEnvKeys.CoordSystem.Y_SCALE)
+							.append("=").append(yscale);
+				if (zscale != null)
+					sb.append(" ").append(GpadEnvKeys.CoordSystem.Z_SCALE)
+							.append("=").append(zscale);
 			}
 		}
-		if (xAngle != null) sb.append(" xAngle=").append(xAngle);
-		if (zAngle != null) sb.append(" zAngle=").append(zAngle);
+		if (xAngle != null)
+			sb.append(" ").append(GpadEnvKeys.CoordSystem.X_ANGLE)
+					.append("=").append(xAngle);
+		if (zAngle != null)
+			sb.append(" ").append(GpadEnvKeys.CoordSystem.Z_ANGLE)
+					.append("=").append(zAngle);
 		if (hasBounded) {
-			sb.append(" xMin=").append(quoteExpr(xMin))
-					.append(" xMax=").append(quoteExpr(xMax))
-					.append(" yMin=").append(quoteExpr(yMin))
-					.append(" yMax=").append(quoteExpr(yMax))
-					.append(" zMin=").append(quoteExpr(zMin))
-					.append(" zMax=").append(quoteExpr(zMax));
+			sb.append(" ").append(GpadEnvKeys.CoordSystem.X_MIN).append("=")
+					.append(quoteExpr(xMin))
+					.append(" ").append(GpadEnvKeys.CoordSystem.X_MAX).append("=")
+					.append(quoteExpr(xMax))
+					.append(" ").append(GpadEnvKeys.CoordSystem.Y_MIN).append("=")
+					.append(quoteExpr(yMin))
+					.append(" ").append(GpadEnvKeys.CoordSystem.Y_MAX).append("=")
+					.append(quoteExpr(yMax))
+					.append(" ").append(GpadEnvKeys.CoordSystem.Z_MIN).append("=")
+					.append(quoteExpr(zMin))
+					.append(" ").append(GpadEnvKeys.CoordSystem.Z_MAX).append("=")
+					.append(quoteExpr(zMax));
 		}
 		sb.append(";\n");
 	}
@@ -834,40 +877,44 @@ public class XmlSettingsToGpadEnvConverter {
 			LinkedHashMap<String, String> es) {
 		if (es == null) return;
 
-		if ("false".equals(es.get("axes")))
-			sb.append("    ~axes;\n");
+		if ("false".equals(es.get(GpadEnvKeys.Ev.AXES)))
+			sb.append("    ~").append(GpadEnvKeys.Ev.AXES).append(";\n");
 		if ("true".equals(es.get("grid")))
-			sb.append("    grid;\n");
+			sb.append("    ").append(GpadEnvKeys.Ev.GRID).append(";\n");
 		if ("true".equals(es.get("gridIsBold")))
-			sb.append("    gridBold;\n");
+			sb.append("    ").append(GpadEnvKeys.Ev.GRID_BOLD).append(";\n");
 
-		String gridType = es.get("gridType");
+		String gridType = es.get(GpadEnvKeys.Ev.GRID_TYPE);
 		if (gridType != null) {
 			String gpad = gridTypeToGpad(gridType);
 			if (gpad != null && !"cartesianSub".equals(gpad))
-				sb.append("    gridType: ").append(gpad).append(";\n");
+				sb.append("    ").append(GpadEnvKeys.Ev.GRID_TYPE)
+						.append(": ").append(gpad).append(";\n");
 		}
 
-		String pc = es.get("pointCapturing");
+		String pc = es.get(GpadEnvKeys.Ev.POINT_CAPTURING);
 		if (pc != null) {
 			String gpad = pointCapturingToGpad(pc);
 			if (gpad != null && !"auto".equals(gpad))
-				sb.append("    pointCapturing: ").append(gpad).append(";\n");
+				sb.append("    ").append(GpadEnvKeys.Ev.POINT_CAPTURING)
+						.append(": ").append(gpad).append(";\n");
 		}
 
 		String tt = es.get("allowToolTips");
 		if (tt != null) {
 			String gpad = toolTipsToGpad(tt);
 			if (gpad != null && !"auto".equals(gpad))
-				sb.append("    toolTips: ").append(gpad).append(";\n");
+				sb.append("    ").append(GpadEnvKeys.Ev.TOOL_TIPS)
+						.append(": ").append(gpad).append(";\n");
 		}
 
 		if ("true".equals(es.get("allowShowMouseCoords")))
-			sb.append("    mouseCoords;\n");
+			sb.append("    ").append(GpadEnvKeys.Ev.MOUSE_COORDS).append(";\n");
 
-		String lar = es.get("lockedAxesRatio");
+		String lar = es.get(GpadEnvKeys.Ev.LOCKED_AXES_RATIO);
 		if (lar != null && !isZero(lar))
-			sb.append("    lockedAxesRatio: ").append(lar).append(";\n");
+			sb.append("    ").append(GpadEnvKeys.Ev.LOCKED_AXES_RATIO)
+					.append(": ").append(lar).append(";\n");
 	}
 
 	private static void emitAxisProp(StringBuilder sb, String axisName,
@@ -877,52 +924,58 @@ public class XmlSettingsToGpadEnvConverter {
 		axisSb.append("    ").append(axisName).append(":");
 		boolean hasContent = false;
 
-		if ("false".equals(attrs.get("show"))) {
-			axisSb.append(" ~show"); hasContent = true;
+		if ("false".equals(attrs.get(GpadEnvKeys.Axis.SHOW))) {
+			axisSb.append(" ~").append(GpadEnvKeys.Axis.SHOW); hasContent = true;
 		}
-		String label = attrs.get("label");
+		String label = attrs.get(GpadEnvKeys.Axis.LABEL);
 		if (label != null && !label.isEmpty()) {
-			axisSb.append(" label=").append(quoteIfNeeded(label)); hasContent = true;
+			axisSb.append(" ").append(GpadEnvKeys.Axis.LABEL).append("=")
+					.append(quoteIfNeeded(label)); hasContent = true;
 		}
 		String unitLabel = attrs.get("unitLabel");
 		if (unitLabel != null && !unitLabel.isEmpty()) {
 			if ("\u03c0".equals(unitLabel)) {
-				axisSb.append(" piUnit");
+				axisSb.append(" ").append(GpadEnvKeys.Axis.PI_UNIT);
 			} else {
-				axisSb.append(" unit=").append(quoteIfNeeded(unitLabel));
+				axisSb.append(" ").append(GpadEnvKeys.Axis.UNIT).append("=")
+						.append(quoteIfNeeded(unitLabel));
 			}
 			hasContent = true;
 		}
 		if ("false".equals(attrs.get("showNumbers"))) {
-			axisSb.append(" ~numbers"); hasContent = true;
+			axisSb.append(" ~").append(GpadEnvKeys.Axis.NUMBERS); hasContent = true;
 		}
 		String tickExpr = attrs.get("tickExpression");
 		if (tickExpr != null) {
-			axisSb.append(" tickExpr=").append(quoteIfNeeded(tickExpr)); hasContent = true;
+			axisSb.append(" ").append(GpadEnvKeys.Axis.TICK_EXPR).append("=")
+					.append(quoteIfNeeded(tickExpr)); hasContent = true;
 		}
 		String tickDist = attrs.get("tickDistance");
 		if (tickDist != null) {
-			axisSb.append(" tickDist=").append(tickDist); hasContent = true;
+			axisSb.append(" ").append(GpadEnvKeys.Axis.TICK_DIST).append("=")
+					.append(tickDist); hasContent = true;
 		}
-		String tickStyle = attrs.get("tickStyle");
+		String tickStyle = attrs.get(GpadEnvKeys.Axis.TICK_STYLE);
 		if (tickStyle != null) {
 			String gpad = tickStyleToGpad(tickStyle);
 			if (gpad != null && !"major".equals(gpad)) {
-				axisSb.append(" tickStyle=").append(gpad); hasContent = true;
+				axisSb.append(" ").append(GpadEnvKeys.Axis.TICK_STYLE).append("=")
+						.append(gpad); hasContent = true;
 			}
 		}
 		String cross = attrs.get("axisCross");
 		if (cross != null && !isZero(cross)) {
-			axisSb.append(" cross=").append(cross); hasContent = true;
+			axisSb.append(" ").append(GpadEnvKeys.Axis.CROSS).append("=")
+					.append(cross); hasContent = true;
 		}
 		if ("true".equals(attrs.get("drawBorderAxes"))) {
-			axisSb.append(" crossEdge"); hasContent = true;
+			axisSb.append(" ").append(GpadEnvKeys.Axis.CROSS_EDGE); hasContent = true;
 		}
 		if ("true".equals(attrs.get("positiveAxis"))) {
-			axisSb.append(" positive"); hasContent = true;
+			axisSb.append(" ").append(GpadEnvKeys.Axis.POSITIVE); hasContent = true;
 		}
 		if ("false".equals(attrs.get("selectionAllowed"))) {
-			axisSb.append(" ~selectable"); hasContent = true;
+			axisSb.append(" ~").append(GpadEnvKeys.Axis.SELECTABLE); hasContent = true;
 		}
 
 		if (hasContent) {
@@ -937,10 +990,13 @@ public class XmlSettingsToGpadEnvConverter {
 		String dx = gridAttrs.get("distX"), dy = gridAttrs.get("distY");
 		String dTheta = gridAttrs.get("distTheta");
 		if (dx != null || dy != null || dTheta != null) {
-			sb.append("    gridDist:");
-			if (dx != null) sb.append(" x=").append(dx);
-			if (dy != null) sb.append(" y=").append(dy);
-			if (dTheta != null) sb.append(" theta=").append(dTheta);
+			sb.append("    ").append(GpadEnvKeys.Ev.GRID_DIST).append(":");
+			if (dx != null)
+				sb.append(" ").append(GpadEnvKeys.GridDist.X).append("=").append(dx);
+			if (dy != null)
+				sb.append(" ").append(GpadEnvKeys.GridDist.Y).append("=").append(dy);
+			if (dTheta != null)
+				sb.append(" ").append(GpadEnvKeys.GridDist.THETA).append("=").append(dTheta);
 			sb.append(";\n");
 		}
 	}
@@ -952,13 +1008,15 @@ public class XmlSettingsToGpadEnvConverter {
 		if (gridStyle != null) {
 			String gpad = lineStyleToGpad(gridStyle);
 			if (gpad != null && !"full".equals(gpad))
-				sb.append("    lineStyle: ").append(gpad).append(";\n");
+				sb.append("    ").append(GpadEnvKeys.Ev.LINE_STYLE)
+						.append(": ").append(gpad).append(";\n");
 		}
 		String axesStyle = ls.get("axes");
 		if (axesStyle != null) {
 			String gpad = axesStyleToGpad(axesStyle);
 			if (gpad != null && !"arrow".equals(gpad))
-				sb.append("    axesStyle: ").append(gpad).append(";\n");
+				sb.append("    ").append(GpadEnvKeys.Ev.AXES_STYLE)
+						.append(": ").append(gpad).append(";\n");
 		}
 	}
 
@@ -966,7 +1024,8 @@ public class XmlSettingsToGpadEnvConverter {
 			LinkedHashMap<String, String> ls) {
 		if (ls == null) return;
 		boolean hasContent = false;
-		StringBuilder lsSb = new StringBuilder("    labelStyle:");
+		StringBuilder lsSb = new StringBuilder("    ")
+				.append(GpadEnvKeys.Ev.LABEL_STYLE).append(":");
 		String axes = ls.get("axes");
 		if (axes != null) {
 			String gpad = fontStyleToGpad(axes);
@@ -975,8 +1034,8 @@ public class XmlSettingsToGpadEnvConverter {
 				hasContent = true;
 			}
 		}
-		if ("true".equals(ls.get("serif"))) {
-			lsSb.append(" serif");
+		if ("true".equals(ls.get(GpadEnvKeys.Ev.LABEL_SERIF))) {
+			lsSb.append(" ").append(GpadEnvKeys.Ev.LABEL_SERIF);
 			hasContent = true;
 		}
 		if (hasContent) {
@@ -992,20 +1051,30 @@ public class XmlSettingsToGpadEnvConverter {
 		if (type == null) return;
 		String gpad = projectionToGpad(type);
 		if (gpad == null || "orthographic".equals(gpad)) return;
-		sb.append("    projection: ").append(gpad);
+		sb.append("    ").append(GpadEnvKeys.Ev.PROJECTION).append(": ").append(gpad);
 		if ("perspective".equals(gpad)) {
-			String dist = attrs.get("distance");
-			if (dist != null) sb.append(" distance=").append(dist);
+			String dist = attrs.get(GpadEnvKeys.Projection.DISTANCE);
+			if (dist != null)
+				sb.append(" ").append(GpadEnvKeys.Projection.DISTANCE)
+						.append("=").append(dist);
 		} else if ("glasses".equals(gpad)) {
-			String sep = attrs.get("separation");
-			if (sep != null) sb.append(" separation=").append(sep);
-			if ("false".equals(attrs.get("grayScaled"))) sb.append(" ~grayScaled");
-			if ("true".equals(attrs.get("shutDownGreen"))) sb.append(" shutDownGreen");
+			String sep = attrs.get(GpadEnvKeys.Projection.SEPARATION);
+			if (sep != null)
+				sb.append(" ").append(GpadEnvKeys.Projection.SEPARATION)
+						.append("=").append(sep);
+			if ("false".equals(attrs.get(GpadEnvKeys.Projection.GRAY_SCALED)))
+				sb.append(" ~").append(GpadEnvKeys.Projection.GRAY_SCALED);
+			if ("true".equals(attrs.get(GpadEnvKeys.Projection.SHUT_DOWN_GREEN)))
+				sb.append(" ").append(GpadEnvKeys.Projection.SHUT_DOWN_GREEN);
 		} else if ("oblique".equals(gpad)) {
-			String angle = attrs.get("angle");
-			String factor = attrs.get("factor");
-			if (angle != null) sb.append(" angle=").append(angle);
-			if (factor != null) sb.append(" factor=").append(factor);
+			String angle = attrs.get(GpadEnvKeys.Projection.ANGLE);
+			String factor = attrs.get(GpadEnvKeys.Projection.FACTOR);
+			if (angle != null)
+				sb.append(" ").append(GpadEnvKeys.Projection.ANGLE)
+						.append("=").append(angle);
+			if (factor != null)
+				sb.append(" ").append(GpadEnvKeys.Projection.FACTOR)
+						.append("=").append(factor);
 		}
 		sb.append(";\n");
 	}

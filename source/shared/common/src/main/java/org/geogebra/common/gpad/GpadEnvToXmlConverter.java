@@ -444,59 +444,59 @@ public class GpadEnvToXmlConverter {
 		}
 
 		switch (tok) {
-			case "bgColor":
+			case GpadEnvKeys.Ev.BG_COLOR:
 				advance(); expect(":"); data.bgColor = advance(); consumeIf(";"); break;
-			case "axesColor":
+			case GpadEnvKeys.Ev.AXES_COLOR:
 				advance(); expect(":"); data.axesColor = advance(); consumeIf(";"); break;
-			case "gridColor":
+			case GpadEnvKeys.Ev.GRID_COLOR:
 				advance(); expect(":"); data.gridColor = advance(); consumeIf(";"); break;
-			case "rulerColor":
+			case GpadEnvKeys.Ev.RULER_COLOR:
 				advance(); expect(":"); data.rulerColor = advance(); consumeIf(";"); break;
-			case "size":
+			case GpadEnvKeys.Ev.SIZE:
 				advance(); expect(":");
 				data.sizeW = parseInt(advance());
 				expect(",");
 				data.sizeH = parseInt(advance());
 				consumeIf(";"); break;
-			case "coordSystem":
+			case GpadEnvKeys.Ev.COORD_SYSTEM:
 				advance(); expect(":");
 				parseCoordSystem2D(data);
 				consumeIf(";"); break;
-			case "axes":
+			case GpadEnvKeys.Ev.AXES:
 				advance(); data.hasAxes = !negated; consumeIf(";"); break;
-			case "grid":
+			case GpadEnvKeys.Ev.GRID:
 				advance(); data.hasGrid = !negated; consumeIf(";"); break;
-			case "gridBold":
+			case GpadEnvKeys.Ev.GRID_BOLD:
 				advance(); data.gridBold = !negated; consumeIf(";"); break;
-			case "mouseCoords":
+			case GpadEnvKeys.Ev.MOUSE_COORDS:
 				advance(); data.mouseCoords = !negated; consumeIf(";"); break;
-			case "gridType":
+			case GpadEnvKeys.Ev.GRID_TYPE:
 				advance(); expect(":"); data.gridType = gridTypeToInt(advance()); consumeIf(";"); break;
-			case "pointCapturing":
+			case GpadEnvKeys.Ev.POINT_CAPTURING:
 				advance(); expect(":"); data.pointCapturing = pointCapturingToInt(advance()); consumeIf(";"); break;
-			case "toolTips":
+			case GpadEnvKeys.Ev.TOOL_TIPS:
 				advance(); expect(":"); data.tooltips = toolTipsToInt(advance()); consumeIf(";"); break;
-			case "lockedAxesRatio":
+			case GpadEnvKeys.Ev.LOCKED_AXES_RATIO:
 				advance(); expect(":"); data.lockedAxesRatio = parseDouble(advance()); consumeIf(";"); break;
-			case "xAxis":
+			case GpadEnvKeys.Ev.X_AXIS:
 				advance(); expect(":"); data.xAxis = parseAxisProperties(negated); consumeIf(";"); break;
-			case "yAxis":
+			case GpadEnvKeys.Ev.Y_AXIS:
 				advance(); expect(":"); data.yAxis = parseAxisProperties(negated); consumeIf(";"); break;
-			case "zAxis":
+			case GpadEnvKeys.Ev.Z_AXIS:
 				advance(); expect(":"); data.zAxis = parseAxisProperties(negated); consumeIf(";"); break;
-			case "gridDist":
+			case GpadEnvKeys.Ev.GRID_DIST:
 				advance(); expect(":");
 				parseGridDist(data);
 				consumeIf(";"); break;
-			case "lineStyle":
+			case GpadEnvKeys.Ev.LINE_STYLE:
 				advance(); expect(":"); data.gridLineStyle = lineStyleToInt(advance()); consumeIf(";"); break;
-			case "axesStyle":
+			case GpadEnvKeys.Ev.AXES_STYLE:
 				advance(); expect(":"); data.axesLineStyle = axesStyleToInt(advance()); consumeIf(";"); break;
-			case "labelStyle":
+			case GpadEnvKeys.Ev.LABEL_STYLE:
 				advance(); expect(":");
 				while (pos < tokens.length && !";".equals(peek()) && !"}".equals(peek())) {
 					String lsTok = peek();
-					if ("serif".equals(lsTok)) {
+					if (GpadEnvKeys.Ev.LABEL_SERIF.equals(lsTok)) {
 						advance(); data.labelSerif = true;
 					} else {
 						int fs = fontStyleToInt(lsTok);
@@ -505,7 +505,7 @@ public class GpadEnvToXmlConverter {
 					}
 				}
 				consumeIf(";"); break;
-			case "rulerType":
+			case GpadEnvKeys.Ev.RULER_TYPE:
 				advance(); expect(":"); data.rulerType = advance(); consumeIf(";"); break;
 			default:
 				advance(); break;
@@ -522,23 +522,23 @@ public class GpadEnvToXmlConverter {
 		}
 
 		switch (tok) {
-			case "plane":
+			case GpadEnvKeys.Ev.PLANE:
 				advance(); data.hasPlane = !negated; consumeIf(";"); break;
-			case "light":
+			case GpadEnvKeys.Ev.LIGHT:
 				advance(); data.lightExplicit = true; data.lightVal = !negated; consumeIf(";"); break;
-			case "yAxisUp":
+			case GpadEnvKeys.Ev.Y_AXIS_UP:
 				advance(); data.yAxisUp = !negated; consumeIf(";"); break;
-			case "coloredAxes":
+			case GpadEnvKeys.Ev.COLORED_AXES:
 				advance(); data.coloredAxes = !negated; consumeIf(";"); break;
-			case "clipping":
+			case GpadEnvKeys.Ev.CLIPPING:
 				advance(); expect(":");
 				parseClipping(data);
 				consumeIf(";"); break;
-			case "projection":
+			case GpadEnvKeys.Ev.PROJECTION:
 				advance(); expect(":");
 				parseProjection(data);
 				consumeIf(";"); break;
-			case "coordSystem":
+			case GpadEnvKeys.Ev.COORD_SYSTEM:
 				advance(); expect(":");
 				parseCoordSystem3D(data);
 				consumeIf(";"); break;
@@ -551,23 +551,25 @@ public class GpadEnvToXmlConverter {
 	private void parseCoordSystem2D(EvBlockData data) {
 		while (pos < tokens.length && !";".equals(peek())) {
 			String key = peek();
-			if (key.startsWith("origin")) {
+			if (key.startsWith(GpadEnvKeys.CoordSystem.ORIGIN)) {
 				data.csOriginX = advanceValue();
 				expect(",");
 				data.csOriginY = advance();
-			} else if (key.startsWith("scale") && !"xscale".equals(key) && !"yscale".equals(key)) {
+			} else if (key.startsWith(GpadEnvKeys.CoordSystem.SCALE)
+					&& !GpadEnvKeys.CoordSystem.X_SCALE.equals(key)
+					&& !GpadEnvKeys.CoordSystem.Y_SCALE.equals(key)) {
 				data.csScale = advanceValue();
-			} else if ("xscale".equals(key)) {
+			} else if (GpadEnvKeys.CoordSystem.X_SCALE.equals(key)) {
 				data.csXscale = advanceValue();
-			} else if ("yscale".equals(key)) {
+			} else if (GpadEnvKeys.CoordSystem.Y_SCALE.equals(key)) {
 				data.csYscale = advanceValue();
-			} else if ("xMin".equals(key)) {
+			} else if (GpadEnvKeys.CoordSystem.X_MIN.equals(key)) {
 				data.csXMin = unquote(advanceValue());
-			} else if ("xMax".equals(key)) {
+			} else if (GpadEnvKeys.CoordSystem.X_MAX.equals(key)) {
 				data.csXMax = unquote(advanceValue());
-			} else if ("yMin".equals(key)) {
+			} else if (GpadEnvKeys.CoordSystem.Y_MIN.equals(key)) {
 				data.csYMin = unquote(advanceValue());
-			} else if ("yMax".equals(key)) {
+			} else if (GpadEnvKeys.CoordSystem.Y_MAX.equals(key)) {
 				data.csYMax = unquote(advanceValue());
 			} else {
 				advance();
@@ -578,7 +580,7 @@ public class GpadEnvToXmlConverter {
 	private void parseCoordSystem3D(Ev3dBlockData data) {
 		while (pos < tokens.length && !";".equals(peek())) {
 			String key = peek();
-			if ("origin".equals(key)) {
+			if (GpadEnvKeys.CoordSystem.ORIGIN.equals(key)) {
 				data.csOriginX = advanceValue();
 				expect(",");
 				data.csOriginY = advance();
@@ -586,29 +588,29 @@ public class GpadEnvToXmlConverter {
 					advance();
 					data.csOriginZ = advance();
 				}
-			} else if ("scale".equals(key)) {
+			} else if (GpadEnvKeys.CoordSystem.SCALE.equals(key)) {
 				data.csScale = advanceValue();
-			} else if ("xscale".equals(key)) {
+			} else if (GpadEnvKeys.CoordSystem.X_SCALE.equals(key)) {
 				data.csXscale = advanceValue();
-			} else if ("yscale".equals(key)) {
+			} else if (GpadEnvKeys.CoordSystem.Y_SCALE.equals(key)) {
 				data.csYscale = advanceValue();
-			} else if ("zscale".equals(key)) {
+			} else if (GpadEnvKeys.CoordSystem.Z_SCALE.equals(key)) {
 				data.csZscale = advanceValue();
-			} else if ("xAngle".equals(key)) {
+			} else if (GpadEnvKeys.CoordSystem.X_ANGLE.equals(key)) {
 				data.csXAngle = advanceValue();
-			} else if ("zAngle".equals(key)) {
+			} else if (GpadEnvKeys.CoordSystem.Z_ANGLE.equals(key)) {
 				data.csZAngle = advanceValue();
-			} else if ("zMin".equals(key)) {
+			} else if (GpadEnvKeys.CoordSystem.Z_MIN.equals(key)) {
 				data.csZMin = unquote(advanceValue());
-			} else if ("zMax".equals(key)) {
+			} else if (GpadEnvKeys.CoordSystem.Z_MAX.equals(key)) {
 				data.csZMax = unquote(advanceValue());
-			} else if ("xMin".equals(key)) {
+			} else if (GpadEnvKeys.CoordSystem.X_MIN.equals(key)) {
 				data.csXMin = unquote(advanceValue());
-			} else if ("xMax".equals(key)) {
+			} else if (GpadEnvKeys.CoordSystem.X_MAX.equals(key)) {
 				data.csXMax = unquote(advanceValue());
-			} else if ("yMin".equals(key)) {
+			} else if (GpadEnvKeys.CoordSystem.Y_MIN.equals(key)) {
 				data.csYMin = unquote(advanceValue());
-			} else if ("yMax".equals(key)) {
+			} else if (GpadEnvKeys.CoordSystem.Y_MAX.equals(key)) {
 				data.csYMax = unquote(advanceValue());
 			} else {
 				parseCoordSystem2D(data);
@@ -620,11 +622,11 @@ public class GpadEnvToXmlConverter {
 	private void parseGridDist(EvBlockData data) {
 		while (pos < tokens.length && !";".equals(peek())) {
 			String key = peek();
-			if ("x".equals(key)) {
+			if (GpadEnvKeys.GridDist.X.equals(key)) {
 				data.gridDistX = parseDouble(advanceValue());
-			} else if ("y".equals(key)) {
+			} else if (GpadEnvKeys.GridDist.Y.equals(key)) {
 				data.gridDistY = parseDouble(advanceValue());
-			} else if ("theta".equals(key)) {
+			} else if (GpadEnvKeys.GridDist.THETA.equals(key)) {
 				data.gridDistTheta = parseDouble(advanceValue());
 			} else {
 				advance();
@@ -638,16 +640,16 @@ public class GpadEnvToXmlConverter {
 			if ("~".equals(val)) {
 				advance();
 				String next = peek();
-				if ("use".equals(next)) { advance(); data.useClipping = false; }
-				else if ("show".equals(next)) { advance(); data.showClipping = false; }
+				if (GpadEnvKeys.Clipping.USE.equals(next)) { advance(); data.useClipping = false; }
+				else if (GpadEnvKeys.Clipping.SHOW.equals(next)) { advance(); data.showClipping = false; }
 				else advance();
-			} else if ("use".equals(val)) {
+			} else if (GpadEnvKeys.Clipping.USE.equals(val)) {
 				advance();
 				data.useClipping = true;
-			} else if ("show".equals(val)) {
+			} else if (GpadEnvKeys.Clipping.SHOW.equals(val)) {
 				advance();
 				data.showClipping = true;
-			} else if ("size".equals(val)) {
+			} else if (GpadEnvKeys.Clipping.SIZE.equals(val)) {
 				data.clippingReduction = parseInt(advanceValue());
 			} else {
 				advance();
@@ -662,19 +664,19 @@ public class GpadEnvToXmlConverter {
 			String key = peek();
 			boolean negated = false;
 			if ("~".equals(key)) { negated = true; advance(); key = peek(); }
-			if ("distance".equals(key)) {
+			if (GpadEnvKeys.Projection.DISTANCE.equals(key)) {
 				data.projDistance = parseInt(advanceValue());
-			} else if ("separation".equals(key)) {
+			} else if (GpadEnvKeys.Projection.SEPARATION.equals(key)) {
 				data.projSeparation = parseInt(advanceValue());
-			} else if ("grayScaled".equals(key)) {
+			} else if (GpadEnvKeys.Projection.GRAY_SCALED.equals(key)) {
 				advance();
 				data.projGrayScaled = !negated;
-			} else if ("shutDownGreen".equals(key)) {
+			} else if (GpadEnvKeys.Projection.SHUT_DOWN_GREEN.equals(key)) {
 				advance();
 				data.projShutDownGreen = !negated;
-			} else if ("angle".equals(key)) {
+			} else if (GpadEnvKeys.Projection.ANGLE.equals(key)) {
 				data.projAngle = parseDouble(advanceValue());
-			} else if ("factor".equals(key)) {
+			} else if (GpadEnvKeys.Projection.FACTOR.equals(key)) {
 				data.projFactor = parseDouble(advanceValue());
 			} else {
 				advance();
@@ -692,18 +694,18 @@ public class GpadEnvToXmlConverter {
 			if ("~".equals(key)) { negated = true; advance(); key = peek(); }
 
 			switch (key) {
-				case "show": advance(); axis.show = !negated; break;
-				case "label": axis.label = unquote(advanceValue()); break;
-				case "unit": axis.unit = unquote(advanceValue()); break;
-				case "piUnit": advance(); axis.piUnit = !negated; break;
-				case "numbers": advance(); axis.showNumbers = !negated; break;
-				case "tickExpr": axis.tickExpression = unquote(advanceValue()); break;
-				case "tickDist": axis.tickDist = parseDouble(advanceValue()); break;
-				case "tickStyle": axis.tickStyle = advanceValue(); break;
-				case "cross": axis.cross = parseDouble(advanceValue()); break;
-				case "crossEdge": advance(); axis.crossEdge = !negated; break;
-				case "positive": advance(); axis.positive = !negated; break;
-				case "selectable": advance(); axis.selectable = !negated; break;
+				case GpadEnvKeys.Axis.SHOW: advance(); axis.show = !negated; break;
+				case GpadEnvKeys.Axis.LABEL: axis.label = unquote(advanceValue()); break;
+				case GpadEnvKeys.Axis.UNIT: axis.unit = unquote(advanceValue()); break;
+				case GpadEnvKeys.Axis.PI_UNIT: advance(); axis.piUnit = !negated; break;
+				case GpadEnvKeys.Axis.NUMBERS: advance(); axis.showNumbers = !negated; break;
+				case GpadEnvKeys.Axis.TICK_EXPR: axis.tickExpression = unquote(advanceValue()); break;
+				case GpadEnvKeys.Axis.TICK_DIST: axis.tickDist = parseDouble(advanceValue()); break;
+				case GpadEnvKeys.Axis.TICK_STYLE: axis.tickStyle = advanceValue(); break;
+				case GpadEnvKeys.Axis.CROSS: axis.cross = parseDouble(advanceValue()); break;
+				case GpadEnvKeys.Axis.CROSS_EDGE: advance(); axis.crossEdge = !negated; break;
+				case GpadEnvKeys.Axis.POSITIVE: advance(); axis.positive = !negated; break;
+				case GpadEnvKeys.Axis.SELECTABLE: advance(); axis.selectable = !negated; break;
 				default: advance(); break;
 			}
 		}

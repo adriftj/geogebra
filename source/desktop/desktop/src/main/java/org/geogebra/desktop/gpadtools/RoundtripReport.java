@@ -74,7 +74,8 @@ public class RoundtripReport {
 			"probabilityCalculator", Set.of("statisticsCollection"),
 			"gui", Set.of("window", "consProtocol",
 					"consProtNavigationBar", "tooltipSettings", "menuFont",
-					"settings", "splitDivider", "toolbar", "toolbarDefinition"),
+					"settings", "splitDivider", "toolbar", "toolbarDefinition",
+					"graphicsSettings"),
 			"euclidianView", Set.of("viewNumber"),
 			"euclidianView3D", Set.of()
 	);
@@ -277,6 +278,11 @@ public class RoundtripReport {
 	 * Compares global settings elements (kernel, euclidianView, gui, algebraView, etc.)
 	 * between original and converted XML, skipping transient UI elements.
 	 */
+	/** Top-level XML tags that are not settings (no comparison needed) */
+	private static final Set<String> NON_SETTINGS_ROOT_TAGS = Set.of(
+			"construction", "macros", "casSession", "defaults",
+			"userInterface", "compatibility");
+
 	private void compareGlobalSettings(Element origRoot, Element convRoot) {
 		for (String settingsTag : SETTINGS_ELEMENTS) {
 			Element origElem = getFirstElement(origRoot, settingsTag);
@@ -302,8 +308,23 @@ public class RoundtripReport {
 			}
 		}
 
+		warnUnknownSettingsElements(origRoot);
+
 		settingsMatched = settingsDiffs.isEmpty() ? 1 : 0;
 		settingsDifferent = settingsDiffs.isEmpty() ? 0 : 1;
+	}
+
+	private void warnUnknownSettingsElements(Element root) {
+		NodeList children = root.getChildNodes();
+		for (int i = 0; i < children.getLength(); i++) {
+			Node child = children.item(i);
+			if (child.getNodeType() != Node.ELEMENT_NODE) continue;
+			String tag = ((Element) child).getTagName();
+			if (!SETTINGS_ELEMENTS.contains(tag) && !NON_SETTINGS_ROOT_TAGS.contains(tag)) {
+				System.err.println("[WARN] RoundtripReport: unknown root element <"
+						+ tag + "> not covered by settings comparison");
+			}
+		}
 	}
 
 	private void compareGuiElement(Element origGui, Element convGui) {
@@ -326,6 +347,21 @@ public class RoundtripReport {
 				comparePerspectives(origChild, convChild);
 			} else {
 				compareSettingsAttributes("gui/" + childTag, origChild, convChild);
+			}
+		}
+		warnUnknownGuiChildren(origGui);
+	}
+
+	private void warnUnknownGuiChildren(Element origGui) {
+		Set<String> guiSkip = SKIP_CHILDREN.getOrDefault("gui", Set.of());
+		NodeList children = origGui.getChildNodes();
+		for (int i = 0; i < children.getLength(); i++) {
+			Node child = children.item(i);
+			if (child.getNodeType() != Node.ELEMENT_NODE) continue;
+			String tag = ((Element) child).getTagName();
+			if (!GUI_COMPARE_CHILDREN.contains(tag) && !guiSkip.contains(tag)) {
+				System.err.println("[WARN] RoundtripReport: unknown gui child <"
+						+ tag + "> not covered by comparison or skip list");
 			}
 		}
 	}
@@ -530,6 +566,20 @@ public class RoundtripReport {
 		return false;
 	}
 
+	private static boolean hasUnexpectedAttrs(Element elem, Set<String> knownAttrs,
+			String context) {
+		NamedNodeMap attrs = elem.getAttributes();
+		for (int i = 0; i < attrs.getLength(); i++) {
+			String name = attrs.item(i).getNodeName();
+			if (!knownAttrs.contains(name)) {
+				System.err.println("[WARN] RoundtripReport: unknown attribute '"
+						+ name + "' on <" + context + ">, treating as non-default");
+				return true;
+			}
+		}
+		return false;
+	}
+
 	private static boolean settingsValuesEqual(String a, String b) {
 		if (a == null) return b == null;
 		if (a.equals(b)) return true;
@@ -578,14 +628,21 @@ public class RoundtripReport {
 		}
 	}
 
+	private static final Set<String> SCRIPTING_KNOWN_ATTRS = Set.of(
+			"blocked", "disabled", "language");
+
 	private static boolean isDefaultScripting(Element elem) {
+		if (hasUnexpectedAttrs(elem, SCRIPTING_KNOWN_ATTRS, "scripting")) return false;
 		String blocked = elem.getAttribute("blocked");
 		String disabled = elem.getAttribute("disabled");
 		return (blocked.isEmpty() || "false".equals(blocked))
 				&& (disabled.isEmpty() || "false".equals(disabled));
 	}
 
+	private static final Set<String> TABLEVIEW_KNOWN_ATTRS = Set.of("min", "max", "step");
+
 	private static boolean isDefaultTableview(Element elem) {
+		if (hasUnexpectedAttrs(elem, TABLEVIEW_KNOWN_ATTRS, "tableview")) return false;
 		String min = elem.getAttribute("min");
 		String max = elem.getAttribute("max");
 		String step = elem.getAttribute("step");
@@ -614,18 +671,36 @@ public class RoundtripReport {
 		return true;
 	}
 
+	private static final Set<String> SPREADSHEET_TRANSIENT_TAGS = Set.of(
+			"selection", "initialSelection", "layout", "tab", "spreadsheetDimensions");
+
+	private static final Set<String> SPREADSHEET_VALUE_CHECK_TAGS = Set.of(
+			"prefCellSize", "size", "dimensions", "spreadsheetBrowser",
+			"spreadsheetRow", "spreadsheetColumn");
+
 	private static boolean isDefaultSpreadsheetView(Element elem) {
-		Set<String> ignoreTags = Set.of("selection", "spreadsheetRow",
-				"prefCellSize", "spreadsheetColumn", "layout",
-				"spreadsheetBrowser", "size", "dimensions",
-				"spreadsheetDimensions", "spreadsheetCellFormat",
-				"initialSelection", "tab");
 		NodeList children = elem.getChildNodes();
 		for (int i = 0; i < children.getLength(); i++) {
 			Node child = children.item(i);
 			if (child.getNodeType() != Node.ELEMENT_NODE) continue;
-			String tag = ((Element) child).getTagName();
-			if (!ignoreTags.contains(tag)) return false;
+			Element ce = (Element) child;
+			String tag = ce.getTagName();
+			if (SPREADSHEET_TRANSIENT_TAGS.contains(tag)) continue;
+			if (SPREADSHEET_VALUE_CHECK_TAGS.contains(tag)) {
+				if (hasNonDefaultAttrs("spreadsheetView/" + tag, ce)) return false;
+				continue;
+			}
+			if ("spreadsheetCellFormat".equals(tag)) {
+				NodeList formatChildren = ce.getChildNodes();
+				for (int j = 0; j < formatChildren.getLength(); j++) {
+					if (formatChildren.item(j).getNodeType() == Node.ELEMENT_NODE)
+						return false;
+				}
+				continue;
+			}
+			System.err.println("[WARN] RoundtripReport: unknown spreadsheetView child <"
+					+ tag + ">, treating as non-default");
+			return false;
 		}
 		return true;
 	}
