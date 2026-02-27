@@ -3007,11 +3007,17 @@ void gpadStaticStyleSheetDefinition() :
 void gpadStaticEnvStatement() throws GpadParseException :
 {
     Token envToken;
+    Token templateNameToken = null;
     StringBuilder content = new StringBuilder();
     int depth = 0;
 }
 {
     envToken = <GPAD_ENV>
+    {
+        if (getToken(1).kind != LBRACE) {
+            templateNameToken = getNextToken();
+        }
+    }
     <LBRACE>
     {
         depth = 1;
@@ -3032,6 +3038,7 @@ void gpadStaticEnvStatement() throws GpadParseException :
         GpadStaticItem item = new GpadStaticItem();
         item.type = GpadStaticItem.Type.ENV;
         item.rawContent = content.toString().trim();
+        item.templateName = templateNameToken != null ? templateNameToken.image : null;
         gpadStaticItems.add(item);
     }
 }

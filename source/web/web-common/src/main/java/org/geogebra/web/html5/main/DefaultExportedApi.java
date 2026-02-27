@@ -1272,4 +1272,22 @@ public class DefaultExportedApi implements ExportedApi {
 		boolean merge = Js.isTruthy(mergeStylesheets);
 		return getGgbAPI().xmlToGpad(xmlFile + "", xmlMacro + "", merge);
 	}
+
+	/**
+	 * Registers or overrides an @@env template.
+	 * @param name template name
+	 * @param content raw env content (without outer braces), or null to remove
+	 */
+	public void gpadSetEnvTemplate(String name, String content) {
+		getGgbAPI().gpadSetEnvTemplate(name + "", content != null ? content + "" : null);
+	}
+
+	/**
+	 * Gets the raw content of an @@env template.
+	 * @param name template name
+	 * @return raw content, or null if not registered
+	 */
+	public String gpadGetEnvTemplate(String name) {
+		return getGgbAPI().gpadGetEnvTemplate(name + "");
+	}
 }

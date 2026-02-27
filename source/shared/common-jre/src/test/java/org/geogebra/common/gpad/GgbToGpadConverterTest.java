@@ -499,4 +499,200 @@ public class GgbToGpadConverterTest extends BaseUnitTest {
 		assertTrue("col 1 (default) should NOT be emitted as spreadsheetColumn",
 				!ssXml.contains("id=\"1\" width"));
 	}
+
+	// ========== @@env template tests ==========
+
+	@Test
+	public void testBlankTemplateNoAxes() {
+		GpadEnvToXmlConverter.ConvertResult result =
+				GpadEnvToXmlConverter.convertAll("ev1 { ~axes; }", "");
+		String ev1Xml = result.ev1Xml.toString();
+		assertTrue("blank template should hide axes",
+				ev1Xml.contains("axes=\"false\""));
+	}
+
+	@Test
+	public void testGridTemplateShowsGrid() {
+		GpadEnvToXmlConverter.ConvertResult result =
+				GpadEnvToXmlConverter.convertAll("ev1 { grid; }", "");
+		String ev1Xml = result.ev1Xml.toString();
+		assertTrue("grid template should show grid",
+				ev1Xml.contains("grid=\"true\""));
+	}
+
+	@Test
+	public void testBlankTemplateWithUserGridOverride() {
+		GpadEnvToXmlConverter.ConvertResult result =
+				GpadEnvToXmlConverter.convertAll("ev1 { ~axes; }",
+						"ev1 { grid; }");
+		String ev1Xml = result.ev1Xml.toString();
+		assertTrue("axes should remain hidden from template",
+				ev1Xml.contains("axes=\"false\""));
+		assertTrue("grid should be enabled from user",
+				ev1Xml.contains("grid=\"true\""));
+	}
+
+	@Test
+	public void testBlankTemplateWithNestedAxisOverride() {
+		GpadEnvToXmlConverter.ConvertResult result =
+				GpadEnvToXmlConverter.convertAll("ev1 { ~axes; }",
+						"ev1 { grid; xAxis: positive; }");
+		String ev1Xml = result.ev1Xml.toString();
+		assertTrue("axes should remain hidden",
+				ev1Xml.contains("axes=\"false\""));
+		assertTrue("grid should be enabled",
+				ev1Xml.contains("grid=\"true\""));
+		assertTrue("xAxis should be set to positive",
+				ev1Xml.contains("positiveAxis=\"true\""));
+	}
+
+	@Test
+	public void testTemplateWithTopLevelSettings() {
+		GpadEnvToXmlConverter.ConvertResult result =
+				GpadEnvToXmlConverter.convertAll("ev1 { ~axes; }",
+						"rightAngleStyle: dot;");
+		String ev1Xml = result.ev1Xml.toString();
+		assertTrue("axes should be hidden from template",
+				ev1Xml.contains("axes=\"false\""));
+		assertEquals("rightAngleStyle should be dot (2)",
+				2, result.rightAngleStyle);
+	}
+
+	@Test
+	public void testNoTemplateBehaviorUnchanged() {
+		GpadEnvToXmlConverter.ConvertResult result =
+				GpadEnvToXmlConverter.convertAll(null, "ev1 { grid; }");
+		String ev1Xml = result.ev1Xml.toString();
+		assertTrue("grid should be enabled",
+				ev1Xml.contains("grid=\"true\""));
+		assertTrue("axes should default to true (no template)",
+				ev1Xml.contains("axes=\"true\""));
+	}
+
+	@Test
+	public void testBuiltinTemplatesRegistry() {
+		assertEquals("ev1 { ~axes; }", GpadEnvTemplates.get("blank"));
+		assertEquals("ev1 { grid; }", GpadEnvTemplates.get("grid"));
+	}
+
+	@Test
+	public void testCustomTemplateViaRegistry() {
+		try {
+			GpadEnvTemplates.set("myTpl", "ev1 { ~axes; ~grid; }");
+			String content = GpadEnvTemplates.get("myTpl");
+			assertEquals("ev1 { ~axes; ~grid; }", content);
+
+			GpadEnvToXmlConverter.ConvertResult result =
+					GpadEnvToXmlConverter.convertAll(content, "");
+			String ev1Xml = result.ev1Xml.toString();
+			assertTrue("custom template should hide axes",
+					ev1Xml.contains("axes=\"false\""));
+			assertTrue("custom template should hide grid",
+					ev1Xml.contains("grid=\"false\""));
+		} finally {
+			GpadEnvTemplates.set("myTpl", null);
+		}
+	}
+
+	@Test
+	public void testOverrideBuiltinTemplate() {
+		String originalBlank = GpadEnvTemplates.get("blank");
+		try {
+			GpadEnvTemplates.set("blank", "ev1 { bgColor: #000000; }");
+			assertEquals("ev1 { bgColor: #000000; }",
+					GpadEnvTemplates.get("blank"));
+
+			GpadEnvToXmlConverter.ConvertResult result =
+					GpadEnvToXmlConverter.convertAll(
+							GpadEnvTemplates.get("blank"), "");
+			String ev1Xml = result.ev1Xml.toString();
+			assertTrue("overridden blank should set bgColor",
+					ev1Xml.contains("r=\"0\"") && ev1Xml.contains("g=\"0\"")
+							&& ev1Xml.contains("b=\"0\""));
+		} finally {
+			GpadEnvTemplates.set("blank", originalBlank);
+		}
+	}
+
+	@Test
+	public void testRemoveTemplate() {
+		try {
+			GpadEnvTemplates.set("tempTpl", "ev1 { grid; }");
+			assertNotNull(GpadEnvTemplates.get("tempTpl"));
+			GpadEnvTemplates.set("tempTpl", null);
+			assertNull(GpadEnvTemplates.get("tempTpl"));
+			GpadEnvTemplates.set("tempTpl2", "ev1 { grid; }");
+			GpadEnvTemplates.set("tempTpl2", "");
+			assertNull(GpadEnvTemplates.get("tempTpl2"));
+		} finally {
+			GpadEnvTemplates.set("tempTpl", null);
+			GpadEnvTemplates.set("tempTpl2", null);
+		}
+	}
+
+	@Test
+	public void testGetNonexistentTemplate() {
+		assertNull(GpadEnvTemplates.get("nonexistent"));
+	}
+
+	@Test
+	public void testUnknownTemplateInBuildFullXml() {
+		GpadStaticItem item = new GpadStaticItem();
+		item.type = GpadStaticItem.Type.ENV;
+		item.rawContent = "ev1 { grid; }";
+		item.templateName = "nonexistent";
+
+		java.util.List<GpadStaticItem> items = new java.util.ArrayList<>();
+		items.add(item);
+
+		String xml = GpadToXmlStaticConverter.buildFullXml(items);
+		assertTrue("Should still contain grid=true",
+				xml.contains("grid=\"true\""));
+		assertTrue("Should contain axes=true (no template fallback)",
+				xml.contains("axes=\"true\""));
+	}
+
+	@Test
+	public void testBlankTemplateInBuildFullXml() {
+		GpadStaticItem item = new GpadStaticItem();
+		item.type = GpadStaticItem.Type.ENV;
+		item.rawContent = "ev1 { grid; }";
+		item.templateName = "blank";
+
+		java.util.List<GpadStaticItem> items = new java.util.ArrayList<>();
+		items.add(item);
+
+		String xml = GpadToXmlStaticConverter.buildFullXml(items);
+		assertTrue("Should contain grid=true from user",
+				xml.contains("grid=\"true\""));
+		assertTrue("Should contain axes=false from blank template",
+				xml.contains("axes=\"false\""));
+	}
+
+	@Test
+	public void testTemplateOnlyNoUserContent() {
+		GpadStaticItem item = new GpadStaticItem();
+		item.type = GpadStaticItem.Type.ENV;
+		item.rawContent = "";
+		item.templateName = "grid";
+
+		java.util.List<GpadStaticItem> items = new java.util.ArrayList<>();
+		items.add(item);
+
+		String xml = GpadToXmlStaticConverter.buildFullXml(items);
+		assertTrue("Should contain grid=true from grid template",
+				xml.contains("grid=\"true\""));
+	}
+
+	@Test
+	public void testUserOverridesTemplateValue() {
+		GpadEnvToXmlConverter.ConvertResult result =
+				GpadEnvToXmlConverter.convertAll("ev1 { ~axes; grid; }",
+						"ev1 { axes; }");
+		String ev1Xml = result.ev1Xml.toString();
+		assertTrue("user should override template: axes=true",
+				ev1Xml.contains("axes=\"true\""));
+		assertTrue("template grid should persist",
+				ev1Xml.contains("grid=\"true\""));
+	}
 }

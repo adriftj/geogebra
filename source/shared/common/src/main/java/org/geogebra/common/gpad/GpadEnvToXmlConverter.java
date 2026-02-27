@@ -42,6 +42,32 @@ public class GpadEnvToXmlConverter {
 	}
 
 	/**
+	 * Mutable parsing state accumulated across one or more parse passes.
+	 * Extracting this from local variables enables template merging:
+	 * parse the template content first, then parse user content into
+	 * the same state — user-set fields override, unmentioned fields
+	 * keep the template values.
+	 */
+	static class ParseState {
+		EvBlockData ev1, ev2;
+		Ev3dBlockData ev3d;
+		PenToolsData penData = new PenToolsData();
+		KernelData kernel = new KernelData();
+		AlgebraViewData avData = new AlgebraViewData();
+		SpreadsheetViewData ssData = new SpreadsheetViewData();
+		KeyboardData kbData;
+		ProbCalcData pcData;
+		ScriptingData scrData;
+		TableViewData tvData;
+		GuiData guiData = new GuiData();
+		PerspectiveData perspData;
+		int rightAngleStyle = -1;
+		boolean hasAlgebraView;
+		boolean hasSpreadsheetView;
+		boolean hasKernel;
+	}
+
+	/**
 	 * Converts @@env raw content into XML fragments (legacy signature).
 	 */
 	public static void convert(String rawContent,
@@ -61,29 +87,33 @@ public class GpadEnvToXmlConverter {
 	 * @return conversion result with all XML fragments
 	 */
 	public static ConvertResult convertAll(String rawContent) {
+		return convertAll(null, rawContent);
+	}
+
+	/**
+	 * Converts @@env content with optional template into all XML fragments.
+	 * If templateContent is non-null, it is parsed first to set baseline
+	 * values, then rawContent is parsed on top — user-set fields override
+	 * template values, unmentioned fields keep the template defaults.
+	 *
+	 * @param templateContent template raw content (may be {@code null})
+	 * @param rawContent      user raw content from @@env block
+	 * @return conversion result with all XML fragments
+	 */
+	public static ConvertResult convertAll(String templateContent, String rawContent) {
+		ParseState state = new ParseState();
+		if (templateContent != null && !templateContent.isEmpty()) {
+			new GpadEnvToXmlConverter(templateContent).parseInto(state);
+		}
+		if (rawContent != null && !rawContent.isEmpty()) {
+			new GpadEnvToXmlConverter(rawContent).parseInto(state);
+		}
 		ConvertResult result = new ConvertResult();
-		if (rawContent == null || rawContent.isEmpty()) return result;
-		new GpadEnvToXmlConverter(rawContent).parse(result);
+		emitAll(state, result);
 		return result;
 	}
 
-	private void parse(ConvertResult result) {
-		EvBlockData ev1 = null, ev2 = null;
-		Ev3dBlockData ev3d = null;
-		PenToolsData penData = new PenToolsData();
-		KernelData kernel = new KernelData();
-		AlgebraViewData avData = new AlgebraViewData();
-		SpreadsheetViewData ssData = new SpreadsheetViewData();
-		KeyboardData kbData = null;
-		ProbCalcData pcData = null;
-		ScriptingData scrData = null;
-		TableViewData tvData = null;
-		GuiData guiData = new GuiData();
-		PerspectiveData perspData = null;
-		boolean hasAlgebraView = false;
-		boolean hasSpreadsheetView = false;
-		boolean hasKernel = false;
-
+	private void parseInto(ParseState state) {
 		while (pos < tokens.length) {
 			String tok = peek();
 			boolean negated = false;
@@ -94,144 +124,137 @@ public class GpadEnvToXmlConverter {
 			}
 
 			switch (tok) {
-				// existing blocks
-				case "ev1": advance(); ev1 = parseEvBlock(); break;
-				case "ev2": advance(); ev2 = parseEvBlock(); break;
-				case "ev3d": advance(); ev3d = parseEv3dBlock(); break;
+				case "ev1": advance(); state.ev1 = parseEvBlock(state.ev1); break;
+				case "ev2": advance(); state.ev2 = parseEvBlock(state.ev2); break;
+				case "ev3d": advance(); state.ev3d = parseEv3dBlock(state.ev3d); break;
 				case "rightAngleStyle":
 					advance(); expect(":"); String ras = advance();
-					result.rightAngleStyle = rightAngleStyleToInt(ras);
+					state.rightAngleStyle = rightAngleStyleToInt(ras);
 					consumeIf(";"); break;
-				case "pen": advance(); parsePenBlock(penData.pen); break;
-				case "highlighter": advance(); parsePenBlock(penData.highlighter); break;
-				case "eraser": advance(); parsePenBlock(penData.eraser); break;
+				case "pen": advance(); parsePenBlock(state.penData.pen); break;
+				case "highlighter": advance(); parsePenBlock(state.penData.highlighter); break;
+				case "eraser": advance(); parsePenBlock(state.penData.eraser); break;
 
-				// kernel top-level
 				case "continuous":
-					advance(); kernel.continuous = negated ? 0 : 1;
-					hasKernel = true; consumeIf(";"); break;
+					advance(); state.kernel.continuous = negated ? 0 : 1;
+					state.hasKernel = true; consumeIf(";"); break;
 				case "symbolic":
-					advance(); kernel.symbolic = negated ? 0 : 1;
-					hasKernel = true; consumeIf(";"); break;
+					advance(); state.kernel.symbolic = negated ? 0 : 1;
+					state.hasKernel = true; consumeIf(";"); break;
 				case "precision":
 					advance(); expect(":");
-					kernel.precisionVal = advance();
-					hasKernel = true; consumeIf(";"); break;
+					state.kernel.precisionVal = advance();
+					state.hasKernel = true; consumeIf(";"); break;
 				case "angleUnit":
-					advance(); expect(":"); kernel.angleUnit = advance();
-					hasKernel = true; consumeIf(";"); break;
+					advance(); expect(":"); state.kernel.angleUnit = advance();
+					state.hasKernel = true; consumeIf(";"); break;
 				case "coordStyle":
-					advance(); expect(":"); kernel.coordStyle = advance();
-					hasKernel = true; consumeIf(";"); break;
+					advance(); expect(":"); state.kernel.coordStyle = advance();
+					state.hasKernel = true; consumeIf(";"); break;
 				case "startAnimation":
-					advance(); kernel.startAnimation = negated ? 0 : 1;
-					hasKernel = true; consumeIf(";"); break;
+					advance(); state.kernel.startAnimation = negated ? 0 : 1;
+					state.hasKernel = true; consumeIf(";"); break;
 				case "pathRegionParams":
-					advance(); expect(":"); kernel.pathRegionParams = advance();
-					hasKernel = true; consumeIf(";"); break;
+					advance(); expect(":"); state.kernel.pathRegionParams = advance();
+					state.hasKernel = true; consumeIf(";"); break;
 				case "localization":
 					advance(); expect(":");
-					parseLocalization(kernel);
-					hasKernel = true; consumeIf(";"); break;
+					parseLocalization(state.kernel);
+					state.hasKernel = true; consumeIf(";"); break;
 				case "cas":
 					advance(); expect(":");
-					parseCas(kernel);
-					hasKernel = true; consumeIf(";"); break;
+					parseCas(state.kernel);
+					state.hasKernel = true; consumeIf(";"); break;
 
-				// gui top-level
 				case "font":
-					advance(); expect(":"); guiData.fontSize = parseInt(advance());
+					advance(); expect(":"); state.guiData.fontSize = parseInt(advance());
 					consumeIf(";"); break;
 				case "labeling":
-					advance(); expect(":"); guiData.labelingStyle = labelingToInt(advance());
+					advance(); expect(":"); state.guiData.labelingStyle = labelingToInt(advance());
 					consumeIf(";"); break;
 
-				// algebraView statement
 				case "algebraView":
 					advance(); expect(":");
-					parseAlgebraViewStatement(avData, kernel);
-					hasAlgebraView = true;
+					parseAlgebraViewStatement(state.avData, state.kernel);
+					state.hasAlgebraView = true;
 					consumeIf(";"); break;
 
-				// spreadsheetView block
 				case "spreadsheetView":
 					advance();
-					parseSpreadsheetViewBlock(ssData, kernel);
-					hasSpreadsheetView = true; break;
+					parseSpreadsheetViewBlock(state.ssData, state.kernel);
+					state.hasSpreadsheetView = true; break;
 
-				// keyboard statement
 				case "keyboard":
 					advance(); expect(":");
-					kbData = new KeyboardData();
-					parseKeyboardStatement(kbData);
+					if (state.kbData == null) state.kbData = new KeyboardData();
+					parseKeyboardStatement(state.kbData);
 					consumeIf(";"); break;
 
-				// probCalc block
 				case "probCalc":
 					advance();
-					pcData = new ProbCalcData();
-					parseProbCalcBlock(pcData);
+					if (state.pcData == null) state.pcData = new ProbCalcData();
+					parseProbCalcBlock(state.pcData);
 					break;
 
-				// scripting statement
 				case "scripting":
 					advance(); expect(":");
-					scrData = new ScriptingData();
-					parseScriptingStatement(scrData, negated);
+					if (state.scrData == null) state.scrData = new ScriptingData();
+					parseScriptingStatement(state.scrData, negated);
 					consumeIf(";"); break;
 
-				// tableView statement
 				case "tableView":
 					advance(); expect(":");
-					tvData = new TableViewData();
-					parseTableViewStatement(tvData);
+					if (state.tvData == null) state.tvData = new TableViewData();
+					parseTableViewStatement(state.tvData);
 					consumeIf(";"); break;
 
-				// perspective block
 				case "perspective":
 					advance();
-					perspData = new PerspectiveData();
-					parsePerspectiveBlock(perspData);
+					if (state.perspData == null) state.perspData = new PerspectiveData();
+					parsePerspectiveBlock(state.perspData);
 					break;
 
 				default:
 					advance(); break;
 			}
 		}
+	}
 
-		// Emit existing EV XML
-		if (ev1 != null)
-			emitEuclidianViewXml(ev1, 1, result.rightAngleStyle, result.ev1Xml);
-		if (ev2 != null)
-			emitEuclidianViewXml(ev2, 2, result.rightAngleStyle, result.ev2Xml);
-		if (ev3d != null)
-			emitEv3dXml(ev3d, result.rightAngleStyle, result.ev3dXml);
+	private static void emitAll(ParseState state, ConvertResult result) {
+		result.rightAngleStyle = state.rightAngleStyle;
 
-		// Emit new XML fragments
-		if (hasAlgebraView) {
-			kernel.algebraStyleVal = algebraStyleToInt(avData.style);
+		if (state.ev1 != null)
+			emitEuclidianViewXml(state.ev1, 1, state.rightAngleStyle, result.ev1Xml);
+		if (state.ev2 != null)
+			emitEuclidianViewXml(state.ev2, 2, state.rightAngleStyle, result.ev2Xml);
+		if (state.ev3d != null)
+			emitEv3dXml(state.ev3d, state.rightAngleStyle, result.ev3dXml);
+
+		if (state.hasAlgebraView) {
+			state.kernel.algebraStyleVal = algebraStyleToInt(state.avData.style);
 		}
-		if (hasSpreadsheetView) {
-			kernel.algebraStyleSpreadsheet = algebraStyleToInt(ssData.style);
+		if (state.hasSpreadsheetView) {
+			state.kernel.algebraStyleSpreadsheet = algebraStyleToInt(state.ssData.style);
 		}
-		if (hasKernel || kernel.algebraStyleVal >= 0 || kernel.algebraStyleSpreadsheet >= 0)
-			emitKernelXml(kernel, result.kernelXml);
-		if (guiData.fontSize >= 0 || guiData.labelingStyle >= 0)
-			emitGuiXml(guiData, result.guiXml);
-		if (hasAlgebraView)
-			emitAlgebraViewXml(avData, result.algebraViewXml);
-		if (hasSpreadsheetView)
-			emitSpreadsheetViewXml(ssData, result.spreadsheetViewXml);
-		if (kbData != null)
-			emitKeyboardXml(kbData, result.keyboardXml);
-		if (pcData != null)
-			emitProbCalcXml(pcData, result.probCalcXml);
-		if (scrData != null)
-			emitScriptingXml(scrData, result.scriptingXml);
-		if (tvData != null)
-			emitTableviewXml(tvData, result.tableviewXml);
-		if (perspData != null)
-			emitPerspectiveXml(perspData, result.perspectiveXml);
+		if (state.hasKernel || state.kernel.algebraStyleVal >= 0
+				|| state.kernel.algebraStyleSpreadsheet >= 0)
+			emitKernelXml(state.kernel, result.kernelXml);
+		if (state.guiData.fontSize >= 0 || state.guiData.labelingStyle >= 0)
+			emitGuiXml(state.guiData, result.guiXml);
+		if (state.hasAlgebraView)
+			emitAlgebraViewXml(state.avData, result.algebraViewXml);
+		if (state.hasSpreadsheetView)
+			emitSpreadsheetViewXml(state.ssData, result.spreadsheetViewXml);
+		if (state.kbData != null)
+			emitKeyboardXml(state.kbData, result.keyboardXml);
+		if (state.pcData != null)
+			emitProbCalcXml(state.pcData, result.probCalcXml);
+		if (state.scrData != null)
+			emitScriptingXml(state.scrData, result.scriptingXml);
+		if (state.tvData != null)
+			emitTableviewXml(state.tvData, result.tableviewXml);
+		if (state.perspData != null)
+			emitPerspectiveXml(state.perspData, result.perspectiveXml);
 	}
 
 	// ===================== Data classes =====================
@@ -387,8 +410,8 @@ public class GpadEnvToXmlConverter {
 
 	// ===================== Parsing =====================
 
-	private EvBlockData parseEvBlock() {
-		EvBlockData data = new EvBlockData();
+	private EvBlockData parseEvBlock(EvBlockData existing) {
+		EvBlockData data = existing != null ? existing : new EvBlockData();
 		expect("{");
 		while (pos < tokens.length && !"}".equals(peek())) {
 			parseEvProperty(data);
@@ -397,8 +420,8 @@ public class GpadEnvToXmlConverter {
 		return data;
 	}
 
-	private Ev3dBlockData parseEv3dBlock() {
-		Ev3dBlockData data = new Ev3dBlockData();
+	private Ev3dBlockData parseEv3dBlock(Ev3dBlockData existing) {
+		Ev3dBlockData data = existing != null ? existing : new Ev3dBlockData();
 		expect("{");
 		while (pos < tokens.length && !"}".equals(peek())) {
 			parseEv3dProperty(data);
@@ -930,7 +953,7 @@ public class GpadEnvToXmlConverter {
 
 	// ===================== New XML Emission =====================
 
-	private void emitKernelXml(KernelData data, StringBuilder sb) {
+	private static void emitKernelXml(KernelData data, StringBuilder sb) {
 		XMLStringBuilder xml = new XMLStringBuilder();
 		xml.startOpeningTag("kernel", 0).endTag();
 
@@ -1002,7 +1025,7 @@ public class GpadEnvToXmlConverter {
 		sb.append(xml.toString());
 	}
 
-	private void emitGuiXml(GuiData data, StringBuilder sb) {
+	private static void emitGuiXml(GuiData data, StringBuilder sb) {
 		XMLStringBuilder xml = new XMLStringBuilder();
 		xml.startOpeningTag("gui", 0).endTag();
 		if (data.fontSize >= 0)
@@ -1013,7 +1036,7 @@ public class GpadEnvToXmlConverter {
 		sb.append(xml.toString());
 	}
 
-	private void emitAlgebraViewXml(AlgebraViewData data, StringBuilder sb) {
+	private static void emitAlgebraViewXml(AlgebraViewData data, StringBuilder sb) {
 		XMLStringBuilder xml = new XMLStringBuilder();
 		xml.startOpeningTag("algebraView", 0).endTag();
 		if (data.sort != null) {
@@ -1025,7 +1048,7 @@ public class GpadEnvToXmlConverter {
 		sb.append(xml.toString());
 	}
 
-	private void emitSpreadsheetViewXml(SpreadsheetViewData data, StringBuilder sb) {
+	private static void emitSpreadsheetViewXml(SpreadsheetViewData data, StringBuilder sb) {
 		XMLStringBuilder xml = new XMLStringBuilder();
 		xml.startOpeningTag("spreadsheetView", 0).endTag();
 
@@ -1076,7 +1099,7 @@ public class GpadEnvToXmlConverter {
 		sb.append(xml.toString());
 	}
 
-	private void emitSpreadsheetLayout(XMLStringBuilder xml, SpreadsheetViewData data) {
+	private static void emitSpreadsheetLayout(XMLStringBuilder xml, SpreadsheetViewData data) {
 		boolean hasLayout = data.layoutGrid != null || data.layoutFormulaBar != null
 				|| data.layoutHScroll != null || data.layoutVScroll != null
 				|| data.layoutBrowserPanel != null || data.layoutColumnHeader != null
@@ -1102,7 +1125,7 @@ public class GpadEnvToXmlConverter {
 		if (val != null) xml.attr(name, "true".equals(val));
 	}
 
-	private void emitKeyboardXml(KeyboardData data, StringBuilder sb) {
+	private static void emitKeyboardXml(KeyboardData data, StringBuilder sb) {
 		XMLStringBuilder xml = new XMLStringBuilder();
 		xml.startTag("keyboard", 0);
 		if (data.width != null) xml.attr("width", parseInt(data.width));
@@ -1114,7 +1137,7 @@ public class GpadEnvToXmlConverter {
 		sb.append(xml.toString());
 	}
 
-	private void emitProbCalcXml(ProbCalcData data, StringBuilder sb) {
+	private static void emitProbCalcXml(ProbCalcData data, StringBuilder sb) {
 		XMLStringBuilder xml = new XMLStringBuilder();
 		xml.startOpeningTag("probabilityCalculator", 0).endTag();
 
@@ -1139,7 +1162,7 @@ public class GpadEnvToXmlConverter {
 		sb.append(xml.toString());
 	}
 
-	private void emitScriptingXml(ScriptingData data, StringBuilder sb) {
+	private static void emitScriptingXml(ScriptingData data, StringBuilder sb) {
 		XMLStringBuilder xml = new XMLStringBuilder();
 		xml.startTag("scripting", 0);
 		xml.attr("blocked", data.blocked == 1);
@@ -1149,7 +1172,7 @@ public class GpadEnvToXmlConverter {
 		sb.append(xml.toString());
 	}
 
-	private void emitTableviewXml(TableViewData data, StringBuilder sb) {
+	private static void emitTableviewXml(TableViewData data, StringBuilder sb) {
 		XMLStringBuilder xml = new XMLStringBuilder();
 		xml.startTag("tableview", 0);
 		if (data.xValues != null) {
@@ -1236,7 +1259,7 @@ public class GpadEnvToXmlConverter {
 
 	// ===================== Existing XML Emission =====================
 
-	private void emitEuclidianViewXml(EvBlockData data, int viewNo,
+	private static void emitEuclidianViewXml(EvBlockData data, int viewNo,
 			int rightAngleStyle, StringBuilder sb) {
 		XMLStringBuilder xml = new XMLStringBuilder();
 		xml.startOpeningTag("euclidianView", 0).endTag();
@@ -1278,7 +1301,7 @@ public class GpadEnvToXmlConverter {
 		sb.append(xml.toString());
 	}
 
-	private void emitEv3dXml(Ev3dBlockData data, int rightAngleStyle, StringBuilder sb) {
+	private static void emitEv3dXml(Ev3dBlockData data, int rightAngleStyle, StringBuilder sb) {
 		XMLStringBuilder xml = new XMLStringBuilder();
 		xml.startOpeningTag("euclidianView3D", 0).endTag();
 
@@ -1313,7 +1336,7 @@ public class GpadEnvToXmlConverter {
 		sb.append(xml.toString());
 	}
 
-	private void emitCoordSystem2D(XMLStringBuilder xml, EvBlockData data) {
+	private static void emitCoordSystem2D(XMLStringBuilder xml, EvBlockData data) {
 		if (data.csXMin != null && data.csXMax != null
 				&& data.csYMin != null && data.csYMax != null) {
 			xml.startTag("coordSystem", 1)
@@ -1337,7 +1360,7 @@ public class GpadEnvToXmlConverter {
 		}
 	}
 
-	private void emitCoordSystem3D(XMLStringBuilder xml, Ev3dBlockData data) {
+	private static void emitCoordSystem3D(XMLStringBuilder xml, Ev3dBlockData data) {
 		boolean hasBounded = data.csXMin != null && data.csXMax != null
 				&& data.csYMin != null && data.csYMax != null
 				&& data.csZMin != null && data.csZMax != null;
@@ -1369,7 +1392,7 @@ public class GpadEnvToXmlConverter {
 		xml.endTag();
 	}
 
-	private void emitEvSettings(XMLStringBuilder xml, EvBlockData data, int rightAngleStyle) {
+	private static void emitEvSettings(XMLStringBuilder xml, EvBlockData data, int rightAngleStyle) {
 		xml.startTag("evSettings", 1);
 		xml.attr("axes", data.hasAxes);
 		xml.attr("grid", data.hasGrid);
@@ -1390,7 +1413,7 @@ public class GpadEnvToXmlConverter {
 		xml.endTag();
 	}
 
-	private void emitLineStyle(XMLStringBuilder xml, EvBlockData data) {
+	private static void emitLineStyle(XMLStringBuilder xml, EvBlockData data) {
 		if (data.axesLineStyle >= 0 || data.gridLineStyle >= 0) {
 			xml.startTag("lineStyle", 1);
 			if (data.axesLineStyle >= 0)
@@ -1401,7 +1424,7 @@ public class GpadEnvToXmlConverter {
 		}
 	}
 
-	private void emitLabelStyle(XMLStringBuilder xml, EvBlockData data) {
+	private static void emitLabelStyle(XMLStringBuilder xml, EvBlockData data) {
 		if (data.labelFontStyle >= 0 || data.labelSerif) {
 			xml.startTag("labelStyle", 1);
 			if (data.labelFontStyle >= 0)
@@ -1412,7 +1435,7 @@ public class GpadEnvToXmlConverter {
 		}
 	}
 
-	private void emitAxis(XMLStringBuilder xml, int id, AxisData axis) {
+	private static void emitAxis(XMLStringBuilder xml, int id, AxisData axis) {
 		xml.startTag("axis", 1);
 		xml.attr("id", id);
 		xml.attr("show", axis.show);
@@ -1440,7 +1463,7 @@ public class GpadEnvToXmlConverter {
 		xml.endTag();
 	}
 
-	private void emitGridDist(XMLStringBuilder xml, EvBlockData data) {
+	private static void emitGridDist(XMLStringBuilder xml, EvBlockData data) {
 		if (!Double.isNaN(data.gridDistX) || !Double.isNaN(data.gridDistY)) {
 			xml.startTag("grid", 1);
 			if (!Double.isNaN(data.gridDistX))
@@ -1453,7 +1476,7 @@ public class GpadEnvToXmlConverter {
 		}
 	}
 
-	private void emitProjection(XMLStringBuilder xml, Ev3dBlockData data) {
+	private static void emitProjection(XMLStringBuilder xml, Ev3dBlockData data) {
 		if (data.projection >= 0) {
 			xml.startTag("projection", 1).attr("type", data.projection);
 			if (data.projDistance >= 0)
@@ -1472,7 +1495,7 @@ public class GpadEnvToXmlConverter {
 		}
 	}
 
-	private void emitColorTag(XMLStringBuilder xml, String tagName, String hexColor) {
+	private static void emitColorTag(XMLStringBuilder xml, String tagName, String hexColor) {
 		int[] rgb = parseHexColor(hexColor);
 		if (rgb == null) return;
 		xml.startTag(tagName, 1);
@@ -1648,7 +1671,7 @@ public class GpadEnvToXmlConverter {
 		}
 	}
 
-	private void emitPerspectiveXml(PerspectiveData data, StringBuilder sb) {
+	private static void emitPerspectiveXml(PerspectiveData data, StringBuilder sb) {
 		XMLStringBuilder xml = new XMLStringBuilder();
 		xml.startOpeningTag("perspectives", 0).endTag();
 		xml.startOpeningTag("perspective", 1).attrRaw("id", "tmp").endTag();

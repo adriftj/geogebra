@@ -7,6 +7,7 @@ import java.util.Map;
 import org.geogebra.common.GeoGebraConstants;
 import org.geogebra.common.io.MyXMLio;
 import org.geogebra.common.io.XMLStringBuilder;
+import org.geogebra.common.util.debug.Log;
 
 /**
  * Converts a list of {@link GpadStaticItem} into GeoGebra construction XML
@@ -69,10 +70,15 @@ public class GpadToXmlStaticConverter {
 		MyXMLio.addXMLHeader(sb);
 		addStaticGeoGebraHeader(sb, false);
 
-		String envRaw = findEnvRawContent(items);
-		if (envRaw != null) {
+		GpadStaticItem envItem = findEnvItem(items);
+		String envRaw = envItem != null ? envItem.rawContent : null;
+		boolean hasEnvContent = (envRaw != null && !envRaw.isEmpty())
+				|| (envItem != null && envItem.templateName != null);
+		if (hasEnvContent) {
+			String templateContent = resolveTemplate(
+					envItem != null ? envItem.templateName : null);
 			GpadEnvToXmlConverter.ConvertResult env =
-					GpadEnvToXmlConverter.convertAll(envRaw);
+					GpadEnvToXmlConverter.convertAll(templateContent, envRaw);
 
 			appendIfNotEmpty(sb, env.ev1Xml);
 			appendIfNotEmpty(sb, env.ev2Xml);
@@ -153,14 +159,24 @@ public class GpadToXmlStaticConverter {
 		return wrapped;
 	}
 
-	private static String findEnvRawContent(List<GpadStaticItem> items) {
+	private static GpadStaticItem findEnvItem(List<GpadStaticItem> items) {
 		for (GpadStaticItem item : items) {
-			if (item.type == GpadStaticItem.Type.ENV && item.rawContent != null
-					&& !item.rawContent.isEmpty()) {
-				return item.rawContent;
+			if (item.type == GpadStaticItem.Type.ENV) {
+				return item;
 			}
 		}
 		return null;
+	}
+
+	private static String resolveTemplate(String templateName) {
+		if (templateName == null || templateName.isEmpty()) {
+			return null;
+		}
+		String content = GpadEnvTemplates.get(templateName);
+		if (content == null) {
+			Log.warn("Unknown @@env template: " + templateName + ", ignoring");
+		}
+		return content;
 	}
 
 	/**

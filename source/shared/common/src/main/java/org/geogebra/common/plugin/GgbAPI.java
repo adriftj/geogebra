@@ -514,6 +514,28 @@ public abstract class GgbAPI implements JavaScriptAPI {
 	}
 
 	/**
+	 * Registers or overrides an @@env template.
+	 * Built-in templates (blank, grid) can also be overridden.
+	 * Pass null/empty content to remove a template.
+	 *
+	 * @param name    template name (e.g. "blank", "grid", or custom)
+	 * @param content raw @@env content (without the outer @@env { })
+	 */
+	public synchronized void gpadSetEnvTemplate(String name, String content) {
+		org.geogebra.common.gpad.GpadEnvTemplates.set(name, content);
+	}
+
+	/**
+	 * Gets the raw content of an @@env template.
+	 *
+	 * @param name template name
+	 * @return raw content string, or null if not registered
+	 */
+	public synchronized String gpadGetEnvTemplate(String name) {
+		return org.geogebra.common.gpad.GpadEnvTemplates.get(name);
+	}
+
+	/**
 	 * Returns the GeoGebra XML string for the given GeoElement object, i.e.
 	 * only the &lt;element&gt; tag is returned.
 	 */

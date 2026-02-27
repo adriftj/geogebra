@@ -41,6 +41,9 @@ public class GpadStaticItem {
 	/** ENV only — raw content string. */
 	public String rawContent;
 
+	/** ENV only — optional template name (e.g. "blank", "grid"). */
+	public String templateName;
+
 	/** MACRO only — the macro command name. */
 	public String macroName;
 
