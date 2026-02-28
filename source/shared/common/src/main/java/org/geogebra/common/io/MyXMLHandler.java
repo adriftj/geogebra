@@ -3200,18 +3200,21 @@ public class MyXMLHandler implements DocHandler {
 
 		@Override
 		public void showError(String msg) {
-			errors.add(msg);
+			if (msg != null) {
+				errors.add(msg);
+			}
 		}
 
 		@Override
 		public void resetError() {
-			showError(null);
+			// intentionally empty: errors are accumulated and reported in endDocument()
 		}
 
 		@Override
 		public void showCommandError(String command, String message) {
-			errors.add(message);
-
+			if (message != null) {
+				errors.add(message);
+			}
 		}
 
 		@Override

@@ -21,6 +21,7 @@ import java.util.Arrays;
 import org.geogebra.common.euclidian.EuclidianView;
 import org.geogebra.common.gui.Layout;
 import org.geogebra.common.io.layout.DockPanelData;
+import org.geogebra.common.io.layout.DockSplitPaneData;
 import org.geogebra.common.io.layout.Perspective;
 import org.geogebra.common.io.layout.PerspectiveDecoder;
 import org.geogebra.common.javax.swing.SwingConstants;
@@ -137,14 +138,19 @@ public class LayoutW extends Layout {
 						.getAlgebraPosition(perspective.getInputPosition()), false);
 		String toolbar3D = "";
 
+		DockPanelData[] dpData = perspective.getDockPanelData();
+		DockSplitPaneData[] spData = perspective.getSplitPaneData();
+		if (dpData == null || spData == null) {
+			return;
+		}
+
 		// change the dock panel layout
-		for (DockPanelData dp : perspective.getDockPanelData()) {
+		for (DockPanelData dp : dpData) {
 			if (dp.getViewId() == App.VIEW_EUCLIDIAN3D) {
 				toolbar3D = dp.getToolbarString();
 			}
 		}
-		dockManager.applyPerspective(perspective.getSplitPaneData(),
-				perspective.getDockPanelData());
+		dockManager.applyPerspective(spData, dpData);
 
 		app.setMacroViewIds(toolbar3D);
 		boolean linearInput = app.showAlgebraInput()

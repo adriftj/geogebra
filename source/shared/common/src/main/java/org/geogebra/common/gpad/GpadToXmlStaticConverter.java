@@ -31,20 +31,30 @@ public class GpadToXmlStaticConverter {
 			+ "\t<uses3D val=\"false\"/>\n"
 			+ "</kernel>\n";
 
+	private static final String DEFAULT_PERSPECTIVES_XML =
+			"<perspectives>\n"
+			+ "\t<perspective id=\"tmp\">\n"
+			+ "\t\t<panes>\n"
+			+ "\t\t\t<pane location=\"\" divider=\"0.3\" orientation=\"1\"/>\n"
+			+ "\t\t</panes>\n"
+			+ "\t\t<views>\n"
+			+ "\t\t\t<view id=\"1\" visible=\"true\" inframe=\"false\" stylebar=\"false\""
+			+ " location=\"1\" size=\"500\" window=\"100,100,600,400\"/>\n"
+			+ "\t\t\t<view id=\"2\" visible=\"false\" inframe=\"false\" stylebar=\"false\""
+			+ " location=\"3\" size=\"200\" tab=\"TOOLS\" window=\"100,100,250,400\"/>\n"
+			+ "\t\t</views>\n"
+			+ "\t\t<toolbar show=\"true\" items=\"0 77 73 62 | 1 501 67 , 5 19 , 72 75 76"
+			+ " | 2 15 45 , 18 65 , 7 37 | 4 3 8 9 , 13 44 , 58 , 47 | 16 51 64 , 70"
+			+ " | 10 34 53 11 , 24  20 22 , 21 23 | 55 56 57 , 12 | 36 46 , 38 49  50 , 71  14  68"
+			+ " | 30 29 54 32 31 33 | 25 17 26 60 52 61 | 40 41 42 , 27 28 35 , 6\""
+			+ " position=\"1\" help=\"false\"/>\n"
+			+ "\t\t<input show=\"true\" cmd=\"true\" top=\"algebra\"/>\n"
+			+ "\t\t<dockBar show=\"false\" east=\"false\"/>\n"
+			+ "\t</perspective>\n"
+			+ "</perspectives>\n";
+
 	private static final String DEFAULT_GUI_XML =
-			"<gui>\n"
-			+ "\t<perspectives>\n"
-			+ "\t\t<perspective id=\"tmp\">\n"
-			+ "\t\t\t<views>\n"
-			+ "\t\t\t\t<view id=\"1\" visible=\"true\" inframe=\"false\" stylebar=\"false\""
-			+ " location=\"1,1,1,1\" size=\"500\" window=\"100,100,600,400\"/>\n"
-			+ "\t\t\t</views>\n"
-			+ "\t\t\t<toolbar show=\"true\" position=\"1\" help=\"false\"/>\n"
-			+ "\t\t\t<input show=\"true\" cmd=\"true\" top=\"true\"/>\n"
-			+ "\t\t\t<dockBar show=\"false\" east=\"false\"/>\n"
-			+ "\t\t</perspective>\n"
-			+ "\t</perspectives>\n"
-			+ "</gui>\n";
+			"<gui>\n" + DEFAULT_PERSPECTIVES_XML + "</gui>\n";
 
 	private static final String DEFAULT_EV_XML =
 			"<euclidianView>\n"
@@ -162,24 +172,27 @@ public class GpadToXmlStaticConverter {
 	 * a single {@code <gui>...</gui>} block. If guiXml is present it already
 	 * wraps content in {@code <gui>} tags; the perspective content is inserted
 	 * before the closing {@code </gui>}. If only perspective is present,
-	 * a new {@code <gui>} wrapper is created.
+	 * a new {@code <gui>} wrapper is created. If only guiXml is present
+	 * (no perspective), a default perspective is injected so that
+	 * {@code MyXMLHandler} always populates {@code dockPanelData}.
 	 */
 	private static StringBuilder mergeGuiXml(StringBuilder guiXml, StringBuilder perspXml) {
-		if (guiXml.length() > 0 && perspXml.length() > 0) {
+		StringBuilder effectivePersp = (perspXml != null && perspXml.length() > 0)
+				? perspXml : new StringBuilder(DEFAULT_PERSPECTIVES_XML);
+		if (guiXml.length() > 0) {
 			String guiStr = guiXml.toString();
 			int closeIdx = guiStr.lastIndexOf("</gui>");
 			if (closeIdx >= 0) {
 				StringBuilder merged = new StringBuilder();
 				merged.append(guiStr, 0, closeIdx);
-				merged.append(perspXml);
+				merged.append(effectivePersp);
 				merged.append("</gui>\n");
 				return merged;
 			}
 		}
-		if (guiXml.length() > 0) return guiXml;
 		StringBuilder wrapped = new StringBuilder();
 		wrapped.append("<gui>\n");
-		wrapped.append(perspXml);
+		wrapped.append(effectivePersp);
 		wrapped.append("</gui>\n");
 		return wrapped;
 	}
