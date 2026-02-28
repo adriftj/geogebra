@@ -12,6 +12,12 @@ public final class GpadEnvKeys {
 	private GpadEnvKeys() {
 	}
 
+	/** Top-level @@env key for the target GeoGebra app. */
+	public static final String APP = "app";
+
+	/** Top-level @@env key for the Suite sub-app override (optional). */
+	public static final String SUB_APP = "subApp";
+
 	/** Keys inside {@code coordSystem: ...} blocks (2D and 3D). */
 	public static final class CoordSystem {
 		public static final String ORIGIN = "origin";

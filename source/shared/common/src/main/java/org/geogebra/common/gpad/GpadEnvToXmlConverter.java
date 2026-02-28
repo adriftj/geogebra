@@ -39,6 +39,10 @@ public class GpadEnvToXmlConverter {
 		public final StringBuilder probCalcXml = new StringBuilder();
 		public final StringBuilder scriptingXml = new StringBuilder();
 		public final StringBuilder tableviewXml = new StringBuilder();
+		/** App code from {@code app:} keyword, or {@code null} if not set. */
+		public String appCode;
+		/** Sub-app code from {@code subApp:} keyword, or {@code null} if not set. */
+		public String subAppCode;
 	}
 
 	/**
@@ -65,6 +69,8 @@ public class GpadEnvToXmlConverter {
 		boolean hasAlgebraView;
 		boolean hasSpreadsheetView;
 		boolean hasKernel;
+		String appCode;    // null = not specified
+		String subAppCode; // null = not specified
 	}
 
 	/**
@@ -216,12 +222,26 @@ public class GpadEnvToXmlConverter {
 
 				default:
 					advance(); break;
+				case GpadEnvKeys.APP:
+					advance(); expect(":");
+					String appVal = advance();
+					if (isValidAppCode(appVal)) state.appCode = appVal;
+					consumeIf(";"); break;
+
+				case GpadEnvKeys.SUB_APP:
+					advance(); expect(":");
+					String subAppVal = advance();
+					if (isValidAppCode(subAppVal)) state.subAppCode = subAppVal;
+					consumeIf(";"); break;
+
 			}
 		}
 	}
 
 	private static void emitAll(ParseState state, ConvertResult result) {
 		result.rightAngleStyle = state.rightAngleStyle;
+		result.appCode = state.appCode;
+		result.subAppCode = state.subAppCode;
 
 		if (state.ev1 != null)
 			emitEuclidianViewXml(state.ev1, 1, state.rightAngleStyle, result.ev1Xml);
@@ -1747,6 +1767,11 @@ public class GpadEnvToXmlConverter {
 		xml.closeTag("perspective");
 		xml.closeTag("perspectives");
 		sb.append(xml.toString());
+	}
+
+	private static boolean isValidAppCode(String s) {
+		return s != null && s.matches(
+				"graphing|geometry|classic|3d|scientific|suite|cas|notes|probability");
 	}
 
 	// ===================== Tokenizer =====================

@@ -31,6 +31,21 @@ public class GpadToXmlStaticConverter {
 			+ "\t<uses3D val=\"false\"/>\n"
 			+ "</kernel>\n";
 
+	private static final String DEFAULT_GUI_XML =
+			"<gui>\n"
+			+ "\t<perspectives>\n"
+			+ "\t\t<perspective id=\"tmp\">\n"
+			+ "\t\t\t<views>\n"
+			+ "\t\t\t\t<view id=\"1\" visible=\"true\" inframe=\"false\" stylebar=\"false\""
+			+ " location=\"1,1,1,1\" size=\"500\" window=\"100,100,600,400\"/>\n"
+			+ "\t\t\t</views>\n"
+			+ "\t\t\t<toolbar show=\"true\" position=\"1\" help=\"false\"/>\n"
+			+ "\t\t\t<input show=\"true\" cmd=\"true\" top=\"true\"/>\n"
+			+ "\t\t\t<dockBar show=\"false\" east=\"false\"/>\n"
+			+ "\t\t</perspective>\n"
+			+ "\t</perspectives>\n"
+			+ "</gui>\n";
+
 	private static final String DEFAULT_EV_XML =
 			"<euclidianView>\n"
 			+ "\t<coordSystem xZero=\"215\" yZero=\"315\" scale=\"50\" yscale=\"50\"/>\n"
@@ -66,28 +81,34 @@ public class GpadToXmlStaticConverter {
 	 */
 	public static String buildFullXml(List<GpadStaticItem> items,
 			List<String> warnings) {
-		XMLStringBuilder sb = new XMLStringBuilder();
-		MyXMLio.addXMLHeader(sb);
-		addStaticGeoGebraHeader(sb, false);
-
+		// Process env first so we know the app code before writing the XML header.
 		GpadStaticItem envItem = findEnvItem(items);
 		String envRaw = envItem != null ? envItem.rawContent : null;
 		boolean hasEnvContent = (envRaw != null && !envRaw.isEmpty())
 				|| (envItem != null && envItem.templateName != null);
+
+		GpadEnvToXmlConverter.ConvertResult env = null;
+		String appCode = GeoGebraConstants.GEOMETRY_APPCODE;
+		String subAppCode = null;
 		if (hasEnvContent) {
 			String templateContent = resolveTemplate(
 					envItem != null ? envItem.templateName : null);
-			GpadEnvToXmlConverter.ConvertResult env =
-					GpadEnvToXmlConverter.convertAll(templateContent, envRaw);
+			env = GpadEnvToXmlConverter.convertAll(templateContent, envRaw);
+			if (env.appCode != null) appCode = env.appCode;
+			subAppCode = env.subAppCode;
+		}
 
+		XMLStringBuilder sb = new XMLStringBuilder();
+		MyXMLio.addXMLHeader(sb);
+		addStaticGeoGebraHeader(sb, false, appCode, subAppCode);
+
+		if (env != null) {
 			appendIfNotEmpty(sb, env.ev1Xml);
 			appendIfNotEmpty(sb, env.ev2Xml);
 			appendIfNotEmpty(sb, env.ev3dXml);
 
-			if (env.guiXml.length() > 0 || env.perspectiveXml.length() > 0) {
-				sb.append(new XMLStringBuilder(
-						mergeGuiXml(env.guiXml, env.perspectiveXml)));
-			}
+			sb.append(new XMLStringBuilder(
+					mergeGuiXml(env.guiXml, env.perspectiveXml)));
 
 			if (env.kernelXml.length() > 0)
 				sb.append(new XMLStringBuilder(env.kernelXml));
@@ -103,6 +124,7 @@ public class GpadToXmlStaticConverter {
 		} else {
 			sb.append(new XMLStringBuilder(new StringBuilder(DEFAULT_EV_XML)));
 			sb.append(new XMLStringBuilder(new StringBuilder(DEFAULT_KERNEL_XML)));
+			sb.append(new XMLStringBuilder(new StringBuilder(DEFAULT_GUI_XML)));
 		}
 
 		String constructionXml = buildConstructionXml(items, warnings);
@@ -112,11 +134,14 @@ public class GpadToXmlStaticConverter {
 		return sb.toString();
 	}
 
-	private static void addStaticGeoGebraHeader(XMLStringBuilder sb, boolean isMacro) {
+	private static void addStaticGeoGebraHeader(XMLStringBuilder sb, boolean isMacro,
+			String appCode, String subAppCode) {
 		sb.startOpeningTag("geogebra", 0);
 		sb.attrRaw("format", GeoGebraConstants.XML_FILE_FORMAT);
 		sb.attrRaw("version", GeoGebraConstants.VERSION_STRING);
-		sb.attrRaw("app", "classic");
+		sb.attrRaw("app", appCode);
+		if (subAppCode != null)
+			sb.attrRaw("subApp", subAppCode);
 		sb.attrRaw("platform", "d");
 		StringBuilder schema = new StringBuilder("https://www.geogebra.org/apps/xsd/");
 		if (isMacro)
@@ -738,7 +763,7 @@ public class GpadToXmlStaticConverter {
 
 		XMLStringBuilder sb = new XMLStringBuilder();
 		MyXMLio.addXMLHeader(sb);
-		addStaticGeoGebraHeader(sb, true);
+		addStaticGeoGebraHeader(sb, true, GeoGebraConstants.GEOMETRY_APPCODE, null);
 		for (GpadStaticItem item : items) {
 			if (item.type == GpadStaticItem.Type.MACRO)
 				emitMacro(sb, item);

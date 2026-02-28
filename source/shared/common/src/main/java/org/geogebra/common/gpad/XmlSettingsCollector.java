@@ -63,6 +63,10 @@ public class XmlSettingsCollector {
 	private LinkedHashMap<String, String> perspectiveToolbarAttrs;
 	private LinkedHashMap<String, String> perspectiveInputAttrs;
 
+	// app / subApp from the <geogebra> root element
+	private String appCode;
+	private String subAppCode;
+
 	/** A simple pair of tag name and its attributes. */
 	public static class TagAttrs {
 		public final String tag;
@@ -221,6 +225,14 @@ public class XmlSettingsCollector {
 	}
 	public LinkedHashMap<String, String> getPerspectiveInputAttrs() { return perspectiveInputAttrs; }
 
+	// --- app / subApp ---
+
+	public void setAppCode(String v) { appCode = v; }
+	public String getAppCode() { return appCode; }
+
+	public void setSubAppCode(String v) { subAppCode = v; }
+	public String getSubAppCode() { return subAppCode; }
+
 	/** Split pane data within a perspective. */
 	public static class PaneData {
 		public final String location;
@@ -263,6 +275,7 @@ public class XmlSettingsCollector {
 	public boolean hasAnySettings() {
 		return hasKernel || hasGui || hasAlgebraView || hasSpreadsheetView
 				|| hasKeyboard || hasProbCalc || hasScripting || hasTableview
-				|| hasEv1 || hasEv2 || hasEv3d || hasPerspective;
+				|| hasEv1 || hasEv2 || hasEv3d || hasPerspective
+				|| appCode != null;
 	}
 }

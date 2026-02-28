@@ -6,6 +6,7 @@ gpad_style_reference_sample.md
 
 .vscode/
 .idea/
+.claude/
 .DS_Store
 Thumbs.db
 

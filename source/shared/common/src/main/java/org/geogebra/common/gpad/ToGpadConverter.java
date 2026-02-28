@@ -354,7 +354,16 @@ public class ToGpadConverter implements DocHandler {
 				handleSettingsChild(tag, attrs);
 				return;
 			}
-			if ("construction".equals(tag)) {
+			if ("geogebra".equals(tag)) {
+				String appCode = normalizeApp(attrs.get("app"));
+				if (appCode != null) {
+					converter.settingsCollector.setAppCode(appCode);
+					String subAppCode = normalizeApp(attrs.get("subApp"));
+					if (subAppCode != null && !subAppCode.equals(appCode)) {
+						converter.settingsCollector.setSubAppCode(subAppCode);
+					}
+				}
+			} else if ("construction".equals(tag)) {
 				inConstruction = true;
 				constructionDepth = 1;
 				converter.startElement("construction", attrs);
@@ -542,6 +551,13 @@ public class ToGpadConverter implements DocHandler {
 		}
 		@Override public void text(String str) throws XMLParseException {}
 		@Override public void endDocument() throws XMLParseException {}
+
+		private static String normalizeApp(String s) {
+			if (s != null && s.matches(
+					"graphing|geometry|classic|3d|scientific|suite|cas|notes|probability"))
+				return s;
+			return null;
+		}
 	}
 
 	private void resetState() {

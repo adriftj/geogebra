@@ -30,6 +30,15 @@ public class XmlSettingsToGpadEnvConverter {
 
 		StringBuilder sb = new StringBuilder();
 
+		if (collector.getAppCode() != null) {
+			sb.append("  ").append(GpadEnvKeys.APP).append(": ")
+					.append(collector.getAppCode()).append(";\n");
+			if (collector.getSubAppCode() != null) {
+				sb.append("  ").append(GpadEnvKeys.SUB_APP).append(": ")
+						.append(collector.getSubAppCode()).append(";\n");
+			}
+		}
+
 		if (collector.hasKernel())
 			convertKernel(sb, collector.getKernelChildren());
 		if (collector.hasGui())
