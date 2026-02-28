@@ -151,6 +151,8 @@ public class ZoomPanel extends FlowPanel implements CoordSystemListener {
 		Browser.getFullscreenEventName(), event -> {
 			if (!Browser.isFullscreen()) {
 				onExitFullscreen();
+			} else {
+				getZoomController().dispatchResize();
 			}
 		});
 		add(fullscreenBtn);

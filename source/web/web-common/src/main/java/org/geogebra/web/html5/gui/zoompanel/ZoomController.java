@@ -139,14 +139,17 @@ public class ZoomController {
 	 */
 	protected void scaleApplet(Element scaler, Element container,
 			@CheckForNull Element elem) {
+		int winW = NavigatorUtil.getWindowWidth();
+		int winH = NavigatorUtil.getWindowHeight();
+		int screenW = Browser.getScreenWidth();
+		int screenH = Browser.getScreenHeight();
 		double scale = 1;
 		if (app.isUnbundled()) {
-			app.getGgbApi().setSize(NavigatorUtil.getWindowWidth(),
-					NavigatorUtil.getWindowHeight());
+			app.getGgbApi().setSize(winW, winH);
 			Browser.scale(scaler, 1, 0, 0);
 		} else {
-			double xscale = NavigatorUtil.getWindowWidth() / app.getWidth();
-			double yscale = NavigatorUtil.getWindowHeight() / app.getHeight();
+			double xscale = winW / app.getWidth();
+			double yscale = winH / app.getHeight();
 			scale = LayoutUtilW.getDeviceScale(xscale, yscale, true);
 			Browser.scale(scaler, scale, 0, 0);
 			Browser.scale(elem, 1 / scale, 120, 100);
@@ -155,11 +158,9 @@ public class ZoomController {
 			double marginLeft = 0;
 			double marginTop = 0;
 			if (xscale > yscale) {
-				marginLeft = (NavigatorUtil.getWindowWidth() - app.getWidth() * scale)
-						/ 2;
+				marginLeft = (winW - app.getWidth() * scale) / 2;
 			} else {
-				marginTop = (NavigatorUtil.getWindowHeight() - app.getHeight() * scale)
-						/ 2;
+				marginTop = (winH - app.getHeight() * scale) / 2;
 			}
 
 			if (Browser.isSafariByVendor()) {
