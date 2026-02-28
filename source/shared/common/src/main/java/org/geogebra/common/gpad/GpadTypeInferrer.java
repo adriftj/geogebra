@@ -179,9 +179,7 @@ public class GpadTypeInferrer {
 				inferCommandType(item, warnings);
 				break;
 			case EXPRESSION:
-				// Expression types are handled by GeoGebra kernel during XML loading.
-				// The <expression> tag doesn't need a type attribute for the kernel
-				// to correctly determine the result type.
+				inferExpressionType(item, warnings);
 				break;
 			default:
 				break;
@@ -343,6 +341,114 @@ public class GpadTypeInferrer {
 		if (label == null || label.isEmpty()) return false;
 		char first = label.charAt(0);
 		return first >= 'a' && first <= 'z';
+	}
+
+	private static void inferExpressionType(GpadStaticItem item, List<String> warnings) {
+		if (item.labels.isEmpty()) return;
+		GpadStaticItem.TypedLabel tl = item.labels.get(0);
+		if (tl.elementType != null) return;
+
+		String label = tl.label;
+		String rhs = item.rhsText;
+
+		// Function form: label contains "(" like f(x), g(x,y)
+		if (label != null && label.indexOf('(') >= 0) {
+			int openParen = label.indexOf('(');
+			String paramPart = label.substring(openParen + 1);
+			if (paramPart.endsWith(")")) {
+				paramPart = paramPart.substring(0, paramPart.length() - 1);
+			}
+			List<String> params = GpadStaticItem.splitTopLevelComma(paramPart);
+			tl.elementType = params.size() >= 2 ? "functionNVar" : "function";
+			return;
+		}
+
+		if (rhs != null && !rhs.trim().isEmpty()) {
+			String inferred = inferExpressionFromRhs(rhs.trim(), label);
+			if (inferred != null) {
+				tl.elementType = inferred;
+				return;
+			}
+		}
+
+		addWarning(warnings, label,
+				"Cannot infer expression type from '"
+						+ (rhs != null ? rhs.trim() : "")
+						+ "', defaulting to 'numeric'");
+	}
+
+	/**
+	 * Infer element type from a dependent expression's RHS text.
+	 *
+	 * @param rhs   trimmed RHS of the expression
+	 * @param label the element label (used for point vs vector heuristic)
+	 * @return inferred element type, or {@code null} if unknown
+	 */
+	static String inferExpressionFromRhs(String rhs, String label) {
+		// Tuple with matching outer parens → point or vector
+		if (rhs.startsWith("(") && hasMatchingOuterParens(rhs)) {
+			int arity = countTupleElements(rhs);
+			if (arity >= 2) {
+				boolean isVector = isLowercaseLabel(label);
+				if (arity == 2) return isVector ? "vector" : "point";
+				return isVector ? "vector3d" : "point3d";
+			}
+		}
+
+		// Equation: single '=' at depth 0 (not ==, <=, >=, !=)
+		if (containsTopLevelEquals(rhs)) {
+			return "line";
+		}
+
+		return null;
+	}
+
+	/**
+	 * Check if the outer parentheses enclose the entire string.
+	 * E.g. "(a, b)" → true, "(a) + (b)" → false.
+	 */
+	static boolean hasMatchingOuterParens(String s) {
+		if (s.length() < 2 || s.charAt(0) != '(' || s.charAt(s.length() - 1) != ')')
+			return false;
+		int depth = 0;
+		boolean inString = false;
+		for (int i = 0; i < s.length() - 1; i++) {
+			char c = s.charAt(i);
+			if (c == '"') { inString = !inString; continue; }
+			if (inString) continue;
+			if (c == '(') depth++;
+			else if (c == ')') depth--;
+			if (depth == 0) return false;
+		}
+		return depth == 1;
+	}
+
+	/**
+	 * Check if the expression contains a top-level '=' that represents an
+	 * equation (not ==, <=, >=, or !=).
+	 */
+	static boolean containsTopLevelEquals(String s) {
+		int depth = 0;
+		boolean inString = false;
+		for (int i = 0; i < s.length(); i++) {
+			char c = s.charAt(i);
+			if (c == '"') { inString = !inString; continue; }
+			if (inString) continue;
+			if (c == '(' || c == '[' || c == '{') depth++;
+			else if (c == ')' || c == ']' || c == '}') depth--;
+			else if (depth == 0 && c == '=') {
+				if (i + 1 < s.length() && s.charAt(i + 1) == '=') {
+					i++;
+					continue;
+				}
+				if (i > 0 && (s.charAt(i - 1) == '<' || s.charAt(i - 1) == '>'
+						|| s.charAt(i - 1) == '!')) {
+					continue;
+				}
+				return true;
+			}
+		}
+		return false;
 	}
 
 	private static void inferCommandType(GpadStaticItem item, List<String> warnings) {

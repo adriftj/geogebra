@@ -198,7 +198,7 @@ public class GpadTypeInferrerTest extends BaseUnitTest {
 		assertNull("No warning expected for known command", api.getLastWarning());
 	}
 
-	// ========== EXPRESSION: kernel infers ==========
+	// ========== EXPRESSION: type inference ==========
 
 	@Test
 	public void expressionPoint() {
@@ -208,6 +208,152 @@ public class GpadTypeInferrerTest extends BaseUnitTest {
 	@Test
 	public void expressionExplicitTypePreserved() {
 		evalAndAssertType("point A := (1, 2);", "A", "point");
+	}
+
+	@Test
+	public void expressionFunction() {
+		evalAndAssertType("f(x) := x^2;", "f", "function");
+	}
+
+	@Test
+	public void expressionFunctionWithParams() {
+		evalAndAssertType(
+				"a = 1;\nh = 0;\nk = 0;\ng(x) := a * (x - h)^2 + k;",
+				"g", "function");
+	}
+
+	@Test
+	public void expressionDependentPointFromTuple() {
+		evalAndAssertType("h = 0;\nk = 0;\nV := (h, k);", "V", "point");
+	}
+
+	@Test
+	public void expressionDependentVectorFromTuple() {
+		evalAndAssertType("a = 1;\nb = 2;\nv := (a, b);", "v", "vector");
+	}
+
+	@Test
+	public void expressionLineEquation() {
+		evalAndAssertType("h = 2;\naxisSym := x = h;", "axisSym", "line");
+	}
+
+	// ========== EXPRESSION: inferExpressionFromRhs unit tests ==========
+
+	@Test
+	public void inferExprRhs_tuplePoint() {
+		assertEquals("point",
+				GpadTypeInferrer.inferExpressionFromRhs("(h, k)", "V"));
+	}
+
+	@Test
+	public void inferExprRhs_tupleVector() {
+		assertEquals("vector",
+				GpadTypeInferrer.inferExpressionFromRhs("(a, b)", "v"));
+	}
+
+	@Test
+	public void inferExprRhs_tuple3dPoint() {
+		assertEquals("point3d",
+				GpadTypeInferrer.inferExpressionFromRhs("(a, b, c)", "P"));
+	}
+
+	@Test
+	public void inferExprRhs_tuple3dVector() {
+		assertEquals("vector3d",
+				GpadTypeInferrer.inferExpressionFromRhs("(a, b, c)", "v"));
+	}
+
+	@Test
+	public void inferExprRhs_equation() {
+		assertEquals("line",
+				GpadTypeInferrer.inferExpressionFromRhs("x = h", "axisSym"));
+	}
+
+	@Test
+	public void inferExprRhs_notTupleExpression() {
+		// (x - h)^2 + k is NOT a tuple — outer parens don't match the whole expr
+		assertNull(GpadTypeInferrer.inferExpressionFromRhs("(x - h)^2 + k", "f"));
+	}
+
+	@Test
+	public void inferExprRhs_arithmeticExpr() {
+		assertNull(GpadTypeInferrer.inferExpressionFromRhs("a * b + c", "n"));
+	}
+
+	@Test
+	public void inferExprRhs_stringConcat() {
+		// string concatenation is not inferred (needs explicit text prefix)
+		assertNull(GpadTypeInferrer.inferExpressionFromRhs(
+				"\"hello\" + \" \" + \"world\"", "t"));
+	}
+
+	// ========== hasMatchingOuterParens unit tests ==========
+
+	@Test
+	public void hasMatchingOuterParens_simpleTuple() {
+		assertTrue(GpadTypeInferrer.hasMatchingOuterParens("(h, k)"));
+	}
+
+	@Test
+	public void hasMatchingOuterParens_nestedParens() {
+		assertTrue(GpadTypeInferrer.hasMatchingOuterParens("((1+2), 3)"));
+	}
+
+	@Test
+	public void hasMatchingOuterParens_notEnclosing() {
+		assertTrue(!GpadTypeInferrer.hasMatchingOuterParens("(a) + (b)"));
+	}
+
+	@Test
+	public void hasMatchingOuterParens_subExprParens() {
+		assertTrue(!GpadTypeInferrer.hasMatchingOuterParens("(x - h)^2 + k"));
+	}
+
+	@Test
+	public void hasMatchingOuterParens_singleElement() {
+		assertTrue(GpadTypeInferrer.hasMatchingOuterParens("(5)"));
+	}
+
+	// ========== containsTopLevelEquals unit tests ==========
+
+	@Test
+	public void containsTopLevelEquals_simpleEquation() {
+		assertTrue(GpadTypeInferrer.containsTopLevelEquals("x = h"));
+	}
+
+	@Test
+	public void containsTopLevelEquals_noEquals() {
+		assertTrue(!GpadTypeInferrer.containsTopLevelEquals("a * b + c"));
+	}
+
+	@Test
+	public void containsTopLevelEquals_doubleEquals() {
+		assertTrue(!GpadTypeInferrer.containsTopLevelEquals("a == b"));
+	}
+
+	@Test
+	public void containsTopLevelEquals_lessThanEquals() {
+		assertTrue(!GpadTypeInferrer.containsTopLevelEquals("a <= b"));
+	}
+
+	@Test
+	public void containsTopLevelEquals_greaterThanEquals() {
+		assertTrue(!GpadTypeInferrer.containsTopLevelEquals("a >= b"));
+	}
+
+	@Test
+	public void containsTopLevelEquals_notEquals() {
+		assertTrue(!GpadTypeInferrer.containsTopLevelEquals("a != b"));
+	}
+
+	@Test
+	public void containsTopLevelEquals_equalsInsideParens() {
+		assertTrue(!GpadTypeInferrer.containsTopLevelEquals("If(a = b, 1, 0)"));
+	}
+
+	@Test
+	public void containsTopLevelEquals_equalsInString() {
+		assertTrue(!GpadTypeInferrer.containsTopLevelEquals("\"x = 5\""));
 	}
 
 	// ========== Warning mechanism ==========
