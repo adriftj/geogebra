@@ -203,7 +203,16 @@ public class GgbGpadRoundtripTest {
 			String gpadText = ggbApi.xmlToGpad(originalXml,
 					originalMacroXml != null ? originalMacroXml : "",
 					mergeStylesheets);
-			
+
+			String xmlToGpadWarning = ggbApi.getLastWarning();
+			if (xmlToGpadWarning != null && !xmlToGpadWarning.trim().isEmpty()) {
+				for (String w : xmlToGpadWarning.split("\n")) {
+					if (w != null && !w.trim().isEmpty()) {
+						System.err.println("Warning [xmlToGpad " + inputPath + "]: " + w.trim());
+					}
+				}
+			}
+
 			if (gpadText == null || gpadText.isEmpty()) {
 				System.out.println("Skipping (empty construction): " + inputPath);
 				successCount++;

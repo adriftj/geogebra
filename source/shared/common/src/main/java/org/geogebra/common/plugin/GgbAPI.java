@@ -496,9 +496,15 @@ public abstract class GgbAPI implements JavaScriptAPI {
 	 * @return Gpad string representation of the entire construction
 	 */
 	public synchronized String xmlToGpad(String xmlFile, String xmlMacro, boolean mergeStylesheets) {
-		org.geogebra.common.gpad.ToGpadConverter converter = 
+		lastWarning = null;
+		org.geogebra.common.gpad.ToGpadConverter converter =
 				new org.geogebra.common.gpad.ToGpadConverter(xmlFile, xmlMacro, mergeStylesheets);
-		return converter.toGpad();
+		String result = converter.toGpad();
+		java.util.List<String> warnings = converter.getConversionWarnings();
+		if (!warnings.isEmpty()) {
+			lastWarning = String.join("\n", warnings);
+		}
+		return result;
 	}
 
 	/**

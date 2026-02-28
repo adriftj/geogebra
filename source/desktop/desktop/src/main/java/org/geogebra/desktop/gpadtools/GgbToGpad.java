@@ -212,6 +212,15 @@ public class GgbToGpad {
 			
 			String gpadText = ggbApi.xmlToGpad(xmlFile, xmlMacro, mergeStyles);
 
+			String xmlToGpadWarning = ggbApi.getLastWarning();
+			if (xmlToGpadWarning != null && !xmlToGpadWarning.trim().isEmpty()) {
+				for (String w : xmlToGpadWarning.split("\n")) {
+					if (w != null && !w.trim().isEmpty()) {
+						System.err.println("Warning [" + inputPath + "]: " + w.trim());
+					}
+				}
+			}
+
 			if (gpadText == null || gpadText.isEmpty()) {
 				String error = "Conversion produced empty result: " + inputPath;
 				errors.add(error);

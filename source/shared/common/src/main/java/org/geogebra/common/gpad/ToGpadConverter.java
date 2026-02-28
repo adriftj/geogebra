@@ -25,6 +25,7 @@ public class ToGpadConverter implements DocHandler {
 	private final String xmlFile;
 	private final String xmlMacro;
 	private final GpadGenerator gpadGenerator;
+	private final List<String> conversionWarnings = new ArrayList<>();
 
 	// Current parsing state
 	private String currentCommandName = null;
@@ -49,6 +50,13 @@ public class ToGpadConverter implements DocHandler {
 			"coords", "value", "matrix", "slider", "caption", "file", "linkedGeo");
 
 	private final XmlSettingsCollector settingsCollector = new XmlSettingsCollector();
+
+	/**
+	 * @return warnings accumulated during the XML-to-GPAD conversion
+	 */
+	public List<String> getConversionWarnings() {
+		return conversionWarnings;
+	}
 
 	public ToGpadConverter(String xmlFile, String xmlMacro, boolean mergeStylesheets) {
 		this.xmlFile = xmlFile;
@@ -112,7 +120,9 @@ public class ToGpadConverter implements DocHandler {
 		try {
 			parseXML(handler, xmlMacro);
 		} catch (Exception e) {
-			Log.error("Error parsing macro XML: " + e.getMessage());
+			String msg = "Error parsing macro XML: " + e.getMessage();
+			Log.error(msg);
+			conversionWarnings.add(msg);
 		}
 	}
 
@@ -286,10 +296,36 @@ public class ToGpadConverter implements DocHandler {
 		ConstructionParserHandler handler = new ConstructionParserHandler(this);
 		try {
 			parseXML(handler, xmlFile);
+		} catch (Exception e) {
+			String msg = "Error parsing construction XML: " + e.getMessage();
+			Log.error(msg);
+			conversionWarnings.add(msg);
+		}
+		try {
 			processAndOutputCollectedObjects(sb);
 		} catch (Exception e) {
-			Log.error("Error parsing construction XML: " + e.getMessage());
+			String msg = "Error outputting collected objects: " + e.getMessage();
+			Log.error(msg);
+			conversionWarnings.add(msg);
 		}
+	}
+
+	private void resetCurrentItem() {
+		currentCommandName = null;
+		currentInputArgs.clear();
+		currentOutputLabels.clear();
+		currentExpressionLabel = null;
+		currentExpressionExp = null;
+		currentExpressionType = null;
+		currentElementLabel = null;
+		currentElementType = null;
+		currentElementStyleMap = null;
+		currentStartPointSerializer = null;
+		currentBarTagSerializer = null;
+		inCommand = false;
+		inElement = false;
+		elementDepth = 0;
+		pendingOutputLabels.clear();
 	}
 
 	private void processAndOutputCollectedObjects(StringBuilder sb) {
@@ -350,6 +386,16 @@ public class ToGpadConverter implements DocHandler {
 		}
 
 		@Override public void startElement(String tag, LinkedHashMap<String, String> attrs) throws XMLParseException {
+			try {
+				startElementInner(tag, attrs);
+			} catch (RuntimeException e) {
+				String msg = "Error in settings/construction startElement <" + tag + ">: " + e.getMessage();
+				Log.warn(msg);
+				converter.conversionWarnings.add(msg);
+			}
+		}
+
+		private void startElementInner(String tag, LinkedHashMap<String, String> attrs) throws XMLParseException {
 			if (settingsMode != SETTINGS_NONE) {
 				handleSettingsChild(tag, attrs);
 				return;
@@ -529,6 +575,16 @@ public class ToGpadConverter implements DocHandler {
 		}
 
 		@Override public void endElement(String tag) throws XMLParseException {
+			try {
+				endElementInner(tag);
+			} catch (RuntimeException e) {
+				String msg = "Error in settings/construction endElement </" + tag + ">: " + e.getMessage();
+				Log.warn(msg);
+				converter.conversionWarnings.add(msg);
+			}
+		}
+
+		private void endElementInner(String tag) throws XMLParseException {
 			if (settingsMode != SETTINGS_NONE) {
 				if (settingsMode == SETTINGS_GUI) {
 					handleGuiEndElement(tag);
@@ -585,26 +641,43 @@ public class ToGpadConverter implements DocHandler {
 
 	@Override
 	public void startElement(String tag, LinkedHashMap<String, String> attrs) throws XMLParseException {
-		if ("command".equals(tag)) {
-			collectPendingElements();
-			startCommand(attrs);
-		} else if ("expression".equals(tag)) {
-			collectPendingElements();
-			startExpression(attrs);
-		} else if ("element".equals(tag))
-			startElementTag(attrs);
-		else if (inCommand)
-			handleCommandChild(tag, attrs);
-		else if (inElement)
-			handleElementChild(tag, attrs);
+		try {
+			if ("command".equals(tag)) {
+				collectPendingElements();
+				startCommand(attrs);
+			} else if ("expression".equals(tag)) {
+				collectPendingElements();
+				startExpression(attrs);
+			} else if ("element".equals(tag))
+				startElementTag(attrs);
+			else if (inCommand)
+				handleCommandChild(tag, attrs);
+			else if (inElement)
+				handleElementChild(tag, attrs);
+		} catch (RuntimeException e) {
+			String label = attrs != null ? attrs.get("label") : null;
+			String msg = "Skipping <" + tag + ">"
+					+ (label != null ? " label=\"" + label + "\"" : "")
+					+ ": " + e.getMessage();
+			Log.warn(msg);
+			conversionWarnings.add(msg);
+			resetCurrentItem();
+		}
 	}
 
 	@Override
 	public void endElement(String tag) throws XMLParseException {
-		if ("command".equals(tag)) endCommand();
-		else if ("expression".equals(tag)) endExpression();
-		else if ("element".equals(tag)) endElementTag();
-		else if (inElement && elementDepth > 0) elementDepth--;
+		try {
+			if ("command".equals(tag)) endCommand();
+			else if ("expression".equals(tag)) endExpression();
+			else if ("element".equals(tag)) endElementTag();
+			else if (inElement && elementDepth > 0) elementDepth--;
+		} catch (RuntimeException e) {
+			String msg = "Error ending <" + tag + ">: " + e.getMessage();
+			Log.warn(msg);
+			conversionWarnings.add(msg);
+			resetCurrentItem();
+		}
 	}
 
 	@Override public void text(String str) throws XMLParseException {}
@@ -685,42 +758,49 @@ public class ToGpadConverter implements DocHandler {
 	}
 
 	private void endElementTag() {
-		if (currentStartPointSerializer != null) {
-			String serialized = currentStartPointSerializer.end();
-			if (serialized != null) {
-				LinkedHashMap<String, String> a = new LinkedHashMap<>();
-				a.put("_corners", serialized);
-				currentElementStyleMap.put("startPoint", a);
+		try {
+			if (currentStartPointSerializer != null) {
+				String serialized = currentStartPointSerializer.end();
+				if (serialized != null) {
+					LinkedHashMap<String, String> a = new LinkedHashMap<>();
+					a.put("_corners", serialized);
+					currentElementStyleMap.put("startPoint", a);
+				}
 			}
-		}
-		if (currentBarTagSerializer != null) {
-			String serialized = currentBarTagSerializer.end();
-			if (serialized != null) {
-				LinkedHashMap<String, String> a = new LinkedHashMap<>();
-				a.put("_barTags", serialized);
-				currentElementStyleMap.put("barTag", a);
+			if (currentBarTagSerializer != null) {
+				String serialized = currentBarTagSerializer.end();
+				if (serialized != null) {
+					LinkedHashMap<String, String> a = new LinkedHashMap<>();
+					a.put("_barTags", serialized);
+					currentElementStyleMap.put("barTag", a);
+				}
 			}
-		}
 
-		if (currentElementLabel == null) {
-			Log.warn("Element hasn't label");
-		} else {
-			Map<String, LinkedHashMap<String, String>> styleMapCopy = new LinkedHashMap<>();
-			if (currentElementStyleMap != null) {
-				for (Map.Entry<String, LinkedHashMap<String, String>> entry : currentElementStyleMap.entrySet())
-					styleMapCopy.put(entry.getKey(), new LinkedHashMap<>(entry.getValue()));
-			}
-			labelToStyleMap.put(currentElementLabel, styleMapCopy);
-			labelToElementType.put(currentElementLabel, currentElementType);
-
-			if (pendingOutputLabels.contains(currentElementLabel)) {
-				StyleMapToGpadConverter.extractShowVisibility(currentElementStyleMap);
-				generateStyleSheet(currentElementLabel, currentElementType, currentElementStyleMap);
-				pendingOutputLabels.remove(currentElementLabel);
+			if (currentElementLabel == null) {
+				Log.warn("Element hasn't label");
 			} else {
-				collectPendingElements();
-				collectIndependentElement(currentElementLabel, currentElementType, currentElementStyleMap);
+				Map<String, LinkedHashMap<String, String>> styleMapCopy = new LinkedHashMap<>();
+				if (currentElementStyleMap != null) {
+					for (Map.Entry<String, LinkedHashMap<String, String>> entry : currentElementStyleMap.entrySet())
+						styleMapCopy.put(entry.getKey(), new LinkedHashMap<>(entry.getValue()));
+				}
+				labelToStyleMap.put(currentElementLabel, styleMapCopy);
+				labelToElementType.put(currentElementLabel, currentElementType);
+
+				if (pendingOutputLabels.contains(currentElementLabel)) {
+					StyleMapToGpadConverter.extractShowVisibility(currentElementStyleMap);
+					generateStyleSheet(currentElementLabel, currentElementType, currentElementStyleMap);
+					pendingOutputLabels.remove(currentElementLabel);
+				} else {
+					collectPendingElements();
+					collectIndependentElement(currentElementLabel, currentElementType, currentElementStyleMap);
+				}
 			}
+		} catch (RuntimeException e) {
+			String msg = "Error processing element '"
+					+ currentElementLabel + "': " + e.getMessage();
+			Log.warn(msg);
+			conversionWarnings.add(msg);
 		}
 		inElement = false;
 		elementDepth = 0;
@@ -894,8 +974,27 @@ public class ToGpadConverter implements DocHandler {
 					+ " style element(s) expected for output labels: " + pendingOutputLabels);
 			pendingOutputLabels.clear();
 		}
-		collectPendingExpression();
-		collectPendingCommand();
+		try {
+			collectPendingExpression();
+		} catch (RuntimeException e) {
+			String msg = "Error collecting expression '"
+					+ currentExpressionLabel + "': " + e.getMessage();
+			Log.warn(msg);
+			conversionWarnings.add(msg);
+			currentExpressionLabel = null;
+			currentExpressionExp = null;
+		}
+		try {
+			collectPendingCommand();
+		} catch (RuntimeException e) {
+			String msg = "Error collecting command '"
+					+ currentCommandName + "': " + e.getMessage();
+			Log.warn(msg);
+			conversionWarnings.add(msg);
+			currentCommandName = null;
+			currentInputArgs.clear();
+			currentOutputLabels.clear();
+		}
 	}
 
 	private String generateStyleSheet(String label, String type,
