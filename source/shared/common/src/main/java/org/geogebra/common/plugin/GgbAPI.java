@@ -336,9 +336,32 @@ public abstract class GgbAPI implements JavaScriptAPI {
 			if (macroXml != null && !macroXml.isEmpty())
 				app.addMacroXML(macroXml);
 
+			boolean hasEnv = false;
+			for (org.geogebra.common.gpad.GpadStaticItem item : items) {
+				if (item.type == org.geogebra.common.gpad.GpadStaticItem.Type.ENV) {
+					hasEnv = true;
+					break;
+				}
+			}
+
 			String fullXml = org.geogebra.common.gpad.GpadToXmlStaticConverter
 					.buildFullXml(items, inferWarnings);
 			app.setXML(fullXml, false);
+
+			if (hasEnv && app.getGuiManager() != null) {
+				app.enableUseFullGui();
+				final int w = (int) app.getWidth();
+				final int h = (int) app.getHeight();
+				if (w > 0 && h > 0) {
+					app.setPreferredSize(
+							new org.geogebra.common.awt.GDimension() {
+								@Override public int getWidth() { return w; }
+								@Override public int getHeight() { return h; }
+							});
+				}
+				app.getGuiManager().updateGUIafterLoadFile(true, false);
+				app.updateViewSizes();
+			}
 
 			return returnLabels ? labels.toArray(new String[0]) : new String[0];
 		} catch (org.geogebra.common.gpad.GpadParseException e) {
