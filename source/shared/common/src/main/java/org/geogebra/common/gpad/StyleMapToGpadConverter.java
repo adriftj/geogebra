@@ -65,20 +65,23 @@ public class StyleMapToGpadConverter {
 	/**
 	 * Extracts show.object and show.label from the style map's "show" entry,
 	 * removing them from the attrs. Returns [showObject, showLabel] as booleans.
-	 * If "show" is absent or object/label are absent, defaults to true.
+	 * If "show" is absent, defaults showObject to false (GeoGebra only writes
+	 * the "show" tag for drawable elements; absence means non-drawable/hidden).
+	 * If "object" or "label" attributes are absent within the "show" tag,
+	 * defaults to true.
 	 * If the "show" entry becomes empty after extraction, removes it from the map.
 	 *
 	 * @param styleMap style map (may be modified)
 	 * @return boolean[2]: [0]=showObject, [1]=showLabel
 	 */
 	public static boolean[] extractShowVisibility(Map<String, LinkedHashMap<String, String>> styleMap) {
-		boolean showObject = true;
-		boolean showLabel = true;
 		if (styleMap == null)
-			return new boolean[]{showObject, showLabel};
+			return new boolean[]{false, true};
 		LinkedHashMap<String, String> showAttrs = styleMap.get("show");
 		if (showAttrs == null)
-			return new boolean[]{showObject, showLabel};
+			return new boolean[]{false, true};
+		boolean showObject = true;
+		boolean showLabel = true;
 
 		String objectVal = showAttrs.remove("object");
 		String labelVal = showAttrs.remove("label");

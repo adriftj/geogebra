@@ -1042,7 +1042,11 @@ public class GuiManagerW extends GuiManager
 		if (success && !isMacroFile
 				&& !getApp().getSettings().getLayout().isIgnoringDocumentLayout()) {
 
-			getLayout().setPerspectiveOrDefault(getApp().getTmpPerspective());
+			if (getApp().isUnbundled() && getApp() instanceof AppWFull) {
+				((AppWFull) getApp()).setPerspectiveForUnbundled(null);
+			} else {
+				getLayout().setPerspectiveOrDefault(getApp().getTmpPerspective());
+			}
 
 			if (!getApp().isIniting()) {
 				updateFrameSize(); // checks internally if frame is available

@@ -192,6 +192,12 @@ public class GeoComparisonResult {
 				}
 				for (Element conv : convElems) {
 					if (!isAllDefault(tagName, conv)) {
+						// <show object="false"> on converted means the element was non-drawable
+						// in the original (GeoGebra only writes <show> for drawable elements).
+						// Absence of <show> = non-drawable = hidden, so this is semantically equivalent.
+						if ("show".equals(tagName) && "false".equals(conv.getAttribute("object"))) {
+							continue;
+						}
 						addDifference(tagName, null, "(missing)", attrsToString(conv));
 					}
 				}
