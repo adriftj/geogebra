@@ -646,6 +646,14 @@ public class DefaultExportedApi implements ExportedApi {
 		getGgbAPI().debug(str + "");
 	}
 
+	public int getWidth() {
+		return getGgbAPI().getWidth();
+	}
+
+	public int getHeight() {
+		return getGgbAPI().getHeight();
+	}
+
 	public void setWidth(int width) {
 		getGgbAPI().setWidth(width);
 	}

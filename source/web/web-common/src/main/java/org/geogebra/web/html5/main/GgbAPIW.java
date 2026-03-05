@@ -757,6 +757,20 @@ public class GgbAPIW extends GgbAPI {
 	}
 
 	/**
+	 * @return applet width in pixels
+	 */
+	public int getWidth() {
+		return (int) app.getWidth();
+	}
+
+	/**
+	 * @return applet height in pixels
+	 */
+	public int getHeight() {
+		return (int) app.getHeight();
+	}
+
+	/**
 	 * @param width
 	 *            setst the applet width
 	 */
