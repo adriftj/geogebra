@@ -50,6 +50,7 @@ public class ToGpadConverter implements DocHandler {
 			"coords", "value", "matrix", "slider", "caption", "file", "linkedGeo");
 
 	private final XmlSettingsCollector settingsCollector = new XmlSettingsCollector();
+	private final boolean skipEnv;
 
 	/**
 	 * @return warnings accumulated during the XML-to-GPAD conversion
@@ -59,15 +60,21 @@ public class ToGpadConverter implements DocHandler {
 	}
 
 	public ToGpadConverter(String xmlFile, String xmlMacro, boolean mergeStylesheets) {
+		this(xmlFile, xmlMacro, mergeStylesheets, false);
+	}
+
+	public ToGpadConverter(String xmlFile, String xmlMacro, boolean mergeStylesheets, boolean skipEnv) {
 		this.xmlFile = xmlFile;
 		this.xmlMacro = xmlMacro;
 		this.gpadGenerator = new GpadGenerator(mergeStylesheets, false);
+		this.skipEnv = skipEnv;
 	}
 
 	private ToGpadConverter(boolean mergeStylesheets, boolean inMacroConstruction) {
 		this.xmlFile = null;
 		this.xmlMacro = null;
 		this.gpadGenerator = new GpadGenerator(mergeStylesheets, inMacroConstruction);
+		this.skipEnv = true;
 	}
 
 	public String toGpad() {
@@ -330,7 +337,7 @@ public class ToGpadConverter implements DocHandler {
 
 	private void processAndOutputCollectedObjects(StringBuilder sb) {
 		collectPendingElements();
-		if (settingsCollector.hasAnySettings()) {
+		if (!skipEnv && settingsCollector.hasAnySettings()) {
 			String envSettings = XmlSettingsToGpadEnvConverter.convert(settingsCollector);
 			if (envSettings != null && !envSettings.isEmpty()) {
 				String existingEnv = gpadGenerator.getEnvContent();

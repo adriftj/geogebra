@@ -512,16 +512,29 @@ public abstract class GgbAPI implements JavaScriptAPI {
 
 	/**
 	 * Converts the entire construction to Gpad format.
-	 * 
+	 *
 	 * @param xmlFile complete GeoGebra XML file (with <geogebra> as root element), containing construction content
 	 * @param xmlMacro complete macro XML (with <geogebra> as root element), containing all macro definitions (may contain multiple <macro> elements)
 	 * @param mergeStylesheets whether to merge identical stylesheets
 	 * @return Gpad string representation of the entire construction
 	 */
 	public synchronized String xmlToGpad(String xmlFile, String xmlMacro, boolean mergeStylesheets) {
+		return xmlToGpad(xmlFile, xmlMacro, mergeStylesheets, false);
+	}
+
+	/**
+	 * Converts the entire construction to Gpad format.
+	 *
+	 * @param xmlFile complete GeoGebra XML file (with <geogebra> as root element), containing construction content
+	 * @param xmlMacro complete macro XML (with <geogebra> as root element), containing all macro definitions (may contain multiple <macro> elements)
+	 * @param mergeStylesheets whether to merge identical stylesheets
+	 * @param skipEnv if true, the @@env block is omitted from the output
+	 * @return Gpad string representation of the entire construction
+	 */
+	public synchronized String xmlToGpad(String xmlFile, String xmlMacro, boolean mergeStylesheets, boolean skipEnv) {
 		lastWarning = null;
 		org.geogebra.common.gpad.ToGpadConverter converter =
-				new org.geogebra.common.gpad.ToGpadConverter(xmlFile, xmlMacro, mergeStylesheets);
+				new org.geogebra.common.gpad.ToGpadConverter(xmlFile, xmlMacro, mergeStylesheets, skipEnv);
 		String result = converter.toGpad();
 		java.util.List<String> warnings = converter.getConversionWarnings();
 		if (!warnings.isEmpty()) {
@@ -537,9 +550,20 @@ public abstract class GgbAPI implements JavaScriptAPI {
 	 * @return Gpad string representation of the current construction
 	 */
 	public synchronized String getGpad(boolean mergeStylesheets) {
+		return getGpad(mergeStylesheets, false);
+	}
+
+	/**
+	 * Exports the current construction (including macros) as Gpad text.
+	 *
+	 * @param mergeStylesheets whether to merge identical stylesheets
+	 * @param skipEnv if true, the @@env block is omitted from the output
+	 * @return Gpad string representation of the current construction
+	 */
+	public synchronized String getGpad(boolean mergeStylesheets, boolean skipEnv) {
 		String xml = app.getXML();
 		String macroXml = app.getAllMacrosXMLorEmpty();
-		return xmlToGpad(xml, macroXml, mergeStylesheets);
+		return xmlToGpad(xml, macroXml, mergeStylesheets, skipEnv);
 	}
 
 	/**

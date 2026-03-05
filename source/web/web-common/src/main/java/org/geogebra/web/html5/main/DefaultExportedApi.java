@@ -1264,13 +1264,16 @@ public class DefaultExportedApi implements ExportedApi {
 	 * @param mergeStylesheets whether to merge identical stylesheets (optional, default false)
 	 * @return Gpad string representation of the current construction
 	 */
-	public String getGpad(@TS(TS.OPTIONAL_BOOL) Object mergeStylesheets) {
-		return getGgbAPI().getGpad(Js.isTruthy(mergeStylesheets));
+	public String getGpad(@TS(TS.OPTIONAL_BOOL) Object mergeStylesheets,
+			@TS(TS.OPTIONAL_BOOL) Object skipEnv) {
+		return getGgbAPI().getGpad(Js.isTruthy(mergeStylesheets), Js.isTruthy(skipEnv));
 	}
 
-	public String xmlToGpad(String xmlFile, String xmlMacro, @TS(TS.OPTIONAL_BOOL) Object mergeStylesheets) {
-		boolean merge = Js.isTruthy(mergeStylesheets);
-		return getGgbAPI().xmlToGpad(xmlFile + "", xmlMacro + "", merge);
+	public String xmlToGpad(String xmlFile, String xmlMacro,
+			@TS(TS.OPTIONAL_BOOL) Object mergeStylesheets,
+			@TS(TS.OPTIONAL_BOOL) Object skipEnv) {
+		return getGgbAPI().xmlToGpad(xmlFile + "", xmlMacro + "",
+				Js.isTruthy(mergeStylesheets), Js.isTruthy(skipEnv));
 	}
 
 	/**
